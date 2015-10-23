@@ -12,8 +12,8 @@
 guard :rspec, cmd: 'bundle exec rspec' do
   watch(%r{^spec/.+_spec\.rb$})
   watch(%r{^lib/(.+)\.rb$}) { |m| "spec/lib/#{m[1]}_spec.rb" }
-  watch(%r{^lib/sidekiq_bolt\.rb$}) { "spec" }
-  watch(%r{^lib/sidekiq_bolt/(.+)\.rb}) { |m| "spec/classes/#{m[1]}_spec.rb" }
+  watch(%r{^lib/sidekiq/bolt\.rb$}) { "spec" }
+  watch(%r{^lib/sidekiq/bolt/(.+)\.rb}) { |m| "spec/classes/#{m[1]}_spec.rb" }
   watch('spec/spec_helper.rb') { "spec" }
   watch(%r{^spec/shared_examples/(.+)\.rb}) { "spec" }
   watch(%r{^spec/helpers/(.+)\.rb}) { "spec" }
