@@ -1,4 +1,4 @@
-# tiered_caching
+# sidekiq_bolt
 
 ## Copyright
 
