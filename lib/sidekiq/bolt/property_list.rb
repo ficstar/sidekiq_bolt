@@ -2,7 +2,7 @@ module Sidekiq
   module Bolt
     module PropertyList
 
-      def define_property(namespace, property)
+      def define_property(namespace, property, type = nil)
         instance_variable = :"@#{property}"
 
         define_method("#{property}=") do |value|
@@ -17,6 +17,7 @@ module Sidekiq
             return result if result
 
             result = conn.get("#{namespace}:#{property}")
+            result = result.to_i if type == :int
             instance_variable_set(instance_variable, result)
           end
         end

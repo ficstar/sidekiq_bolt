@@ -76,6 +76,14 @@ describe Sidekiq::Bolt::PropertyList do
         expect(subject.type).to eq('Q')
       end
     end
+
+    context 'with an integer property' do
+      it 'should keep the value as an integer' do
+        property_klass.define_property(:queue, :busy, :int)
+        subject.busy = 5
+        expect(property_klass.new.busy).to eq(5)
+      end
+    end
   end
 
 end
