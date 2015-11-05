@@ -101,6 +101,17 @@ module Sidekiq
                 expect(subject.allocated).to eq(5)
               end
             end
+
+            context 'when the limit changes' do
+              let(:amount) { 5 }
+
+              it 'should leave the current allocation alone' do
+                subject.allocate(amount)
+                subject.limit = 1
+                subject.allocate(amount)
+                expect(subject.allocated).to eq(5)
+              end
+            end
           end
         end
       end

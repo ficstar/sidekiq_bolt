@@ -11,6 +11,10 @@ if limit then
     local to_return = limit - allocated
 
     if to_return < 0 then
+        if -to_return > amount then
+            to_return = -amount
+        end
+
         redis.call('incrby', allocated_key, to_return)
     end
 end
