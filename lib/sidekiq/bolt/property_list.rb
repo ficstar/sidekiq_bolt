@@ -8,7 +8,7 @@ module Sidekiq
         define_method("#{property}=") do |value|
           Bolt.redis do |conn|
             instance_variable_set(instance_variable, value)
-            conn.set("#{namespace}:#{property}", value)
+            conn.set("#{namespace}:#{name}", value)
           end
         end
         define_method(property) do
@@ -16,7 +16,7 @@ module Sidekiq
             result = instance_variable_get(instance_variable)
             return result if result
 
-            result = conn.get("#{namespace}:#{property}")
+            result = conn.get("#{namespace}:#{name}")
             result = result.to_i if type == :int
             instance_variable_set(instance_variable, result)
           end
