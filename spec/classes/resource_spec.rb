@@ -107,12 +107,26 @@ module Sidekiq
       describe '#allocate' do
         let(:amount) { 5 }
         let(:limit) { nil }
+        let(:workload) { amount.times.map { SecureRandom.uuid } }
+        let(:allocated_work) do
+          workload.reverse.map do |work|
+            [queue, work]
+          end.flatten
+        end
+        let(:queue) { 'queue' }
 
-        before { subject.limit = limit }
+        before do
+          subject.limit = limit
+          workload.each { |work| subject.add_work(queue, work) }
+        end
 
         it 'should allocate the specified amount from the resource' do
           subject.allocate(amount)
           expect(subject.allocated).to eq(5)
+        end
+
+        it 'should return the allocated work (in reverse order) paired with the source queue' do
+          expect(subject.allocate(amount)).to eq(allocated_work)
         end
 
         context 'with a different workload' do
@@ -121,6 +135,15 @@ module Sidekiq
           it 'should allocate the specified amount from the resource' do
             subject.allocate(amount)
             expect(subject.allocated).to eq(17)
+          end
+        end
+
+        context 'when the queue does not contain enough work' do
+          let(:workload) { 2.times.map { SecureRandom.uuid } }
+
+          it 'should only allocate what is available' do
+            subject.allocate(amount)
+            expect(subject.allocated).to eq(2)
           end
         end
 
@@ -166,7 +189,10 @@ module Sidekiq
       end
 
       describe '#free' do
-        before { subject.allocate(5) }
+        before do
+          5.times { subject.add_work('queue', SecureRandom.uuid) }
+          subject.allocate(5)
+        end
 
         it 'should decrement the allocation count' do
           subject.free

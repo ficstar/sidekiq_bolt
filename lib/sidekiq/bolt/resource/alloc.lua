@@ -6,6 +6,13 @@ local amount = tonumber(table.remove(ARGV, 1))
 
 local limit = tonumber(redis.call('get', limit_key))
 
+local queue_key = namespace .. 'resource:queue:' .. 'queue' .. ':' .. 'resourceful'
+local queue_limit = redis.call('llen', queue_key)
+
+if queue_limit < amount then
+    amount = queue_limit
+end
+
 local allocated = redis.call('incrby', allocated_key, amount)
 if limit then
     local to_return = limit - allocated
@@ -18,3 +25,13 @@ if limit then
         redis.call('incrby', allocated_key, to_return)
     end
 end
+
+local queue_items = redis.call('lrange', queue_key, 0, -1)
+local workload = {}
+
+for _, work in ipairs(queue_items) do
+    table.insert(workload, 'queue')
+    table.insert(workload, work)
+end
+
+return workload
