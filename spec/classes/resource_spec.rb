@@ -18,7 +18,7 @@ module Sidekiq
         end
 
         it 'should store the value in redis' do
-          expect(global_redis.get('resource_type:resourceful')).to eq('zippers')
+          expect(global_redis.get('resource:type:resourceful')).to eq('zippers')
         end
       end
 
@@ -32,11 +32,26 @@ module Sidekiq
         end
 
         it 'should store the value in redis' do
-          expect(global_redis.get('resource_limit:resourceful')).to eq('5')
+          expect(global_redis.get('resource:limit:resourceful')).to eq('5')
         end
 
         it 'should be an integer property' do
           expect(Resource.new(name).limit).to eq(5)
+        end
+      end
+
+      describe '#allocated' do
+        let(:busy) { 5 }
+
+        before { global_redis.set("resource:allocated:#{name}", busy) }
+
+        its(:allocated) { is_expected.to eq(5) }
+
+        context 'with a different resource' do
+          let(:busy) { 15 }
+          let(:name) { 'really_busy' }
+
+          its(:allocated) { is_expected.to eq(15) }
         end
       end
 
