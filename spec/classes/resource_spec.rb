@@ -55,6 +55,56 @@ module Sidekiq
         end
       end
 
+      describe '#allocate' do
+        let(:amount) { 5 }
+        let(:limit) { nil }
+
+        before { subject.limit = limit }
+
+        it 'should allocate the specified amount from the resource' do
+          subject.allocate(amount)
+          expect(subject.allocated).to eq(5)
+        end
+
+        context 'with a different workload' do
+          let(:amount) { 17 }
+
+          it 'should allocate the specified amount from the resource' do
+            subject.allocate(amount)
+            expect(subject.allocated).to eq(17)
+          end
+        end
+
+        context 'when allocated multiple times' do
+          it 'should allocate the specified amount from the resource' do
+            2.times { subject.allocate(amount) }
+            expect(subject.allocated).to eq(10)
+          end
+        end
+
+        context 'with a limit specified' do
+          let(:limit) { 5 }
+
+          context 'when allocating more than the limit' do
+            let(:amount) { 7 }
+
+            it 'should allocate no more than the available amount of resources' do
+              subject.allocate(amount)
+              expect(subject.allocated).to eq(5)
+            end
+
+            context 'when called multiple times' do
+              let(:amount) { 3 }
+
+              it 'should allocate no more than the available amount of resources' do
+                2.times { subject.allocate(amount) }
+                expect(subject.allocated).to eq(5)
+              end
+            end
+          end
+        end
+      end
+
     end
   end
 end
