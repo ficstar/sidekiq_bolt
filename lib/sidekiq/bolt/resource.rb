@@ -21,6 +21,10 @@ module Sidekiq
         end
       end
 
+      def free
+        Bolt.redis { |redis| redis.decr(allocated_key) }
+      end
+
       private
 
       def allocated_key

@@ -116,6 +116,15 @@ module Sidekiq
         end
       end
 
+      describe '#free' do
+        before { subject.allocate(5) }
+
+        it 'should decrement the allocation count' do
+          subject.free
+          expect(subject.allocated).to eq(4)
+        end
+      end
+
     end
   end
 end
