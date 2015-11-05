@@ -55,6 +55,35 @@ module Sidekiq
         end
       end
 
+      describe '#add_work' do
+        let(:work) { 'piece_of_work' }
+        let(:queue) { 'workload' }
+
+        it 'should add the new work to the specified queue' do
+          subject.add_work(queue, work)
+          expect(global_redis.rpop('resource:queue:workload:resourceful')).to eq('piece_of_work')
+        end
+
+        context 'with a different resource and queue' do
+          let(:name) { 'heavy_duty' }
+          let(:work) { 'hard_work' }
+          let(:queue) { 'heavy_workload' }
+
+          it 'should add the new work to the specified queue' do
+            subject.add_work(queue, work)
+            expect(global_redis.rpop('resource:queue:heavy_workload:heavy_duty')).to eq('hard_work')
+          end
+        end
+
+        context 'when called multiple times' do
+          it 'should add the new work to the queue from the left' do
+            subject.add_work(queue, work)
+            subject.add_work(queue, 'other_work')
+            expect(global_redis.rpop('resource:queue:workload:resourceful')).to eq('piece_of_work')
+          end
+        end
+      end
+
       describe '#allocate' do
         let(:amount) { 5 }
         let(:limit) { nil }
