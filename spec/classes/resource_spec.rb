@@ -64,6 +64,16 @@ module Sidekiq
           expect(global_redis.rpop('resource:queue:workload:resourceful')).to eq('piece_of_work')
         end
 
+        it 'should associate the queue with the resource' do
+          subject.add_work(queue, work)
+          expect(global_redis.smembers('resource:queues:resourceful')).to include('workload')
+        end
+
+        it 'should store the resource in the global list' do
+          subject.add_work(queue, work)
+          expect(global_redis.smembers('resources:')).to include('resourceful')
+        end
+
         context 'with a different resource and queue' do
           let(:name) { 'heavy_duty' }
           let(:work) { 'hard_work' }
@@ -72,6 +82,16 @@ module Sidekiq
           it 'should add the new work to the specified queue' do
             subject.add_work(queue, work)
             expect(global_redis.rpop('resource:queue:heavy_workload:heavy_duty')).to eq('hard_work')
+          end
+
+          it 'should associate the queue with the resource' do
+            subject.add_work(queue, work)
+            expect(global_redis.smembers('resource:queues:heavy_duty')).to include('heavy_workload')
+          end
+
+          it 'should store the resource in the global list' do
+            subject.add_work(queue, work)
+            expect(global_redis.smembers('resources:')).to include('heavy_duty')
           end
         end
 

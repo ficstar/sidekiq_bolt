@@ -7,6 +7,8 @@ module Sidekiq
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
       ALLOCATE_SCRIPT_PATH = "#{SCRIPT_ROOT}/alloc.lua"
       ALLOCATE_SCRIPT = File.read(ALLOCATE_SCRIPT_PATH)
+      ADD_WORK_SCRIPT_PATH = "#{SCRIPT_ROOT}/add_work.lua"
+      ADD_WORK_SCRIPT = File.read(ADD_WORK_SCRIPT_PATH)
 
       define_property 'resource:type', :type
       define_property 'resource:limit', :limit, :int
@@ -17,7 +19,7 @@ module Sidekiq
 
       def add_work(queue, work)
         Bolt.redis do |redis|
-          redis.lpush("resource:queue:#{queue}:#{name}", work)
+          redis.eval(ADD_WORK_SCRIPT, keys: [''], argv: [queue, name, work])
         end
       end
 

@@ -8,6 +8,7 @@ module RedisHelpers
   let(:global_redis) { Redis::Namespace.new(global_namespace, redis: global_redis_conn) }
 
   before do
+    Sidekiq.redis = {url: 'redis://redis.dev/13', namespace: :bolt}
     keys = global_redis.keys
     global_redis.pipelined do
       keys.each { |key| global_redis.del(key) }
