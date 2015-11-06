@@ -129,6 +129,11 @@ module Sidekiq
           expect(subject.allocate(amount)).to eq(allocated_work)
         end
 
+        it 'should remove the work from the queue' do
+          subject.allocate(amount)
+          expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+        end
+
         it 'should increment the busy count on the queue' do
           subject.allocate(amount)
           expect(global_redis.get('queue:busy:queue')).to eq('5')
@@ -163,6 +168,8 @@ module Sidekiq
         end
 
         context 'when allocated multiple times' do
+          let(:workload) { (2 * amount).times.map { SecureRandom.uuid } }
+
           it 'should allocate the specified amount from the resource' do
             2.times { subject.allocate(amount) }
             expect(subject.allocated).to eq(10)
@@ -196,6 +203,7 @@ module Sidekiq
 
             context 'when called multiple times' do
               let(:amount) { 3 }
+              let(:workload) { limit.times.map { SecureRandom.uuid } }
 
               it 'should allocate no more than the available amount of resources' do
                 2.times { subject.allocate(amount) }
