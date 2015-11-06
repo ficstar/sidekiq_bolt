@@ -21,6 +21,20 @@ module Sidekiq
         Bolt.redis { |redis| redis.smembers('resources') }.map { |name| new(name) }
       end
 
+      def frozen=(value)
+        Bolt.redis do |redis|
+          if value
+            redis.set("resource:frozen:#{name}", 1)
+          else
+            redis.del("resource:frozen:#{name}")
+          end
+        end
+      end
+
+      def frozen
+        Bolt.redis { |redis| !!redis.get("resource:frozen:#{name}") }
+      end
+
       def allocated
         Bolt.redis { |redis| redis.get(allocated_key).to_i }
       end

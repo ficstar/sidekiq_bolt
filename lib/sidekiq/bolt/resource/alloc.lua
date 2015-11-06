@@ -3,6 +3,10 @@ local resource_name = table.remove(ARGV, 1)
 local allocated_key = namespace .. 'resource:allocated:' .. resource_name
 local limit_key = namespace .. 'resource:limit:' .. resource_name
 local total_amount = tonumber(table.remove(ARGV, 1))
+local frozen_key = namespace .. 'resource:frozen:' .. resource_name
+local frozen = redis.call('get', frozen_key)
+
+if frozen then return {} end
 
 local limit = tonumber(redis.call('get', limit_key))
 local queue_names = ARGV

@@ -57,6 +57,71 @@ module Sidekiq
         end
       end
 
+      describe '#frozen=' do
+        let(:frozen) { false }
+
+        before do
+          subject.frozen = true
+          subject.frozen = frozen
+        end
+
+        it 'should store the value in redis' do
+          expect(!!global_redis.get('resource:frozen:resourceful')).to eq(false)
+        end
+
+        context 'when frozen' do
+          let(:frozen) { true }
+
+          it 'should store the value in redis' do
+            expect(!!global_redis.get('resource:frozen:resourceful')).to eq(true)
+          end
+        end
+
+        context 'with a different resource' do
+          let(:name) { 'resource-ified' }
+
+          it 'should store the value in redis' do
+            expect(!!global_redis.get('resource:frozen:resource-ified')).to eq(false)
+          end
+
+          context 'when frozen' do
+            let(:frozen) { true }
+
+            it 'should store the value in redis' do
+              expect(!!global_redis.get('resource:frozen:resource-ified')).to eq(true)
+            end
+          end
+        end
+      end
+
+      describe '#frozen' do
+        let(:frozen) { false }
+
+        subject { Resource.new(name).frozen }
+
+        before { Resource.new(name).frozen = frozen }
+
+        it { is_expected.to eq(false) }
+
+        context 'when frozen' do
+          let(:frozen) { true }
+
+          it { is_expected.to eq(true) }
+        end
+
+        context 'with a different resource' do
+          let(:name) { 'resource-ified' }
+
+          it { is_expected.to eq(false) }
+
+          context 'when frozen' do
+            let(:frozen) { true }
+
+            it { is_expected.to eq(true) }
+          end
+        end
+      end
+
       describe '#allocated' do
         let(:busy) { 5 }
 
@@ -212,6 +277,15 @@ module Sidekiq
           expect(global_redis.get('queue:busy:queue')).to eq('5')
         end
 
+        context 'when the resource is frozen' do
+          before { subject.frozen = true }
+
+          it 'should not allocate anything' do
+            subject.allocate(amount)
+            expect(subject.allocated).to eq(0)
+          end
+        end
+
         context 'with a different resource' do
           let(:name) { 'resourceless' }
 
@@ -222,6 +296,15 @@ module Sidekiq
           it 'should remove the work from the queue' do
             subject.allocate(amount)
             expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+          end
+
+          context 'when the resource is frozen' do
+            before { subject.frozen = true }
+
+            it 'should not allocate anything' do
+              subject.allocate(amount)
+              expect(subject.allocated).to eq(0)
+            end
           end
         end
 
