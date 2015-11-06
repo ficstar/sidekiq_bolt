@@ -129,12 +129,22 @@ module Sidekiq
           expect(subject.allocate(amount)).to eq(allocated_work)
         end
 
+        it 'should increment the busy count on the queue' do
+          subject.allocate(amount)
+          expect(global_redis.get('queue:busy:queue')).to eq('5')
+        end
+
         context 'with a different workload' do
           let(:amount) { 17 }
 
           it 'should allocate the specified amount from the resource' do
             subject.allocate(amount)
             expect(subject.allocated).to eq(17)
+          end
+
+          it 'should increment the busy count on the queue' do
+            subject.allocate(amount)
+            expect(global_redis.get('queue:busy:queue')).to eq('17')
           end
         end
 
@@ -144,6 +154,11 @@ module Sidekiq
           it 'should only allocate what is available' do
             subject.allocate(amount)
             expect(subject.allocated).to eq(2)
+          end
+
+          it 'should increment the busy count on the queue by the amount of actual work' do
+            subject.allocate(amount)
+            expect(global_redis.get('queue:busy:queue')).to eq('2')
           end
         end
 
@@ -158,11 +173,25 @@ module Sidekiq
           let(:limit) { 5 }
 
           context 'when allocating more than the limit' do
+            let(:allocated_work) do
+              workload.reverse[0...limit].map do |work|
+                [queue, work]
+              end.flatten
+            end
             let(:amount) { 7 }
 
             it 'should allocate no more than the available amount of resources' do
               subject.allocate(amount)
               expect(subject.allocated).to eq(5)
+            end
+
+            it 'should return the allocated work' do
+              expect(subject.allocate(amount)).to match_array(allocated_work)
+            end
+
+            it 'should increment the busy count on the queue by the amount of actual work' do
+              subject.allocate(amount)
+              expect(global_redis.get('queue:busy:queue')).to eq('5')
             end
 
             context 'when called multiple times' do
