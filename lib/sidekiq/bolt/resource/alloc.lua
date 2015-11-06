@@ -6,7 +6,7 @@ local total_amount = tonumber(table.remove(ARGV, 1))
 
 local limit = tonumber(redis.call('get', limit_key))
 local resource_queues_key = namespace .. 'resource:queues:' .. resource_name
-local queue_names = redis.call('smembers', resource_queues_key)
+local queue_names = ARGV
 
 local workload = {}
 

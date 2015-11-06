@@ -152,8 +152,13 @@ module Sidekiq
           end.flatten
         end
         let(:queue) { 'queue' }
+        let(:list_of_queues) { [queue] }
+        let(:shuffled_queues) { list_of_queues }
 
         before do
+          allow(subject).to receive(:queues).and_return(list_of_queues)
+          allow(list_of_queues).to receive(:shuffle).and_return(shuffled_queues)
+
           subject.limit = limit
           workload.each { |work| subject.add_work(queue, work) }
         end
@@ -277,6 +282,7 @@ module Sidekiq
               [queue_two, work]
             end.flatten
           end
+          let(:list_of_queues) { [queue, queue_two] }
 
           before do
             workload_two.each { |work| subject.add_work(queue_two, work) }
@@ -291,6 +297,14 @@ module Sidekiq
 
             it 'should return only the allocated work requested' do
               expect(subject.allocate(amount)).to match_array(allocated_work)
+            end
+
+            describe 'load balancing' do
+              let(:shuffled_queues) { list_of_queues.reverse }
+
+              it 'should shuffle the list of queues' do
+                expect(subject.allocate(amount)).to match_array(allocated_work_two)
+              end
             end
           end
         end
