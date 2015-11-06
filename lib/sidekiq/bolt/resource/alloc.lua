@@ -2,7 +2,7 @@ local namespace = table.remove(KEYS, 1)
 local resource_name = table.remove(ARGV, 1)
 local allocated_key = namespace .. 'resource:allocated:' .. resource_name
 local limit_key = namespace .. 'resource:limit:' .. resource_name
-local amount = tonumber(table.remove(ARGV, 1))
+local total_amount = tonumber(table.remove(ARGV, 1))
 
 local limit = tonumber(redis.call('get', limit_key))
 local resource_queues_key = namespace .. 'resource:queues:' .. resource_name
@@ -11,6 +11,10 @@ local queue_names = redis.call('smembers', resource_queues_key)
 local workload = {}
 
 for _, queue in ipairs(queue_names) do
+    if total_amount <= 0 then break end
+
+    local amount = total_amount
+
     local queue_key = namespace .. 'resource:queue:' .. queue .. ':' .. 'resourceful'
     local queue_busy_key = namespace .. 'queue:busy:' .. queue
     local queue_limit = redis.call('llen', queue_key)
@@ -43,6 +47,8 @@ for _, queue in ipairs(queue_names) do
         table.insert(workload, queue)
         table.insert(workload, work)
     end
+
+    total_amount = total_amount - amount
 end
 
 return workload

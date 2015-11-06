@@ -248,6 +248,13 @@ module Sidekiq
             expect(subject.allocate(amount)).to match_array(allocated_work + allocated_work_two)
           end
 
+          context 'when the amount of work available is greater than the work requested' do
+            let(:amount) { 5 }
+
+            it 'should return only the allocated work requested' do
+              expect(subject.allocate(amount)).to match_array(allocated_work)
+            end
+          end
         end
       end
 
