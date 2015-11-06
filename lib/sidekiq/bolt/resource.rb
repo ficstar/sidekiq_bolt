@@ -19,6 +19,10 @@ module Sidekiq
         Bolt.redis { |redis| redis.get(allocated_key).to_i }
       end
 
+      def queues
+        Bolt.redis { |redis| redis.smembers("resource:queues:#{name}") }
+      end
+
       def add_work(queue, work)
         Bolt.redis do |redis|
           redis.eval(ADD_WORK_SCRIPT, keys: [''], argv: [queue, name, work])
