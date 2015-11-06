@@ -223,6 +223,32 @@ module Sidekiq
             end
           end
         end
+
+        context 'with multiple queues' do
+          let(:amount) { 10 }
+          let(:workload) { 5.times.map { SecureRandom.uuid } }
+          let(:workload_two) { 5.times.map { SecureRandom.uuid } }
+          let(:queue_two) { 'queue_two' }
+          let(:allocated_work) do
+            workload.reverse.map do |work|
+              [queue, work]
+            end.flatten
+          end
+          let(:allocated_work_two) do
+            workload_two.reverse.map do |work|
+              [queue_two, work]
+            end.flatten
+          end
+
+          before do
+            workload_two.each { |work| subject.add_work(queue_two, work) }
+          end
+
+          it 'should return the allocated work paired with the source queue' do
+            expect(subject.allocate(amount)).to match_array(allocated_work + allocated_work_two)
+          end
+
+        end
       end
 
       describe '#free' do
