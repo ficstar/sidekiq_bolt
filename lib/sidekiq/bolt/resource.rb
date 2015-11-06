@@ -15,6 +15,10 @@ module Sidekiq
       define_property 'resource:type', :type
       define_property 'resource:limit', :limit, :int
 
+      def self.all
+        Bolt.redis { |redis| redis.smembers('resources') }.map { |name| new(name) }
+      end
+
       def allocated
         Bolt.redis { |redis| redis.get(allocated_key).to_i }
       end

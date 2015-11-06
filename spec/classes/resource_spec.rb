@@ -8,6 +8,23 @@ module Sidekiq
 
       subject { Resource.new(name) }
 
+      describe '#all' do
+        let(:resource_names) { %w(res1 res2 res3) }
+        let(:resources) { resource_names.map { |name| Resource.new(name) } }
+
+        subject { Resource.all }
+
+        before { resources.each { |resource| resource.add_work('queue', '') } }
+
+        it { is_expected.to match_array(resources) }
+
+        context 'with a different list of resources' do
+          let(:resource_names) { %w(heav_resource light_weight resourceful) }
+
+          it { is_expected.to match_array(resources) }
+        end
+      end
+
       describe '#type' do
         let(:type) { 'zippers' }
 
@@ -71,7 +88,7 @@ module Sidekiq
 
         it 'should store the resource in the global list' do
           subject.add_work(queue, work)
-          expect(global_redis.smembers('resources:')).to include('resourceful')
+          expect(global_redis.smembers('resources')).to include('resourceful')
         end
 
         context 'with a different resource and queue' do
@@ -91,7 +108,7 @@ module Sidekiq
 
           it 'should store the resource in the global list' do
             subject.add_work(queue, work)
-            expect(global_redis.smembers('resources:')).to include('heavy_duty')
+            expect(global_redis.smembers('resources')).to include('heavy_duty')
           end
         end
 
