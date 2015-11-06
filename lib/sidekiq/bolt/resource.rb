@@ -9,6 +9,8 @@ module Sidekiq
       ALLOCATE_SCRIPT = File.read(ALLOCATE_SCRIPT_PATH)
       ADD_WORK_SCRIPT_PATH = "#{SCRIPT_ROOT}/add_work.lua"
       ADD_WORK_SCRIPT = File.read(ADD_WORK_SCRIPT_PATH)
+      SIZE_SCRIPT_PATH = "#{SCRIPT_ROOT}/size.lua"
+      SIZE_SCRIPT = File.read(SIZE_SCRIPT_PATH)
       FREE_SCRIPT_PATH = "#{SCRIPT_ROOT}/free.lua"
       FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
 
@@ -28,7 +30,9 @@ module Sidekiq
       end
 
       def size
-        Bolt.redis { |redis| queues.map { |queue| redis.llen("resource:queue:#{queue}:#{name}") } }.reduce(&:+) || 0
+        Bolt.redis do |redis|
+          redis.eval(SIZE_SCRIPT, keys: [''], argv: [name])
+        end
       end
 
       def add_work(queue, work)
