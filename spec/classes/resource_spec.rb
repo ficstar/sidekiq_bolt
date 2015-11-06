@@ -226,14 +226,37 @@ module Sidekiq
       end
 
       describe '#free' do
+        let(:queue) { 'queue' }
+
         before do
-          5.times { subject.add_work('queue', SecureRandom.uuid) }
-          subject.allocate(5)
+          5.times { subject.add_work(queue, SecureRandom.uuid) }
+          global_redis.incrby("resource:allocated:#{name}", 5)
+          global_redis.incrby("queue:busy:#{queue}", 5)
         end
 
         it 'should decrement the allocation count' do
-          subject.free
+          subject.free(queue)
           expect(subject.allocated).to eq(4)
+        end
+
+        it 'should decrement the queue busy count' do
+          subject.free(queue)
+          expect(global_redis.get('queue:busy:queue')).to eq('4')
+        end
+
+        context 'with a different resource' do
+          let(:name) { 'heavy_workload' }
+          let(:queue) { 'busy_queue' }
+
+          it 'should decrement the allocation count' do
+            subject.free(queue)
+            expect(subject.allocated).to eq(4)
+          end
+
+          it 'should decrement the queue busy count' do
+            subject.free(queue)
+            expect(global_redis.get('queue:busy:busy_queue')).to eq('4')
+          end
         end
       end
 

@@ -9,6 +9,8 @@ module Sidekiq
       ALLOCATE_SCRIPT = File.read(ALLOCATE_SCRIPT_PATH)
       ADD_WORK_SCRIPT_PATH = "#{SCRIPT_ROOT}/add_work.lua"
       ADD_WORK_SCRIPT = File.read(ADD_WORK_SCRIPT_PATH)
+      FREE_SCRIPT_PATH = "#{SCRIPT_ROOT}/free.lua"
+      FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
 
       define_property 'resource:type', :type
       define_property 'resource:limit', :limit, :int
@@ -29,8 +31,10 @@ module Sidekiq
         end
       end
 
-      def free
-        Bolt.redis { |redis| redis.decr(allocated_key) }
+      def free(queue)
+        Bolt.redis do |redis|
+          redis.eval(FREE_SCRIPT, keys: [''], argv: [queue, name])
+        end
       end
 
       private
