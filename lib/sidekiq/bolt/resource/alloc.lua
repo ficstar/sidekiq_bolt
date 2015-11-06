@@ -5,7 +5,6 @@ local limit_key = namespace .. 'resource:limit:' .. resource_name
 local total_amount = tonumber(table.remove(ARGV, 1))
 
 local limit = tonumber(redis.call('get', limit_key))
-local resource_queues_key = namespace .. 'resource:queues:' .. resource_name
 local queue_names = ARGV
 
 local workload = {}
@@ -15,7 +14,7 @@ for _, queue in ipairs(queue_names) do
 
     local amount = total_amount
 
-    local queue_key = namespace .. 'resource:queue:' .. queue .. ':' .. 'resourceful'
+    local queue_key = namespace .. 'resource:queue:' .. queue .. ':' .. resource_name
     local queue_busy_key = namespace .. 'queue:busy:' .. queue
     local queue_limit = redis.call('llen', queue_key)
 

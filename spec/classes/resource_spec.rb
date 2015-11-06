@@ -142,6 +142,36 @@ module Sidekiq
         end
       end
 
+      describe '#size' do
+        let(:queues) { %w(queue1 queue2) }
+        let(:work) { 2 }
+
+        before do
+          queues.each { |queue| work.times { subject.add_work(queue, SecureRandom.uuid) } }
+        end
+
+        its(:size) { is_expected.to eq(4) }
+
+        context 'with no queues' do
+          let(:queues) { [] }
+
+          its(:size) { is_expected.to eq(0) }
+        end
+
+        context 'with a different resource' do
+          let(:name) { 'heavy_worker' }
+          let(:queues) { %w(big_queue1 big_queue2 big_queue3) }
+
+          its(:size) { is_expected.to eq(6) }
+        end
+
+        context 'with a different amount of work' do
+          let(:work) { 4 }
+
+          its(:size) { is_expected.to eq(8) }
+        end
+      end
+
       describe '#allocate' do
         let(:amount) { 5 }
         let(:limit) { nil }
@@ -180,6 +210,19 @@ module Sidekiq
         it 'should increment the busy count on the queue' do
           subject.allocate(amount)
           expect(global_redis.get('queue:busy:queue')).to eq('5')
+        end
+
+        context 'with a different resource' do
+          let(:name) { 'resourceless' }
+
+          it 'should return the allocated work' do
+            expect(subject.allocate(amount)).to eq(allocated_work)
+          end
+
+          it 'should remove the work from the queue' do
+            subject.allocate(amount)
+            expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+          end
         end
 
         context 'with a different workload' do

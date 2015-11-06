@@ -27,6 +27,10 @@ module Sidekiq
         Bolt.redis { |redis| redis.smembers("resource:queues:#{name}") }
       end
 
+      def size
+        Bolt.redis { |redis| queues.map { |queue| redis.llen("resource:queue:#{queue}:#{name}") } }.reduce(&:+) || 0
+      end
+
       def add_work(queue, work)
         Bolt.redis do |redis|
           redis.eval(ADD_WORK_SCRIPT, keys: [''], argv: [queue, name, work])
