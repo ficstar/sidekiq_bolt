@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = ''
   s.authors = ['Thomas RM Rogers']
   s.email = 'thomasrogers03@gmail.com'
-  s.files = Dir['{lib}/**/*.rb', 'bin/*', 'LICENSE.txt', '*.md']
+  s.files = Dir['{lib}/**/*.rb', '{lib}/**/*.lua', 'bin/*', 'LICENSE.txt', '*.md']
   s.require_path = 'lib'
   s.homepage = ''
 end
