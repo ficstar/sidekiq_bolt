@@ -13,6 +13,7 @@ module Sidekiq
       SIZE_SCRIPT = File.read(SIZE_SCRIPT_PATH)
       FREE_SCRIPT_PATH = "#{SCRIPT_ROOT}/free.lua"
       FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
+      NAMESPACE_KEY = [''].freeze
 
       define_property 'resource:type', :type
       define_property 'resource:limit', :limit, :int
@@ -45,25 +46,25 @@ module Sidekiq
 
       def size
         Bolt.redis do |redis|
-          redis.eval(SIZE_SCRIPT, keys: [''], argv: [name])
+          redis.eval(SIZE_SCRIPT, keys: NAMESPACE_KEY, argv: [name])
         end
       end
 
       def add_work(queue, work)
         Bolt.redis do |redis|
-          redis.eval(ADD_WORK_SCRIPT, keys: [''], argv: [queue, name, work])
+          redis.eval(ADD_WORK_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work])
         end
       end
 
       def allocate(amount)
         Bolt.redis do |redis|
-          redis.eval(ALLOCATE_SCRIPT, keys: [''], argv: [name, amount, Socket.gethostname, *queues.shuffle])
+          redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, amount, Socket.gethostname, *queues.shuffle])
         end
       end
 
       def free(queue)
         Bolt.redis do |redis|
-          redis.eval(FREE_SCRIPT, keys: [''], argv: [queue, name])
+          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name])
         end
       end
 
