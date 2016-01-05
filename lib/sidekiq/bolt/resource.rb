@@ -57,7 +57,7 @@ module Sidekiq
 
       def allocate(amount)
         Bolt.redis do |redis|
-          redis.eval(ALLOCATE_SCRIPT, keys: [''], argv: [name, amount, *queues.shuffle])
+          redis.eval(ALLOCATE_SCRIPT, keys: [''], argv: [name, amount, Socket.gethostname, *queues.shuffle])
         end
       end
 

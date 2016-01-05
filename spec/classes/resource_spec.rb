@@ -446,6 +446,20 @@ module Sidekiq
             end
           end
         end
+
+        describe 'backing up allocated work' do
+          let(:amount) { 1 }
+          let(:host) { Faker::Internet.ip_v4_address }
+
+          before do
+            allow(Socket).to receive(:gethostname).and_return(host)
+            subject.allocate(amount)
+          end
+
+          it 'should backup the work to a queue identified by the worker' do
+            expect(global_redis.lrange("resource:backup:#{queue}:#{name}:#{host}", 0, -1)).to match_array(workload)
+          end
+        end
       end
 
       describe '#free' do

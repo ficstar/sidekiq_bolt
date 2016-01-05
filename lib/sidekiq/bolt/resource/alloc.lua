@@ -3,6 +3,7 @@ local resource_name = table.remove(ARGV, 1)
 local allocated_key = namespace .. 'resource:allocated:' .. resource_name
 local limit_key = namespace .. 'resource:limit:' .. resource_name
 local total_amount = tonumber(table.remove(ARGV, 1))
+local worker_id = table.remove(ARGV, 1)
 local frozen_key = namespace .. 'resource:frozen:' .. resource_name
 local frozen = redis.call('get', frozen_key)
 
@@ -42,14 +43,16 @@ for _, queue in ipairs(queue_names) do
 
     if amount > 0 then
         local queue_items = redis.call('lrange', queue_key, 0, amount - 1)
+        local queue_backup_key = namespace .. 'resource:backup:' .. queue .. ':' .. resource_name .. ':' .. worker_id
 
         redis.call('ltrim', queue_key, amount, -1)
-
         redis.call('incrby', queue_busy_key, table.getn(queue_items))
 
         for _, work in ipairs(queue_items) do
             table.insert(workload, queue)
             table.insert(workload, work)
+
+            redis.call('lpush', queue_backup_key, work)
         end
 
         total_amount = total_amount - amount
