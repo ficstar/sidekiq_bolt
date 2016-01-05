@@ -82,6 +82,18 @@ module Sidekiq
         end
       end
 
+      describe '#enqueue' do
+        let(:resource_name) { Faker::Lorem.word }
+        let(:workload) { SecureRandom.uuid }
+        let(:allocated_work) { Resource.new(resource_name).allocate(1) }
+
+        before { subject.enqueue(resource_name, workload) }
+
+        it 'should add work to the specified resource' do
+          expect(allocated_work).to eq([name, workload])
+        end
+      end
+
     end
   end
 end

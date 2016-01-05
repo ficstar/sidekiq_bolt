@@ -18,6 +18,10 @@ module Sidekiq
         resources.map(&:allocated).reduce(&:+) || 0
       end
 
+      def enqueue(resource_name, workload)
+        Resource.new(resource_name).add_work(name, workload)
+      end
+
     end
   end
 end
