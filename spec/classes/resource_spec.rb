@@ -25,6 +25,34 @@ module Sidekiq
         end
       end
 
+      describe '.having_types' do
+        let(:supported_types) { %w(light) }
+        let(:resource_types) { %w(light medium heavy) }
+        let!(:resources) do
+          resource_types.map do |type|
+            Resource.new(Faker::Lorem.word).tap { |resource| resource.type = type }
+          end
+        end
+
+        subject { Resource.having_types(supported_types) }
+
+        before { resources.each { |resource| resource.add_work('queue', '') } }
+
+        it { is_expected.to match_array([resources[0]]) }
+
+        context 'with a different list of supported types' do
+          let(:supported_types) { %w(heavy) }
+
+          it { is_expected.to match_array([resources[2]]) }
+        end
+
+        context 'with a multiple supported types' do
+          let(:supported_types) { %w(medium heavy) }
+
+          it { is_expected.to match_array(resources[1..2]) }
+        end
+      end
+
       describe '#type' do
         let(:type) { 'zippers' }
 

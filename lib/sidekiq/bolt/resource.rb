@@ -5,6 +5,8 @@ module Sidekiq
 
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
+      TYPE_FILTER_SCRIPT_PATH = "#{SCRIPT_ROOT}/type_filter.lua"
+      TYPE_FILTER_SCRIPT = File.read(TYPE_FILTER_SCRIPT_PATH)
       ALLOCATE_SCRIPT_PATH = "#{SCRIPT_ROOT}/alloc.lua"
       ALLOCATE_SCRIPT = File.read(ALLOCATE_SCRIPT_PATH)
       ADD_WORK_SCRIPT_PATH = "#{SCRIPT_ROOT}/add_work.lua"
@@ -20,6 +22,12 @@ module Sidekiq
 
       def self.all
         Bolt.redis { |redis| redis.smembers('resources') }.map { |name| new(name) }
+      end
+
+      def self.having_types(types)
+        Bolt.redis do |redis|
+          redis.eval(TYPE_FILTER_SCRIPT, keys: NAMESPACE_KEY, argv: types)
+        end.map { |resource_name| new(resource_name) }
       end
 
       def frozen=(value)
