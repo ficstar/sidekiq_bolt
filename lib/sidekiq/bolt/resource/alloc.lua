@@ -40,18 +40,20 @@ for _, queue in ipairs(queue_names) do
         end
     end
 
-    local queue_items = redis.call('lrange', queue_key, 0, amount - 1)
+    if amount > 0 then
+        local queue_items = redis.call('lrange', queue_key, 0, amount - 1)
 
-    redis.call('ltrim', queue_key, amount, -1)
+        redis.call('ltrim', queue_key, amount, -1)
 
-    redis.call('incrby', queue_busy_key, table.getn(queue_items))
+        redis.call('incrby', queue_busy_key, table.getn(queue_items))
 
-    for _, work in ipairs(queue_items) do
-        table.insert(workload, queue)
-        table.insert(workload, work)
+        for _, work in ipairs(queue_items) do
+            table.insert(workload, queue)
+            table.insert(workload, work)
+        end
+
+        total_amount = total_amount - amount
     end
-
-    total_amount = total_amount - amount
 end
 
 return workload

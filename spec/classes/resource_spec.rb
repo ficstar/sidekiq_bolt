@@ -370,6 +370,18 @@ module Sidekiq
               expect(global_redis.get('queue:busy:queue')).to eq('5')
             end
 
+            context 'with multiple queues having work' do
+              let(:queue_two) { 'queue][' }
+              let(:list_of_queues) { [queue, queue_two] }
+              let(:limit) { 1 }
+
+              before { workload.each { |work| subject.add_work(queue_two, work) } }
+
+              it 'should respect the limit across all queues' do
+                expect(subject.allocate(amount).count).to eq(2)
+              end
+            end
+
             context 'when called multiple times' do
               let(:amount) { 3 }
               let(:workload) { limit.times.map { SecureRandom.uuid } }
