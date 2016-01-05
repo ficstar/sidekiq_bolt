@@ -450,6 +450,12 @@ module Sidekiq
         describe 'backing up allocated work' do
           let(:amount) { 1 }
           let(:host) { Faker::Internet.ip_v4_address }
+          let(:backup_data) do
+            {'queue' => queue, 'resource' => name, 'work' => workload.first}
+          end
+          let(:result) do
+            JSON.load(global_redis.lindex("resource:backup:worker:#{host}", 0))
+          end
 
           before do
             allow(Socket).to receive(:gethostname).and_return(host)
@@ -457,7 +463,7 @@ module Sidekiq
           end
 
           it 'should backup the work to a queue identified by the worker' do
-            expect(global_redis.lrange("resource:backup:#{queue}:#{name}:#{host}", 0, -1)).to match_array(workload)
+            expect(result).to eq(backup_data)
           end
         end
       end
