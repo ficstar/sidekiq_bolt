@@ -17,5 +17,6 @@ group :test do
   gem 'guard'
   gem 'pry'
   gem 'timecop'
+  gem 'faker'
   gem 'simplecov', require: false
 end
