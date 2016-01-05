@@ -8,7 +8,7 @@ module Sidekiq
 
       subject { Resource.new(name) }
 
-      describe '#all' do
+      describe '.all' do
         let(:resource_names) { %w(res1 res2 res3) }
         let(:resources) { resource_names.map { |name| Resource.new(name) } }
 
