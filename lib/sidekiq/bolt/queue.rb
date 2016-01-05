@@ -14,6 +14,10 @@ module Sidekiq
         end.map { |name| Resource.new(name) }
       end
 
+      def busy
+        resources.map(&:allocated).reduce(&:+) || 0
+      end
+
     end
   end
 end

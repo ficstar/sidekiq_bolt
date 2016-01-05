@@ -56,6 +56,32 @@ module Sidekiq
         end
       end
 
+      describe '#busy' do
+        its(:busy) { is_expected.to eq(0) }
+
+        context 'with resources' do
+          let(:resource) { Resource.new(Faker::Lorem.word) }
+
+          before do
+            rand(1..10).times { resource.add_work(name, SecureRandom.uuid) }
+            resource.allocate(10)
+          end
+
+          its(:busy) { is_expected.to eq(resource.allocated) }
+
+          context 'with multiple resources' do
+            let(:resource_two) { Resource.new(Faker::Lorem.word) }
+
+            before do
+              rand(1..10).times { resource_two.add_work(name, SecureRandom.uuid) }
+              resource_two.allocate(10)
+            end
+
+            its(:busy) { is_expected.to eq(resource.allocated + resource_two.allocated) }
+          end
+        end
+      end
+
     end
   end
 end
