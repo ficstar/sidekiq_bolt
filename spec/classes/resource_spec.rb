@@ -521,8 +521,7 @@ module Sidekiq
 
         before do
           5.times { subject.add_work(queue, SecureRandom.uuid) }
-          global_redis.incrby("resource:allocated:#{name}", 5)
-          global_redis.incrby("queue:busy:#{queue}", 5)
+          subject.allocate(5)
         end
 
         it 'should decrement the allocation count' do
