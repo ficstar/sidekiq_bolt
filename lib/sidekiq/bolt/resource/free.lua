@@ -11,8 +11,11 @@ local backup_work = { queue = queue_name, resource = resource_name, work = work 
 local allocated = redis.call('decr', allocated_key)
 local allocated_diff = 0
 if allocated < 0 then
+    local over_allocated_key = namespace .. 'resource:over-allocated:' .. resource_name
+
     allocated_diff = allocated
     redis.call('decrby', allocated_key, allocated_diff)
+    redis.call('decrby', over_allocated_key, allocated_diff)
 end
 
 redis.call('decrby', queue_busy_key, 1 + allocated_diff)

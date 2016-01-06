@@ -550,6 +550,11 @@ module Sidekiq
             expect(subject.allocated).to eq(0)
           end
 
+          it 'should store a value indicating that the resource had been over-allocated' do
+            subject.free(queue, allocated_work.first)
+            expect(global_redis.get("resource:over-allocated:#{name}")).to eq('1')
+          end
+
           it 'should increment the queue busy by the negative difference' do
             subject.free(queue, allocated_work.first)
             expect(global_redis.get('queue:busy:queue')).to eq('5')
