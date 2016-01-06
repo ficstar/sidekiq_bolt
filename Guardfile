@@ -15,6 +15,7 @@ guard :rspec, cmd: 'bundle exec rspec' do
   watch(%r{^lib/sidekiq/bolt\.rb$}) { "spec" }
   watch(%r{^lib/sidekiq/bolt/(.+)\.rb}) { |m| "spec/classes/#{m[1]}_spec.rb" }
   watch(%r{^lib/sidekiq/bolt/(.+)/.+\.lua}) { |m| "spec/classes/#{m[1]}_spec.rb" }
+  watch(%r{^lib/sidekiq/bolt/(.+)/(.+)\.rb}) { |m| "spec/classes/#{m[1]}/#{m[2]}_spec.rb" }
   watch('spec/spec_helper.rb') { "spec" }
   watch(%r{^spec/shared_examples/(.+)\.rb}) { "spec" }
   watch(%r{^spec/helpers/(.+)\.rb}) { "spec" }
@@ -37,3 +38,15 @@ guard :rspec, cmd: 'bundle exec rspec' do
   watch(%r{^spec/acceptance/steps/(.+)_steps\.rb$}) { |m| Dir[File.join("**/#{m[1]}.feature")][0] || 'spec/acceptance' }
 end
 
+
+guard :bundler do
+  require 'guard/bundler'
+  require 'guard/bundler/verify'
+  helper = Guard::Bundler::Verify.new
+
+  files = ['Gemfile']
+  files += Dir['*.gemspec'] if files.any? { |f| helper.uses_gemspec?(f) }
+
+  # Assume files are symlinked from somewhere
+  files.each { |file| watch(helper.real_path(file)) }
+end
