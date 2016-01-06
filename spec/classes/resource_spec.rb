@@ -199,6 +199,17 @@ module Sidekiq
           expect(global_redis.rpop('resource:queue:workload:resourceful')).to eq('piece_of_work')
         end
 
+        context 'when the work is consider retrying' do
+          let(:work) { SecureRandom.uuid }
+          let(:name) { Faker::Lorem.word }
+          let(:queue) { Faker::Lorem.word }
+
+          it 'should add the new work to the resource retry queue' do
+            subject.add_work(queue, work, true)
+            expect(global_redis.rpop("resource:queue:retrying:#{queue}:#{name}")).to eq(work)
+          end
+        end
+
         it 'should associate the queue with the resource' do
           subject.add_work(queue, work)
           expect(global_redis.smembers('resource:queues:resourceful')).to include('workload')

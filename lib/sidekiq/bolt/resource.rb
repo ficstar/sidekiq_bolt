@@ -62,9 +62,9 @@ module Sidekiq
         end
       end
 
-      def add_work(queue, work)
+      def add_work(queue, work, retrying = false)
         Bolt.redis do |redis|
-          redis.eval(ADD_WORK_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work])
+          redis.eval(ADD_WORK_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work, retrying])
         end
       end
 

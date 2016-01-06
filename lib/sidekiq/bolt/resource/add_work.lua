@@ -5,8 +5,13 @@ local queue_key = namespace .. 'resource:queue:' .. queue_name .. ':' .. resourc
 local resource_queues_key = namespace .. 'resource:queues:' .. resource_name
 local queue_resources_key = namespace .. 'queue:resources:' .. queue_name
 local work = table.remove(ARGV, 1)
+local retrying = table.remove(ARGV, 1)
 local resources_key = namespace .. 'resources'
 local queues_key = namespace .. 'queues'
+
+if retrying == 'true' then
+    queue_key = namespace .. 'resource:queue:retrying:' .. queue_name .. ':' .. resource_name
+end
 
 redis.call('lpush', queue_key, work)
 redis.call('sadd', resource_queues_key, queue_name)
