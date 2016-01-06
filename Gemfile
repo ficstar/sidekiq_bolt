@@ -14,6 +14,7 @@ group :test do
   gem 'rspec-its'
   gem 'guard-rspec'
   gem 'guard-bundler'
+  gem 'libnotify'
   gem 'guard'
   gem 'pry'
   gem 'timecop'
