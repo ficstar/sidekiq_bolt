@@ -1,16 +1,22 @@
 module Sidekiq
   module Bolt
     class Fetch
-      UnitOfWork = Struct.new(:queue, :resource, :job) do
+      UnitOfWork = Struct.new(:queue, :resource_name, :job) do
         alias :queue_name :queue
 
         def acknowledge
-          Sidekiq::Bolt::Resource.new(resource).free(queue, job)
+          resource.free(queue, job)
         end
 
         def requeue
-          Sidekiq::Bolt::Resource.new(resource).add_work(queue, job)
+          resource.add_work(queue, job)
           acknowledge
+        end
+
+        private
+
+        def resource
+          @resource ||= Resource.new(resource_name)
         end
 
       end

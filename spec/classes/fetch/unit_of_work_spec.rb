@@ -12,7 +12,7 @@ module Sidekiq
 
       its(:queue) { is_expected.to eq(queue) }
       its(:queue_name) { is_expected.to eq(queue) }
-      its(:resource) { is_expected.to eq(resource_name) }
+      its(:resource_name) { is_expected.to eq(resource_name) }
       its(:job) { is_expected.to eq(work) }
 
       shared_examples_for 'acknowledging work' do |method|
