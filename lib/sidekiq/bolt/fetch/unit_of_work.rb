@@ -8,6 +8,11 @@ module Sidekiq
           Sidekiq::Bolt::Resource.new(resource).free(queue, job)
         end
 
+        def requeue
+          Sidekiq::Bolt::Resource.new(resource).add_work(queue, job)
+          acknowledge
+        end
+
       end
     end
   end
