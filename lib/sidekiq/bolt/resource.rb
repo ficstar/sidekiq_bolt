@@ -70,9 +70,9 @@ module Sidekiq
         end
       end
 
-      def free(queue)
+      def free(queue, work)
         Bolt.redis do |redis|
-          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name])
+          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work, Socket.gethostname])
         end
       end
 

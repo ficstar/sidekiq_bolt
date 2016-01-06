@@ -518,20 +518,33 @@ module Sidekiq
 
       describe '#free' do
         let(:queue) { 'queue' }
+        let(:allocated_work) { [] }
+        let(:host) { Faker::Internet.ip_v4_address }
+        let(:backup_work) do
+          global_redis.lrange("resource:backup:worker:#{host}", 0, -1).map do |serialized_work|
+            JSON.load(serialized_work)['work']
+          end
+        end
 
         before do
+          allow(Socket).to receive(:gethostname).and_return(host)
           5.times { subject.add_work(queue, SecureRandom.uuid) }
-          subject.allocate(5)
+          allocated_work.concat subject.allocate(5).each_slice(2).map { |_, work| work }
         end
 
         it 'should decrement the allocation count' do
-          subject.free(queue)
+          subject.free(queue, allocated_work.first)
           expect(subject.allocated).to eq(4)
         end
 
         it 'should decrement the queue busy count' do
-          subject.free(queue)
+          subject.free(queue, allocated_work.first)
           expect(global_redis.get('queue:busy:queue')).to eq('4')
+        end
+
+        it 'should remove the work from the backup queue' do
+          subject.free(queue, allocated_work.first)
+          expect(backup_work).not_to include(allocated_work.first)
         end
 
         context 'with a different resource' do
@@ -539,12 +552,12 @@ module Sidekiq
           let(:queue) { 'busy_queue' }
 
           it 'should decrement the allocation count' do
-            subject.free(queue)
+            subject.free(queue, allocated_work.first)
             expect(subject.allocated).to eq(4)
           end
 
           it 'should decrement the queue busy count' do
-            subject.free(queue)
+            subject.free(queue, allocated_work.first)
             expect(global_redis.get('queue:busy:busy_queue')).to eq('4')
           end
         end
