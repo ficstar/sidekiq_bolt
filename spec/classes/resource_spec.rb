@@ -151,17 +151,21 @@ module Sidekiq
       end
 
       describe '#allocated' do
-        let(:busy) { 5 }
+        its(:allocated) { is_expected.to eq(0) }
 
-        before { global_redis.set("resource:allocated:#{name}", busy) }
+        context 'when this resource is in use' do
+          let(:busy) { 5 }
 
-        its(:allocated) { is_expected.to eq(5) }
+          before { global_redis.set("resource:allocated:#{name}", busy) }
 
-        context 'with a different resource' do
-          let(:busy) { 15 }
-          let(:name) { 'really_busy' }
+          its(:allocated) { is_expected.to eq(5) }
 
-          its(:allocated) { is_expected.to eq(15) }
+          context 'with a different resource' do
+            let(:busy) { 15 }
+            let(:name) { 'really_busy' }
+
+            its(:allocated) { is_expected.to eq(15) }
+          end
         end
       end
 
