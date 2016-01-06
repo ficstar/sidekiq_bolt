@@ -48,6 +48,10 @@ module Sidekiq
         Bolt.redis { |redis| redis.get(allocated_key).to_i }
       end
 
+      def over_allocated
+        Bolt.redis { |redis| redis.get(over_allocated_key).to_i }
+      end
+
       def queues
         Bolt.redis { |redis| redis.smembers("resource:queues:#{name}") }
       end
@@ -80,6 +84,10 @@ module Sidekiq
 
       def allocated_key
         "resource:allocated:#{name}"
+      end
+
+      def over_allocated_key
+        "resource:over-allocated:#{name}"
       end
 
     end

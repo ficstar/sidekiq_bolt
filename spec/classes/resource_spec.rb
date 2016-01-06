@@ -165,6 +165,27 @@ module Sidekiq
         end
       end
 
+      describe '#over_allocated' do
+        let(:name) { 'disaster' }
+
+        its(:over_allocated) { is_expected.to eq(0) }
+
+        context 'when this resource has been overworked' do
+          let(:busy) { 77 }
+
+          before { global_redis.set("resource:over-allocated:#{name}", busy) }
+
+          its(:over_allocated) { is_expected.to eq(77) }
+
+          context 'with a different resource' do
+            let(:busy) { 127 }
+            let(:name) { 'total-disaster' }
+
+            its(:over_allocated) { is_expected.to eq(127) }
+          end
+        end
+      end
+
       describe '#add_work' do
         let(:work) { 'piece_of_work' }
         let(:queue) { 'workload' }
