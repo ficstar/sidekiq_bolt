@@ -16,16 +16,13 @@ module Sidekiq
       its(:job) { is_expected.to eq(work) }
 
       describe '#acknowledge' do
-        let(:resource) { Resource.new(resource_name) }
-
-        before do
-          resource.add_work(queue, work)
-          resource.allocate(1)
-        end
-
         it 'should free the work from the resource' do
+          expect_any_instance_of(Resource).to receive(:free) do |resource, queue_name, job|
+            expect(resource.name).to eq(resource_name)
+            expect(queue_name).to eq(queue)
+            expect(job).to eq(work)
+          end
           subject.acknowledge
-          expect(resource.allocated).to eq(0)
         end
       end
     end
