@@ -542,6 +542,20 @@ module Sidekiq
           expect(global_redis.get('queue:busy:queue')).to eq('4')
         end
 
+        context 'when more work has been done than is available from this resource' do
+          before { global_redis.set("resource:allocated:#{name}", '0') }
+
+          it 'should keep the allocation count at 0' do
+            subject.free(queue, allocated_work.first)
+            expect(subject.allocated).to eq(0)
+          end
+
+          it 'should increment the queue busy by the negative difference' do
+            subject.free(queue, allocated_work.first)
+            expect(global_redis.get('queue:busy:queue')).to eq('5')
+          end
+        end
+
         it 'should remove the work from the backup queue' do
           subject.free(queue, allocated_work.first)
           expect(backup_work).not_to include(allocated_work.first)
