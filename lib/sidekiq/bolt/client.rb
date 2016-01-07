@@ -24,4 +24,11 @@ module Sidekiq
 
     end
   end
+
+  class Client
+    def self.push(item)
+      (item['sk'] == 'bolt' ? Bolt::Client : self).new.push(item)
+    end
+  end
+
 end

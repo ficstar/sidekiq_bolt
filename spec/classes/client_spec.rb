@@ -3,22 +3,22 @@ require 'rspec'
 module Sidekiq
   module Bolt
     describe Client do
+      let(:queue_name) { Faker::Lorem.word }
+      let(:resource_name) { Faker::Lorem.word }
+      let(:klass) { Faker::Lorem.word }
+      let(:args) { Faker::Lorem.paragraphs }
+      let(:at) { nil }
+      #noinspection RubyStringKeysInHashInspection
+      let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at} }
+      let!(:original_item) { item.dup }
+      let(:resource) { Resource.new(resource_name) }
+      let(:result_work) { resource.allocate(1) }
+      let(:result_queue) { result_work[0] }
+      let(:result_item) { Sidekiq.load_json(result_work[1]) }
 
       it { is_expected.to be_a_kind_of(Sidekiq::Client) }
 
       describe 'push items into the queue' do
-        let(:queue_name) { Faker::Lorem.word }
-        let(:resource_name) { Faker::Lorem.word }
-        let(:klass) { Faker::Lorem.word }
-        let(:args) { Faker::Lorem.paragraphs }
-        let(:at) { nil }
-        #noinspection RubyStringKeysInHashInspection
-        let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at} }
-        let!(:original_item) { item.dup }
-        let(:resource) { Resource.new(resource_name) }
-        let(:result_work) { resource.allocate(1) }
-        let(:result_queue) { result_work[0] }
-        let(:result_item) { Sidekiq.load_json(result_work[1]) }
         let(:now) { Time.now }
 
         around { |example| Timecop.freeze(now) { example.run } }
@@ -76,6 +76,24 @@ module Sidekiq
           it 'should push the item on to the queue for the default resource' do
             subject.push(item)
             expect(result_item).to include(original_item.merge('resource' => 'default'))
+          end
+        end
+      end
+
+      describe 'pushing using Sidekiq::Client.push' do
+        before { Sidekiq::Client.push(item) }
+
+        it 'should use the default Sidekiq behaviour' do
+          result_msg = global_redis.rpop("queue:#{queue_name}")
+          result_item = Sidekiq.load_json(result_msg)
+          expect(result_item).to include(original_item)
+        end
+
+        context 'when the item came from a Bolt Client' do
+          let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at, 'sk' => 'bolt'} }
+
+          it 'should push the item using a Bolt Client' do
+            expect(result_item).to include(original_item)
           end
         end
       end
