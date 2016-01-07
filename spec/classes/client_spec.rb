@@ -70,7 +70,7 @@ module Sidekiq
 
           it 'should push the item on to the queue for the default resource' do
             subject.push(item)
-            expect(result_item).to include(original_item)
+            expect(result_item).to include(original_item.merge('resource' => 'default'))
           end
         end
       end
