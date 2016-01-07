@@ -11,7 +11,8 @@ module Sidekiq
         payloads.each do |entry|
           queue_name = entry['queue']
           queue = Queue.new(queue_name)
-          resource_name = entry['resource'] || 'default'
+          entry['resource'] ||= 'default'
+          resource_name = entry['resource']
           entry['enqueued_at'.freeze] = now
           work = Sidekiq.dump_json(entry)
           queue.enqueue(resource_name, work)
