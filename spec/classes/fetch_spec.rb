@@ -22,6 +22,22 @@ module Sidekiq
           expect(subject).to receive(:sleep).with(1)
           subject.retrieve_work
         end
+
+        context 'when there is work to be done' do
+          let(:queue_name) { Faker::Lorem.word }
+          let(:resource_name) { Faker::Lorem.word }
+          let(:work) { SecureRandom.uuid }
+          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, resource_name, work) }
+
+          before { Resource.new(resource_name).add_work(queue_name, work) }
+
+          its(:retrieve_work) { is_expected.to eq(expected_work) }
+
+          it 'should not sleep' do
+            expect(subject).not_to receive(:sleep).with(1)
+            subject.retrieve_work
+          end
+        end
       end
 
     end
