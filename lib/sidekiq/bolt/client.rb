@@ -5,7 +5,10 @@ module Sidekiq
       private
 
       def atomic_push(_, payloads)
-        return super if payloads.first['at']
+        if payloads.first['at']
+          payloads.each { |item| item['sk'] = 'bolt' }
+          return super
+        end
 
         now = Time.now
         payloads.each do |entry|

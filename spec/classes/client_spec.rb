@@ -47,6 +47,11 @@ module Sidekiq
             subject.push(item)
             expect(result_item).to include(original_item.except('at'))
           end
+
+          it 'should include a key indicating that it came from a Bolt client' do
+            subject.push(item)
+            expect(result_item).to include('sk' => 'bolt')
+          end
         end
 
         describe 'pushing multiple items' do
