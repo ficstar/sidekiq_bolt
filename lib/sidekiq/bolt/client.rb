@@ -5,6 +5,8 @@ module Sidekiq
       private
 
       def atomic_push(_, payloads)
+        return super if payloads.first['at']
+
         now = Time.now
         payloads.each do |entry|
           queue_name = entry['queue']

@@ -11,13 +11,14 @@ module Sidekiq
         let(:resource_name) { Faker::Lorem.word }
         let(:klass) { Faker::Lorem.word }
         let(:args) { Faker::Lorem.paragraphs }
+        let(:at) { nil }
         #noinspection RubyStringKeysInHashInspection
-        let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args} }
+        let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at} }
         let!(:original_item) { item.dup }
         let(:resource) { Resource.new(resource_name) }
         let(:result_work) { resource.allocate(1) }
         let(:result_queue) { result_work[0] }
-        let(:result_item) { Sidekiq::load_json(result_work[1]) }
+        let(:result_item) { Sidekiq.load_json(result_work[1]) }
         let(:now) { Time.now }
 
         around { |example| Timecop.freeze(now) { example.run } }
@@ -35,6 +36,17 @@ module Sidekiq
         it 'should use the right queue' do
           subject.push(item)
           expect(result_queue).to eq(queue_name)
+        end
+
+        context 'when the item is scheduled for later' do
+          let(:at) { (now + 120).to_f }
+          let(:result_msg) { global_redis.zrange('schedule', 0, -1).first }
+          let(:result_item) { Sidekiq.load_json(result_msg) }
+
+          it 'should add the message to the schedule set' do
+            subject.push(item)
+            expect(result_item).to include(original_item.except('at'))
+          end
         end
 
         describe 'pushing multiple items' do
