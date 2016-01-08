@@ -30,7 +30,7 @@ module Sidekiq
         let(:resource_types) { %w(light medium heavy) }
         let!(:resources) do
           resource_types.map do |type|
-            Resource.new(Faker::Lorem.word).tap { |resource| resource.type = type }
+            Resource.new(Faker::Lorem.word).tap { |resource| resource.type = type if type }
           end
         end
 
@@ -50,6 +50,15 @@ module Sidekiq
           let(:supported_types) { %w(medium heavy) }
 
           it { is_expected.to match_array(resources[1..2]) }
+        end
+
+        context 'when the resource does not have a type' do
+          let(:supported_types) { %w(default) }
+          let(:resource_types) { [nil] }
+
+          it 'should treat this as a default resource type' do
+            is_expected.to eq(resources)
+          end
         end
       end
 

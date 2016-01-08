@@ -8,6 +8,8 @@ for _, resource in ipairs(resources) do
     local resource_type = redis.call('get', resource_type_key)
     local resource_supported = false
 
+    if not resource_type then resource_type = 'default' end
+
     for _, type in ipairs(ARGV) do
         if type == resource_type then resource_supported = true end
     end
