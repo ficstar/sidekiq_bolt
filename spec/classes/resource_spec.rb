@@ -322,64 +322,46 @@ module Sidekiq
       end
 
       describe '#allocate' do
-        let(:amount) { 5 }
-        let(:limit) { nil }
-        let(:workload) { amount.times.map { SecureRandom.uuid } }
-        let(:allocated_work) do
-          workload.reverse.map do |work|
-            [queue, work]
-          end.flatten
-        end
-        let(:queue) { 'queue' }
-        let(:list_of_queues) { [queue] }
-        let(:shuffled_queues) { list_of_queues }
+        let(:retrying) { false }
 
-        before do
-          allow(subject).to receive(:queues).and_return(list_of_queues)
-          allow(list_of_queues).to receive(:shuffle).and_return(shuffled_queues)
-
-          subject.limit = limit
-          workload.each { |work| subject.add_work(queue, work) }
-        end
-
-        it 'should allocate the specified amount from the resource' do
-          subject.allocate(amount)
-          expect(subject.allocated).to eq(5)
-        end
-
-        it 'should return the allocated work (in reverse order) paired with the source queue' do
-          expect(subject.allocate(amount)).to eq(allocated_work)
-        end
-
-        it 'should remove the work from the queue' do
-          subject.allocate(amount)
-          expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
-        end
-
-        it 'should increment the busy count on the queue' do
-          subject.allocate(amount)
-          expect(global_redis.get('queue:busy:queue')).to eq('5')
-        end
-
-        context 'when the resource is frozen' do
-          before { subject.frozen = true }
-
-          it 'should not allocate anything' do
-            subject.allocate(amount)
-            expect(subject.allocated).to eq(0)
+        shared_examples_for 'allocating work from the resource' do
+          let(:amount) { 5 }
+          let(:limit) { nil }
+          let(:workload) { amount.times.map { SecureRandom.uuid } }
+          let(:allocated_work) do
+            workload.reverse.map do |work|
+              [queue, work]
+            end.flatten
           end
-        end
+          let(:queue) { 'queue' }
+          let(:list_of_queues) { [queue] }
+          let(:shuffled_queues) { list_of_queues }
 
-        context 'with a different resource' do
-          let(:name) { 'resourceless' }
+          before do
+            allow(subject).to receive(:queues).and_return(list_of_queues)
+            allow(list_of_queues).to receive(:shuffle).and_return(shuffled_queues)
 
-          it 'should return the allocated work' do
+            subject.limit = limit
+            workload.each { |work| subject.add_work(queue, work, retrying) }
+          end
+
+          it 'should allocate the specified amount from the resource' do
+            subject.allocate(amount)
+            expect(subject.allocated).to eq(5)
+          end
+
+          it 'should return the allocated work (in reverse order) paired with the source queue' do
             expect(subject.allocate(amount)).to eq(allocated_work)
           end
 
           it 'should remove the work from the queue' do
             subject.allocate(amount)
             expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+          end
+
+          it 'should increment the busy count on the queue' do
+            subject.allocate(amount)
+            expect(global_redis.get('queue:busy:queue')).to eq('5')
           end
 
           context 'when the resource is frozen' do
@@ -390,165 +372,194 @@ module Sidekiq
               expect(subject.allocated).to eq(0)
             end
           end
-        end
 
-        context 'with a different workload' do
-          let(:amount) { 17 }
-
-          it 'should allocate the specified amount from the resource' do
-            subject.allocate(amount)
-            expect(subject.allocated).to eq(17)
-          end
-
-          it 'should increment the busy count on the queue' do
-            subject.allocate(amount)
-            expect(global_redis.get('queue:busy:queue')).to eq('17')
-          end
-        end
-
-        context 'when the queue does not contain enough work' do
-          let(:workload) { 2.times.map { SecureRandom.uuid } }
-
-          it 'should only allocate what is available' do
-            subject.allocate(amount)
-            expect(subject.allocated).to eq(2)
-          end
-
-          it 'should increment the busy count on the queue by the amount of actual work' do
-            subject.allocate(amount)
-            expect(global_redis.get('queue:busy:queue')).to eq('2')
-          end
-        end
-
-        context 'when allocated multiple times' do
-          let(:workload) { (2 * amount).times.map { SecureRandom.uuid } }
-
-          it 'should allocate the specified amount from the resource' do
-            2.times { subject.allocate(amount) }
-            expect(subject.allocated).to eq(10)
-          end
-        end
-
-        context 'with a limit specified' do
-          let(:limit) { 5 }
-
-          context 'when allocating more than the limit' do
-            let(:allocated_work) do
-              workload.reverse[0...limit].map do |work|
-                [queue, work]
-              end.flatten
-            end
-            let(:amount) { 7 }
-
-            it 'should allocate no more than the available amount of resources' do
-              subject.allocate(amount)
-              expect(subject.allocated).to eq(5)
-            end
+          context 'with a different resource' do
+            let(:name) { 'resourceless' }
 
             it 'should return the allocated work' do
-              expect(subject.allocate(amount)).to match_array(allocated_work)
+              expect(subject.allocate(amount)).to eq(allocated_work)
+            end
+
+            it 'should remove the work from the queue' do
+              subject.allocate(amount)
+              expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+            end
+
+            context 'when the resource is frozen' do
+              before { subject.frozen = true }
+
+              it 'should not allocate anything' do
+                subject.allocate(amount)
+                expect(subject.allocated).to eq(0)
+              end
+            end
+          end
+
+          context 'with a different workload' do
+            let(:amount) { 17 }
+
+            it 'should allocate the specified amount from the resource' do
+              subject.allocate(amount)
+              expect(subject.allocated).to eq(17)
+            end
+
+            it 'should increment the busy count on the queue' do
+              subject.allocate(amount)
+              expect(global_redis.get('queue:busy:queue')).to eq('17')
+            end
+          end
+
+          context 'when the queue does not contain enough work' do
+            let(:workload) { 2.times.map { SecureRandom.uuid } }
+
+            it 'should only allocate what is available' do
+              subject.allocate(amount)
+              expect(subject.allocated).to eq(2)
             end
 
             it 'should increment the busy count on the queue by the amount of actual work' do
               subject.allocate(amount)
-              expect(global_redis.get('queue:busy:queue')).to eq('5')
+              expect(global_redis.get('queue:busy:queue')).to eq('2')
             end
+          end
 
-            context 'with multiple queues having work' do
-              let(:queue_two) { 'queue][' }
-              let(:list_of_queues) { [queue, queue_two] }
-              let(:limit) { 1 }
+          context 'when allocated multiple times' do
+            let(:workload) { (2 * amount).times.map { SecureRandom.uuid } }
 
-              before { workload.each { |work| subject.add_work(queue_two, work) } }
+            it 'should allocate the specified amount from the resource' do
+              2.times { subject.allocate(amount) }
+              expect(subject.allocated).to eq(10)
+            end
+          end
 
-              it 'should respect the limit across all queues' do
-                expect(subject.allocate(amount).count).to eq(2)
+          context 'with a limit specified' do
+            let(:limit) { 5 }
+
+            context 'when allocating more than the limit' do
+              let(:allocated_work) do
+                workload.reverse[0...limit].map do |work|
+                  [queue, work]
+                end.flatten
               end
-            end
-
-            context 'when called multiple times' do
-              let(:amount) { 3 }
-              let(:workload) { limit.times.map { SecureRandom.uuid } }
+              let(:amount) { 7 }
 
               it 'should allocate no more than the available amount of resources' do
-                2.times { subject.allocate(amount) }
+                subject.allocate(amount)
                 expect(subject.allocated).to eq(5)
               end
+
+              it 'should return the allocated work' do
+                expect(subject.allocate(amount)).to match_array(allocated_work)
+              end
+
+              it 'should increment the busy count on the queue by the amount of actual work' do
+                subject.allocate(amount)
+                expect(global_redis.get('queue:busy:queue')).to eq('5')
+              end
+
+              context 'with multiple queues having work' do
+                let(:queue_two) { 'queue][' }
+                let(:list_of_queues) { [queue, queue_two] }
+                let(:limit) { 1 }
+
+                before { workload.each { |work| subject.add_work(queue_two, work) } }
+
+                it 'should respect the limit across all queues' do
+                  expect(subject.allocate(amount).count).to eq(2)
+                end
+              end
+
+              context 'when called multiple times' do
+                let(:amount) { 3 }
+                let(:workload) { limit.times.map { SecureRandom.uuid } }
+
+                it 'should allocate no more than the available amount of resources' do
+                  2.times { subject.allocate(amount) }
+                  expect(subject.allocated).to eq(5)
+                end
+              end
+
+              context 'when the limit changes' do
+                let(:amount) { 5 }
+
+                it 'should leave the current allocation alone' do
+                  subject.allocate(amount)
+                  subject.limit = 1
+                  subject.allocate(amount)
+                  expect(subject.allocated).to eq(5)
+                end
+              end
+            end
+          end
+
+          context 'with multiple queues' do
+            let(:amount) { 10 }
+            let(:workload) { 5.times.map { SecureRandom.uuid } }
+            let(:workload_two) { 5.times.map { SecureRandom.uuid } }
+            let(:queue_two) { 'queue_two' }
+            let(:allocated_work) do
+              workload.reverse.map do |work|
+                [queue, work]
+              end.flatten
+            end
+            let(:allocated_work_two) do
+              workload_two.reverse.map do |work|
+                [queue_two, work]
+              end.flatten
+            end
+            let(:list_of_queues) { [queue, queue_two] }
+
+            before do
+              workload_two.each { |work| subject.add_work(queue_two, work) }
             end
 
-            context 'when the limit changes' do
+            it 'should return the allocated work paired with the source queue' do
+              expect(subject.allocate(amount)).to match_array(allocated_work + allocated_work_two)
+            end
+
+            context 'when the amount of work available is greater than the work requested' do
               let(:amount) { 5 }
 
-              it 'should leave the current allocation alone' do
-                subject.allocate(amount)
-                subject.limit = 1
-                subject.allocate(amount)
-                expect(subject.allocated).to eq(5)
+              it 'should return only the allocated work requested' do
+                expect(subject.allocate(amount)).to match_array(allocated_work)
               end
+
+              describe 'load balancing' do
+                let(:shuffled_queues) { list_of_queues.reverse }
+
+                it 'should shuffle the list of queues' do
+                  expect(subject.allocate(amount)).to match_array(allocated_work_two)
+                end
+              end
+            end
+          end
+
+          describe 'backing up allocated work' do
+            let(:amount) { 1 }
+            let(:host) { Faker::Internet.ip_v4_address }
+            let(:backup_data) do
+              {'queue' => queue, 'resource' => name, 'work' => workload.first}
+            end
+            let(:result) do
+              JSON.load(global_redis.lindex("resource:backup:worker:#{host}", 0))
+            end
+
+            before do
+              allow(Socket).to receive(:gethostname).and_return(host)
+              subject.allocate(amount)
+            end
+
+            it 'should backup the work to a queue identified by the worker' do
+              expect(result).to eq(backup_data)
             end
           end
         end
 
-        context 'with multiple queues' do
-          let(:amount) { 10 }
-          let(:workload) { 5.times.map { SecureRandom.uuid } }
-          let(:workload_two) { 5.times.map { SecureRandom.uuid } }
-          let(:queue_two) { 'queue_two' }
-          let(:allocated_work) do
-            workload.reverse.map do |work|
-              [queue, work]
-            end.flatten
-          end
-          let(:allocated_work_two) do
-            workload_two.reverse.map do |work|
-              [queue_two, work]
-            end.flatten
-          end
-          let(:list_of_queues) { [queue, queue_two] }
+        it_behaves_like 'allocating work from the resource'
 
-          before do
-            workload_two.each { |work| subject.add_work(queue_two, work) }
-          end
-
-          it 'should return the allocated work paired with the source queue' do
-            expect(subject.allocate(amount)).to match_array(allocated_work + allocated_work_two)
-          end
-
-          context 'when the amount of work available is greater than the work requested' do
-            let(:amount) { 5 }
-
-            it 'should return only the allocated work requested' do
-              expect(subject.allocate(amount)).to match_array(allocated_work)
-            end
-
-            describe 'load balancing' do
-              let(:shuffled_queues) { list_of_queues.reverse }
-
-              it 'should shuffle the list of queues' do
-                expect(subject.allocate(amount)).to match_array(allocated_work_two)
-              end
-            end
-          end
-        end
-
-        describe 'backing up allocated work' do
-          let(:amount) { 1 }
-          let(:host) { Faker::Internet.ip_v4_address }
-          let(:backup_data) do
-            {'queue' => queue, 'resource' => name, 'work' => workload.first}
-          end
-          let(:result) do
-            JSON.load(global_redis.lindex("resource:backup:worker:#{host}", 0))
-          end
-
-          before do
-            allow(Socket).to receive(:gethostname).and_return(host)
-            subject.allocate(amount)
-          end
-
-          it 'should backup the work to a queue identified by the worker' do
-            expect(result).to eq(backup_data)
-          end
+        context 'when the queue is retrying work' do
+          let(:retrying) { true }
+          it_behaves_like 'allocating work from the resource'
         end
       end
 
