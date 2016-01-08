@@ -5,7 +5,8 @@ module Sidekiq
       def self.bulk_requeue(*_)
       end
 
-      def initialize(_)
+      def initialize(options)
+        @supported_resource_types = options.fetch(:resource_types) { :* }
       end
 
       def retrieve_work
@@ -16,11 +17,15 @@ module Sidekiq
       private
 
       def find_work
-        Resource.all.each do |resource|
+        supported_resources.each do |resource|
           queue, work = resource.allocate(1)
           return UnitOfWork.new(queue, resource.name, work) if work
         end
         nil
+      end
+
+      def supported_resources
+        (@supported_resource_types == :*) ? Resource.all : Resource.having_types(@supported_resource_types)
       end
 
     end

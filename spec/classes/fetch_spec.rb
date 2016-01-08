@@ -38,6 +38,28 @@ module Sidekiq
             subject.retrieve_work
           end
         end
+
+        context 'when provided with a filter' do
+          let(:queue_name) { Faker::Lorem.word }
+          let(:resource_type) { Faker::Lorem.word }
+          let(:resource) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type } }
+          let(:resource_type_two) { Faker::Lorem.word }
+          let(:resource_two) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type_two } }
+          let(:options) { {resource_types: [resource_type]} }
+
+          let(:work) { SecureRandom.uuid }
+          let(:work_two) { SecureRandom.uuid }
+          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, resource.name, work) }
+
+          before do
+            resource.add_work(queue_name, work)
+            resource_two.add_work(queue_name, work_two)
+          end
+
+          it 'should only pull work from the specified resource type' do
+            expect(subject.retrieve_work).to eq(expected_work)
+          end
+        end
       end
 
     end
