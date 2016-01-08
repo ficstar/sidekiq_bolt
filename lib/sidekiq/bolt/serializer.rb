@@ -16,7 +16,7 @@ module Sidekiq
       private
 
       def validate_dump_header!(dump)
-        raise 'Invalid Marshal dump provided' if dump[0...4] != MAGIC
+        raise 'Invalid Marshal dump provided' unless dump.is_a?(String) && dump[0...4] == MAGIC
       end
 
     end

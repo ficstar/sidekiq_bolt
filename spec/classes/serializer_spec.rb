@@ -36,6 +36,11 @@ module Sidekiq
           let(:dumped_value) { 'MRSH'.encode('ASCII-8BIT') + Marshal.dump(value) }
           it { is_expected.to eq(value) }
         end
+
+        context 'when the dumped value is not a string' do
+          let(:dumped_value) { String }
+          it { expect{subject}.to raise_error('Invalid Marshal dump provided') }
+        end
       end
 
     end
