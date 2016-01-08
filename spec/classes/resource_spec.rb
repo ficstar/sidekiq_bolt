@@ -561,6 +561,22 @@ module Sidekiq
           let(:retrying) { true }
           it_behaves_like 'allocating work from the resource'
         end
+
+        describe 'retrying work priority' do
+          let(:queue) { Faker::Lorem.word }
+          let(:work) { SecureRandom.uuid }
+          let(:other_work) { SecureRandom.uuid }
+          let(:result_work) { subject.allocate(1)[1] }
+
+          before do
+            subject.add_work(queue, work, true)
+            subject.add_work(queue, other_work, false)
+          end
+
+          it 'should prioritize retrying work over regular work' do
+            expect(result_work).to eq(work)
+          end
+        end
       end
 
       describe '#free' do

@@ -20,7 +20,7 @@ for _, queue in ipairs(queue_names) do
 
     local queue_busy_key = namespace .. 'queue:busy:' .. queue
 
-    for _, queue_prefix in ipairs({ '', 'retrying:' }) do
+    for _, queue_prefix in ipairs({ 'retrying:', '' }) do
         local amount = total_amount
         local queue_key = namespace .. 'resource:queue:' .. queue_prefix .. queue .. ':' .. resource_name
         local queue_limit = redis.call('llen', queue_key)
