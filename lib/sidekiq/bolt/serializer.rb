@@ -8,9 +8,15 @@ module Sidekiq
         MAGIC + Marshal.dump(value)
       end
 
-      def load_json(value)
-        raise 'Invalid Marshal dump provided' if value[0...4] != MAGIC
-        Marshal.load(value[4..-1])
+      def load_json(dump)
+        validate_dump_header!(dump)
+        Marshal.load(dump[4..-1])
+      end
+
+      private
+
+      def validate_dump_header!(dump)
+        raise 'Invalid Marshal dump provided' if dump[0...4] != MAGIC
       end
 
     end
