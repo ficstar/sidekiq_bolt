@@ -46,7 +46,7 @@ for _, queue in ipairs(queue_names) do
         local queue_items = redis.call('lrange', queue_key, 0, amount - 1)
 
         redis.call('ltrim', queue_key, amount, -1)
-        redis.call('incrby', queue_busy_key, table.getn(queue_items))
+        redis.call('incrby', queue_busy_key, amount)
 
         for _, work in ipairs(queue_items) do
             table.insert(workload, queue)
