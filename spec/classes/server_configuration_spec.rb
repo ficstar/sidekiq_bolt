@@ -18,6 +18,10 @@ module Sidekiq
         it 'should add the Sidekiq::Bolt::ServerMiddleware::RetryJobs' do
           expect(Sidekiq.server_middleware).to exist(ServerMiddleware::RetryJobs)
         end
+
+        it 'should add the Sidekiq::Bolt::ServerMiddleware::MetaDataMiddleware as the first middleware' do
+          expect(Sidekiq.server_middleware.first.klass).to eq(ServerMiddleware::JobMetaData)
+        end
       end
 
     end
