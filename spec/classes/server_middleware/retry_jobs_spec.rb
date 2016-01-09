@@ -49,6 +49,11 @@ module Sidekiq
               expect(error_job['error']).to eq(error)
             end
 
+            it 'should increment the number of times this error has been hit' do
+              subject.call(worker, job, nil) { raise error }
+              expect(error_job["retry_count:#{error}"]).to eq(1)
+            end
+
             context 'when this work cannot retry' do
               let(:retry_job) { false }
 
