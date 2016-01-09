@@ -56,6 +56,42 @@ module Sidekiq
         end
       end
 
+      shared_examples_for 'counting attributes for queue resources' do |method, retrying|
+        its(method) { is_expected.to eq(0) }
+
+        context 'with resources' do
+          let(:work_count) { rand(1..10) }
+          let(:resource) { Resource.new(Faker::Lorem.word) }
+          let(:resource_attribute_count) { resource.public_send(method) }
+
+          before do
+            work_count.times { resource.add_work(name, SecureRandom.uuid, retrying) }
+          end
+
+          its(method) { is_expected.to eq(resource_attribute_count) }
+
+          context 'with multiple resources' do
+            let(:work_count_two) { rand(1..10) }
+            let(:resource_two) { Resource.new(Faker::Lorem.word) }
+            let(:resource_attribute_count_two) { resource_two.public_send(method) }
+
+            before do
+              work_count_two.times { resource_two.add_work(name, SecureRandom.uuid) }
+            end
+
+            its(method) { is_expected.to eq(resource_attribute_count + resource_attribute_count_two) }
+          end
+        end
+      end
+
+      describe '#size' do
+        it_behaves_like 'counting attributes for queue resources', :size, false
+      end
+
+      describe '#retrying' do
+        it_behaves_like 'counting attributes for queue resources', :retrying, true
+      end
+
       describe '#busy' do
         its(:busy) { is_expected.to eq(0) }
 
