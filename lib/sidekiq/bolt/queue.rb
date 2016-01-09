@@ -18,8 +18,8 @@ module Sidekiq
         resources.map(&:allocated).reduce(&:+) || 0
       end
 
-      def enqueue(resource_name, workload)
-        Resource.new(resource_name).add_work(name, workload)
+      def enqueue(resource_name, workload, retrying = false)
+        Resource.new(resource_name).add_work(name, workload, retrying)
       end
 
     end
