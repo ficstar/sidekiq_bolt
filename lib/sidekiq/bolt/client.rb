@@ -18,7 +18,7 @@ module Sidekiq
           resource_name = entry['resource']
           entry['enqueued_at'.freeze] = now
           work = Sidekiq.dump_json(entry)
-          queue.enqueue(resource_name, work)
+          queue.enqueue(resource_name, work, !!entry['error'])
         end
       end
 

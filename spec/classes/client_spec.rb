@@ -8,8 +8,9 @@ module Sidekiq
       let(:klass) { Faker::Lorem.word }
       let(:args) { Faker::Lorem.paragraphs }
       let(:at) { nil }
+      let(:error) { nil }
       #noinspection RubyStringKeysInHashInspection
-      let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at} }
+      let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at, 'error' => error} }
       let!(:original_item) { item.dup }
       let(:resource) { Resource.new(resource_name) }
       let(:result_work) { resource.allocate(1) }
@@ -36,6 +37,20 @@ module Sidekiq
         it 'should use the right queue' do
           subject.push(item)
           expect(result_queue).to eq(queue_name)
+        end
+
+        it 'should not add this item to the retrying queue' do
+          subject.push(item)
+          expect(resource.retrying).to eq(0)
+        end
+
+        context 'when the job is retrying' do
+          let(:error) { 'It blew up!' }
+
+          it 'should add this item to the retrying queue' do
+            subject.push(item)
+            expect(resource.retrying).to eq(1)
+          end
         end
 
         context 'when the item is scheduled for later' do
