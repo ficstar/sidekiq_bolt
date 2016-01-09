@@ -20,44 +20,51 @@ for _, queue in ipairs(queue_names) do
 
     local queue_busy_key = namespace .. 'queue:busy:' .. queue
 
-    for _, queue_prefix in ipairs({ 'retrying:', '' }) do
-        local amount = total_amount
-        local queue_key = namespace .. 'resource:queue:' .. queue_prefix .. queue .. ':' .. resource_name
-        local queue_limit = redis.call('llen', queue_key)
+    local queue_pasued_key = namespace .. 'queue:paused:' .. queue
+    local queue_paused = redis.call('get', queue_pasued_key)
 
-        if queue_limit < amount then
-            amount = queue_limit
-        end
 
-        local allocated = redis.call('incrby', allocated_key, amount)
-        if limit then
-            local to_return = limit - allocated
+    if not queue_paused then
+        for _, queue_prefix in ipairs({ 'retrying:', '' }) do
 
-            if to_return < 0 then
-                if -to_return > amount then
-                    to_return = -amount
+            local amount = total_amount
+            local queue_key = namespace .. 'resource:queue:' .. queue_prefix .. queue .. ':' .. resource_name
+            local queue_limit = redis.call('llen', queue_key)
+
+            if queue_limit < amount then
+                amount = queue_limit
+            end
+
+            local allocated = redis.call('incrby', allocated_key, amount)
+            if limit then
+                local to_return = limit - allocated
+
+                if to_return < 0 then
+                    if -to_return > amount then
+                        to_return = -amount
+                    end
+                    amount = amount + to_return
+
+                    redis.call('incrby', allocated_key, to_return)
                 end
-                amount = amount + to_return
-
-                redis.call('incrby', allocated_key, to_return)
-            end
-        end
-
-        if amount > 0 then
-            local queue_items = redis.call('lrange', queue_key, 0, amount - 1)
-
-            redis.call('ltrim', queue_key, amount, -1)
-            redis.call('incrby', queue_busy_key, amount)
-
-            for _, work in ipairs(queue_items) do
-                table.insert(workload, queue)
-                table.insert(workload, work)
-
-                local backup_work = { queue = queue, resource = resource_name, work = work }
-                redis.call('lpush', worker_backup_key, cjson.encode(backup_work))
             end
 
-            total_amount = total_amount - amount
+            if amount > 0 then
+                local queue_items = redis.call('lrange', queue_key, 0, amount - 1)
+
+                redis.call('ltrim', queue_key, amount, -1)
+                redis.call('incrby', queue_busy_key, amount)
+
+                for _, work in ipairs(queue_items) do
+                    table.insert(workload, queue)
+                    table.insert(workload, work)
+
+                    local backup_work = { queue = queue, resource = resource_name, work = work }
+                    redis.call('lpush', worker_backup_key, cjson.encode(backup_work))
+                end
+
+                total_amount = total_amount - amount
+            end
         end
     end
 end

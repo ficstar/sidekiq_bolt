@@ -534,6 +534,14 @@ module Sidekiq
               expect(subject.allocate(amount)).to match_array(allocated_work + allocated_work_two)
             end
 
+            context 'when a queue is paused' do
+              before { Queue.new(queue_two).paused = true }
+
+              it 'should only return work from un-paused queues' do
+                expect(subject.allocate(amount)).not_to include(*allocated_work_two)
+              end
+            end
+
             context 'when the amount of work available is greater than the work requested' do
               let(:amount) { 5 }
 
