@@ -32,6 +32,20 @@ module Sidekiq
 
       it { is_expected.to be_a_kind_of(Sidekiq::Worker) }
 
+      describe '#queue' do
+        let(:queue_name) { Faker::Lorem }
+        let(:queue) { Queue.new(queue_name) }
+        before { subject.queue = queue }
+        its(:queue) { is_expected.to eq(queue) }
+      end
+
+      describe '#resource' do
+        let(:resource_name) { Faker::Lorem }
+        let(:resource) { Resource.new(resource_name) }
+        before { subject.resource = resource }
+        its(:resource) { is_expected.to eq(resource) }
+      end
+
       describe '.perform_async' do
         before { klass.perform_async(*args) }
 

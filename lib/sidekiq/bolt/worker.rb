@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     module Worker
+      attr_accessor :queue, :resource
 
       def self.included(base)
         base.send(:include, Sidekiq::Worker)
