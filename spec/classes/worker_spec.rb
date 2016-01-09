@@ -28,7 +28,7 @@ module Sidekiq
       let(:result_item) { Sidekiq.load_json(result_work[1]) }
       let(:klass) { MockWorker }
 
-      subject { MockWorker.new }
+      subject { klass.new }
 
       it { is_expected.to be_a_kind_of(Sidekiq::Worker) }
 
@@ -44,6 +44,22 @@ module Sidekiq
         let(:resource) { Resource.new(resource_name) }
         before { subject.resource = resource }
         its(:resource) { is_expected.to eq(resource) }
+      end
+
+      describe '.should_retry?' do
+        let(:some_value) { Faker::Lorem.word }
+        let(:retry_block) { ->() { some_value } }
+        let(:klass) do
+          block = retry_block
+          Class.new do
+            include Worker
+            should_retry?(&block)
+          end
+        end
+
+        it 'should set the sidekiq_should_retry_block for this worker' do
+          expect(subject.sidekiq_should_retry_block.call).to eq(some_value)
+        end
       end
 
       describe '.perform_async' do
