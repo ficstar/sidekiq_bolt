@@ -30,7 +30,7 @@ module Sidekiq
 
         it 'should include the time the item was enqueued at' do
           subject.push(item)
-          expect(result_item).to include('enqueued_at' => now.to_s)
+          expect(result_item).to include('enqueued_at' => now)
         end
 
         it 'should use the right queue' do
