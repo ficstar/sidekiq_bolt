@@ -24,6 +24,10 @@ module Sidekiq
         end
       end
 
+      def paused
+        Bolt.redis { |redis| !!redis.get("queue:paused:#{name}") }
+      end
+
       def blocked=(value)
         Bolt.redis do |redis|
           if value
@@ -32,6 +36,10 @@ module Sidekiq
             redis.del("queue:blocked:#{name}")
           end
         end
+      end
+
+      def blocked
+        Bolt.redis { |redis| !!redis.get("queue:blocked:#{name}") }
       end
 
       def size

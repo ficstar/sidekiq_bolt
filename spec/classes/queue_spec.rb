@@ -68,20 +68,24 @@ module Sidekiq
           expect(!!global_redis.get("queue:#{attribute}:#{name}")).to eq(false)
         end
 
+        its(attribute) { is_expected.to eq(false) }
+
         context 'when paused' do
           let(attribute) { true }
 
           it 'should store the value in redis' do
             expect(!!global_redis.get("queue:#{attribute}:#{name}")).to eq(true)
           end
+
+          its(attribute) { is_expected.to eq(true) }
         end
       end
 
-      describe '#paused=' do
+      describe '#paused' do
         it_behaves_like 'a queue attribute preventing operation on the queue', :paused
       end
 
-      describe '#blocked=' do
+      describe '#blocked' do
         it_behaves_like 'a queue attribute preventing operation on the queue', :blocked
       end
 
