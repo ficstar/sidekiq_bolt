@@ -56,25 +56,33 @@ module Sidekiq
         end
       end
 
-      describe '#paused=' do
-        let(:paused) { false }
+      shared_examples_for 'a queue attribute preventing operation on the queue' do |attribute|
+        let(attribute) { false }
 
         before do
-          subject.paused = true
-          subject.paused = paused
+          subject.public_send(:"#{attribute}=", true)
+          subject.public_send(:"#{attribute}=", send(attribute))
         end
 
         it 'should store the value in redis' do
-          expect(!!global_redis.get("queue:paused:#{name}")).to eq(false)
+          expect(!!global_redis.get("queue:#{attribute}:#{name}")).to eq(false)
         end
 
         context 'when paused' do
-          let(:paused) { true }
+          let(attribute) { true }
 
           it 'should store the value in redis' do
-            expect(!!global_redis.get("queue:paused:#{name}")).to eq(true)
+            expect(!!global_redis.get("queue:#{attribute}:#{name}")).to eq(true)
           end
         end
+      end
+
+      describe '#paused=' do
+        it_behaves_like 'a queue attribute preventing operation on the queue', :paused
+      end
+
+      describe '#blocked=' do
+        it_behaves_like 'a queue attribute preventing operation on the queue', :blocked
       end
 
       shared_examples_for 'counting attributes for queue resources' do |method, retrying|

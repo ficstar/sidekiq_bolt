@@ -24,6 +24,16 @@ module Sidekiq
         end
       end
 
+      def blocked=(value)
+        Bolt.redis do |redis|
+          if value
+            redis.set("queue:blocked:#{name}", 1)
+          else
+            redis.del("queue:blocked:#{name}")
+          end
+        end
+      end
+
       def size
         resources.map(&:size).reduce(&:+) || 0
       end
