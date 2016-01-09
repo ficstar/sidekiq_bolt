@@ -56,6 +56,27 @@ module Sidekiq
         end
       end
 
+      describe '#paused=' do
+        let(:paused) { false }
+
+        before do
+          subject.paused = true
+          subject.paused = paused
+        end
+
+        it 'should store the value in redis' do
+          expect(!!global_redis.get("queue:paused:#{name}")).to eq(false)
+        end
+
+        context 'when paused' do
+          let(:paused) { true }
+
+          it 'should store the value in redis' do
+            expect(!!global_redis.get("queue:paused:#{name}")).to eq(true)
+          end
+        end
+      end
+
       shared_examples_for 'counting attributes for queue resources' do |method, retrying|
         its(method) { is_expected.to eq(0) }
 

@@ -14,6 +14,16 @@ module Sidekiq
         end.map { |name| Resource.new(name) }
       end
 
+      def paused=(value)
+        Bolt.redis do |redis|
+          if value
+            redis.set("queue:paused:#{name}", 1)
+          else
+            redis.del("queue:paused:#{name}")
+          end
+        end
+      end
+
       def size
         resources.map(&:size).reduce(&:+) || 0
       end
