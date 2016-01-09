@@ -300,34 +300,42 @@ module Sidekiq
         end
       end
 
-      describe '#size' do
+      shared_examples_for 'counting work in queues' do |method, retrying|
         let(:queues) { %w(queue1 queue2) }
         let(:work) { 2 }
 
         before do
-          queues.each { |queue| work.times { subject.add_work(queue, SecureRandom.uuid) } }
+          queues.each { |queue| work.times { subject.add_work(queue, SecureRandom.uuid, retrying) } }
         end
 
-        its(:size) { is_expected.to eq(4) }
+        its(method) { is_expected.to eq(4) }
 
         context 'with no queues' do
           let(:queues) { [] }
 
-          its(:size) { is_expected.to eq(0) }
+          its(method) { is_expected.to eq(0) }
         end
 
         context 'with a different resource' do
           let(:name) { 'heavy_worker' }
           let(:queues) { %w(big_queue1 big_queue2 big_queue3) }
 
-          its(:size) { is_expected.to eq(6) }
+          its(method) { is_expected.to eq(6) }
         end
 
         context 'with a different amount of work' do
           let(:work) { 4 }
 
-          its(:size) { is_expected.to eq(8) }
+          its(method) { is_expected.to eq(8) }
         end
+      end
+
+      describe '#size' do
+        it_behaves_like 'counting work in queues', :size, false
+      end
+
+      describe '#retrying' do
+        it_behaves_like 'counting work in queues', :retrying, true
       end
 
       describe '#allocate' do

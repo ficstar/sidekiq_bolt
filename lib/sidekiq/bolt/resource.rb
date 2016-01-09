@@ -58,7 +58,13 @@ module Sidekiq
 
       def size
         Bolt.redis do |redis|
-          redis.eval(SIZE_SCRIPT, keys: NAMESPACE_KEY, argv: [name])
+          redis.eval(SIZE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, ''])
+        end
+      end
+
+      def retrying
+        Bolt.redis do |redis|
+          redis.eval(SIZE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, 'retrying:'])
         end
       end
 
