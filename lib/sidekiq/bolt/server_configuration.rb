@@ -3,7 +3,8 @@ module Sidekiq
     def self.configure_server(config)
       config.options[:fetch] = Fetch
       config.server_middleware do |chain|
-        chain.remove Sidekiq::Middleware::Server::RetryJobs
+        chain.remove Middleware::Server::RetryJobs
+        chain.add ServerMiddleware::RetryJobs
       end
     end
   end
