@@ -336,6 +336,45 @@ module Sidekiq
 
       describe '#retrying' do
         it_behaves_like 'counting work in queues', :retrying, true
+
+        context 'when the retry comes from the retry set' do
+          let(:queue_name) { Faker::Lorem.word }
+          let(:serialized_msg) do
+            JSON.dump('queue' => queue_name, 'resource' => name)
+          end
+
+          before do
+            global_redis.zadd('bolt:retry', Time.now.to_f, serialized_msg)
+          end
+
+          its(:retrying) { is_expected.to eq(1) }
+
+          context 'with multiple retrying items' do
+            let(:queue_name_two) { Faker::Lorem.word }
+            let(:serialized_msg_two) do
+              JSON.dump('queue' => queue_name_two, 'resource' => name)
+            end
+
+            before do
+              global_redis.zadd('bolt:retry', Time.now.to_f, serialized_msg_two)
+            end
+
+            its(:retrying) { is_expected.to eq(2) }
+          end
+
+          context 'with a different resource' do
+            let(:resource_two) { Faker::Lorem.word }
+            let(:serialized_msg_two) do
+              JSON.dump('queue' => queue_name, 'resource' => resource_two)
+            end
+
+            before do
+              global_redis.zadd('bolt:retry', Time.now.to_f, serialized_msg_two)
+            end
+
+            its(:retrying) { is_expected.to eq(1) }
+          end
+        end
       end
 
       describe '#allocate' do

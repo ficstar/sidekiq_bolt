@@ -15,6 +15,8 @@ module Sidekiq
       SIZE_SCRIPT = File.read(SIZE_SCRIPT_PATH)
       FREE_SCRIPT_PATH = "#{SCRIPT_ROOT}/free.lua"
       FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
+      RETRYING_SCRIPT_PATH = "#{SCRIPT_ROOT}/retrying.lua"
+      RETRYING_SCRIPT = File.read(RETRYING_SCRIPT_PATH)
       NAMESPACE_KEY = [''].freeze
 
       define_property 'resource:type', :type
@@ -64,7 +66,7 @@ module Sidekiq
 
       def retrying
         Bolt.redis do |redis|
-          redis.eval(SIZE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, 'retrying:'])
+          redis.eval(RETRYING_SCRIPT, keys: NAMESPACE_KEY, argv: [name, ''])
         end
       end
 
