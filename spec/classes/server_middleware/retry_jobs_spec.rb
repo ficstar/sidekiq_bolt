@@ -62,6 +62,55 @@ module Sidekiq
               end
             end
 
+            context 'when the worker specified a sidekiq_retry_in_block' do
+              let(:retry_count) { rand(1..10) }
+              let(:worker_class) do
+                Class.new do
+                  include Worker
+                  sidekiq_retry_in do |count, error|
+                    count * (error.is_a?(StandardError) ? 2 : 7)
+                  end
+                end
+              end
+              let(:serialized_msg) { global_redis.zrange('bolt:retry', 0, -1).first }
+              let(:msg) { JSON.load(serialized_msg) if serialized_msg }
+              let(:now) { Time.at(7777777777) }
+              let(:expected_retry_score) { Time.now.to_f + 2 * retry_count }
+              let(:retry_msg_job) { Sidekiq.load_json(msg['work']) if msg['work'] }
+
+              around { |example| Timecop.freeze(now) { example.run } }
+
+              before do
+                job["retry_count:#{error}"] = retry_count
+                subject.call(worker, job, nil) { raise error }
+              end
+
+              it 'should add this job to the retry set for the queue for this job' do
+                expect(msg['queue']).to eq(queue_name)
+              end
+
+              it 'should add this job to the retry set for the resource for this job' do
+                expect(msg['resource']).to eq(resource_name)
+              end
+
+              it 'should save the job' do
+                expect(retry_msg_job).to include(job)
+              end
+
+              it 'should retry the job in the time specified by the worker' do
+                expect(global_redis.zscore('bolt:retry', serialized_msg)).to be_within(2).of(expected_retry_score)
+              end
+
+              context 'with a different error' do
+                let(:error) { Interrupt.new }
+                let(:expected_retry_score) { Time.now.to_f + 7 * retry_count }
+
+                it 'should retry the job in the time specified by the worker' do
+                  expect(global_redis.zscore('bolt:retry', serialized_msg)).to be_within(2).of(expected_retry_score)
+                end
+              end
+            end
+
             context 'when the worker specifies a sidekiq_should_retry_block' do
               let(:worker_class) do
                 Class.new do
