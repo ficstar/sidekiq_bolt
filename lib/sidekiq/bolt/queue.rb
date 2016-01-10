@@ -2,6 +2,12 @@ module Sidekiq
   module Bolt
     class Queue < Struct.new(:name)
 
+      ROOT = File.dirname(__FILE__)
+      SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
+      RETRYING_SCRIPT_PATH = "#{SCRIPT_ROOT}/retrying.lua"
+      RETRYING_SCRIPT = File.read(RETRYING_SCRIPT_PATH)
+      NAMESPACE_KEY = [''].freeze
+
       def self.all
         Bolt.redis do |conn|
           conn.smembers('queues')
@@ -47,7 +53,9 @@ module Sidekiq
       end
 
       def retrying
-        resources.map(&:retrying).reduce(&:+) || 0
+        Bolt.redis do |redis|
+          redis.eval(RETRYING_SCRIPT, keys: NAMESPACE_KEY, argv: [name, ''])
+        end
       end
 
       def busy
