@@ -12,4 +12,14 @@ for _, resource in ipairs(resource_names) do
     retry_count = retry_count + resource_retry_count
 end
 
+local retry_set_key = namespace .. 'bolt:retry'
+local retry_set = redis.call('zrange', retry_set_key, 0, -1)
+
+for _, retry in ipairs(retry_set) do
+    local message = cjson.decode(retry)
+    if message.queue == queue_name then
+        retry_count = retry_count + 1
+    end
+end
+
 return retry_count
