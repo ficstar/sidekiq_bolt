@@ -97,6 +97,10 @@ module Sidekiq
                 expect(retry_msg_job).to include(job)
               end
 
+              it 'should only retry the job once' do
+                expect(resource.retrying).to eq(1)
+              end
+
               it 'should retry the job in the time specified by the worker' do
                 expect(global_redis.zscore('bolt:retry', serialized_msg)).to be_within(2).of(expected_retry_score)
               end

@@ -26,9 +26,9 @@ module Sidekiq
             Bolt.redis do |redis|
               redis.eval(ADD_RETRY_SCRIPT, keys: NAMESPACE_KEY, argv: [job['queue'], job['resource'], serialized_job, retry_at])
             end
+          else
+            Resource.new(job['resource']).add_work(job['queue'], serialized_job, true)
           end
-
-          Resource.new(job['resource']).add_work(job['queue'], serialized_job, true)
         end
 
       end
