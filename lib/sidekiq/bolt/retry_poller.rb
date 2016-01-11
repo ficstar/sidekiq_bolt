@@ -7,7 +7,12 @@ module Sidekiq
       POLL_SCRIPT = File.read(POLL_SCRIPT_PATH)
       NAMESPACE_KEY = [''].freeze
 
+      def initialize
+        @enq = Scheduled::Enq.new
+      end
+
       def enqueue_jobs
+        @enq.enqueue_jobs
         Bolt.redis do |redis|
           redis.eval(POLL_SCRIPT, keys: NAMESPACE_KEY, argv: [Time.now.to_f])
         end
