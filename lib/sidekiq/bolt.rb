@@ -1,3 +1,5 @@
+require 'sidekiq/scheduled'
+
 require 'sidekiq/bolt/serializer'
 require 'sidekiq/bolt/redis_helpers'
 require 'sidekiq/bolt/property_list'
