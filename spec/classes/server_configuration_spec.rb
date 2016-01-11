@@ -11,6 +11,10 @@ module Sidekiq
           expect(Sidekiq.options[:fetch]).to eq(Fetch)
         end
 
+        it 'should set the scheduled enq to our RetryPoller' do
+          expect(Sidekiq.options[:scheduled_enq]).to eq(RetryPoller)
+        end
+
         it 'should remove the Sidekiq::Middleware::Server::RetryJobs server middleware' do
           expect(Sidekiq.server_middleware).not_to exist(Middleware::Server::RetryJobs)
         end
