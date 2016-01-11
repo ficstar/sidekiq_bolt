@@ -1,6 +1,6 @@
 module Sidekiq
   module Bolt
-    class RetryPoller
+    class RetryPoller < Scheduled::Poller
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
       POLL_SCRIPT_PATH = "#{SCRIPT_ROOT}/poll.lua"

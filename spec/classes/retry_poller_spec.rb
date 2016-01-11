@@ -8,6 +8,8 @@ module Sidekiq
 
       around { |example| Timecop.freeze(now) { example.run } }
 
+      it { is_expected.to be_a_kind_of(Scheduled::Poller) }
+
       describe '#enqueue' do
         let(:queue_name) { Faker::Lorem.word }
         let(:resource_name) { Faker::Lorem.word }
