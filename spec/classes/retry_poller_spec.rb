@@ -8,9 +8,7 @@ module Sidekiq
 
       around { |example| Timecop.freeze(now) { example.run } }
 
-      it { is_expected.to be_a_kind_of(Scheduled::Poller) }
-
-      describe '#enqueue' do
+      describe '#enqueue_jobs' do
         let(:queue_name) { Faker::Lorem.word }
         let(:resource_name) { Faker::Lorem.word }
         let(:queue) { Queue.new(queue_name) }
@@ -26,7 +24,7 @@ module Sidekiq
 
         before do
           global_redis.zadd('bolt:retry', work_time.to_f, serialized_work)
-          RetryPoller.new.enqueue
+          RetryPoller.new.enqueue_jobs
         end
 
         it 'should add the work to the queue that it came from' do
