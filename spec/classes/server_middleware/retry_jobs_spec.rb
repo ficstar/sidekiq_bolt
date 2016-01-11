@@ -148,7 +148,7 @@ module Sidekiq
               context 'when the error count is used to determine whether or not to retry' do
                 let(:error) { Interrupt.new }
 
-                before { job["retry_count:#{error}"] = 50 }
+                before { job["retry_count:#{error}"] = 9 }
 
                 it 'should not retry' do
                   expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)

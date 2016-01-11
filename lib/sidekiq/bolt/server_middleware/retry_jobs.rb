@@ -16,7 +16,9 @@ module Sidekiq
           current_retries = job[retry_count_key].to_i
           job[retry_count_key] = current_retries + 1
 
-          raise unless job['retry'] && (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job, e, current_retries))
+          unless job['retry'] && (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job, e, job[retry_count_key]))
+            raise
+          end
 
           job['error'] = e
           serialized_job = Sidekiq.dump_json(job)
