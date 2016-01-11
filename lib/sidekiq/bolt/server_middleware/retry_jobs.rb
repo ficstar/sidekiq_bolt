@@ -12,12 +12,13 @@ module Sidekiq
         def call(worker, job, _)
           yield
         rescue Exception => e
-          raise unless job['retry'] && (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job, e))
-
           retry_count_key = "retry_count:#{e}"
           current_retries = job[retry_count_key].to_i
-          job['error'] = e
           job[retry_count_key] = current_retries + 1
+
+          raise unless job['retry'] && (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job, e, current_retries))
+
+          job['error'] = e
           serialized_job = Sidekiq.dump_json(job)
 
           if worker.sidekiq_retry_in_block

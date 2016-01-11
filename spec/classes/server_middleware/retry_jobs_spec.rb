@@ -119,7 +119,9 @@ module Sidekiq
               let(:worker_class) do
                 Class.new do
                   include Worker
-                  should_retry? { |job, error| !error.is_a?(StandardError) && !job['borked!'] }
+                  should_retry? do |job, error, hit_count|
+                    !error.is_a?(StandardError) && !job['borked!'] && hit_count.to_i < 10
+                  end
                 end
               end
 
@@ -137,6 +139,16 @@ module Sidekiq
 
               context 'when the job contains something that the worker does not like' do
                 before { job['borked!'] = true }
+
+                it 'should not retry' do
+                  expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                end
+              end
+
+              context 'when the error count is used to determine whether or not to retry' do
+                let(:error) { Interrupt.new }
+
+                before { job["retry_count:#{error}"] = 50 }
 
                 it 'should not retry' do
                   expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
