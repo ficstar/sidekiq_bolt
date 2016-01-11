@@ -12,6 +12,7 @@ Dir['./spec/helpers/**.rb'].each { |file| require file }
 Dir['./spec/shared_examples/**.rb'].each { |file| require file }
 Dir['./spec/support/**.rb'].each { |file| require file }
 
+require 'celluloid/current'
 require 'sidekiq/api'
 require 'sidekiq/processor'
 
