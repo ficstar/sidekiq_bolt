@@ -3,6 +3,7 @@ module Sidekiq
     class Fetch
       UnitOfWork = Struct.new(:queue, :resource_name, :job) do
         alias :queue_name :queue
+        alias :message :job
 
         def acknowledge
           resource.free(queue, job)

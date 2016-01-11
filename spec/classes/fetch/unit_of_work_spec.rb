@@ -14,6 +14,7 @@ module Sidekiq
       its(:queue_name) { is_expected.to eq(queue) }
       its(:resource_name) { is_expected.to eq(resource_name) }
       its(:job) { is_expected.to eq(work) }
+      its(:message) { is_expected.to eq(work) }
 
       shared_examples_for 'acknowledging work' do |method|
         it 'should free the work from the resource' do
