@@ -14,7 +14,7 @@ module Sidekiq
       end
 
       describe '#retrieve_work' do
-        before { allow_any_instance_of(Fetch).to receive(:sleep) }
+        before { allow_any_instance_of(Fetch).to receive(:sleep).and_return(1) }
 
         its(:retrieve_work) { is_expected.to be_nil }
 

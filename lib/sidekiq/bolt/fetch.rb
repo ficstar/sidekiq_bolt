@@ -11,7 +11,7 @@ module Sidekiq
 
       def retrieve_work
         work = find_work
-        work ? work : sleep(1)
+        work ? work : (sleep(1) && nil)
       end
 
       private
