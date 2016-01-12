@@ -13,6 +13,7 @@ module Sidekiq
         base.send(:include, Sidekiq::Worker)
         base.extend ClassMethods
         base.class_attribute :sidekiq_should_retry_block
+        base.class_attribute :sidekiq_freeze_resource_after_retry_for_block
       end
 
       module ClassMethods
@@ -31,6 +32,11 @@ module Sidekiq
 
         def sidekiq_should_retry?(&block)
           self.sidekiq_should_retry_block = block
+        end
+
+        #noinspection RubyInstanceMethodNamingConvention
+        def sidekiq_freeze_resource_after_retry_for(&block)
+          self.sidekiq_freeze_resource_after_retry_for_block = block
         end
 
         def get_sidekiq_options

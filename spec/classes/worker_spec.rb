@@ -62,6 +62,22 @@ module Sidekiq
         end
       end
 
+      describe '.sidekiq_freeze_resource_after_retry_for' do
+        let(:some_value) { Faker::Lorem.word }
+        let(:retry_block) { ->() { some_value } }
+        let(:klass) do
+          block = retry_block
+          Class.new do
+            include Worker
+            sidekiq_freeze_resource_after_retry_for(&block)
+          end
+        end
+
+        it 'should set the sidekiq_freeze_resource_after_retry_for_block for this worker' do
+          expect(subject.sidekiq_freeze_resource_after_retry_for_block.call).to eq(some_value)
+        end
+      end
+
       describe '.perform_async' do
         before { klass.perform_async(*args) }
 
