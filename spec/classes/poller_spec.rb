@@ -37,12 +37,20 @@ module Sidekiq
             expect(result_queue).to eq(queue_name)
           end
 
-          it 'should add the work to the resource that it came from' do
-            expect(result_work).to eq(work_data)
+          it 'should keep a reference of the queue name' do
+            expect(Queue.all.map(&:name)).to include(queue_name)
+          end
+
+          it 'should keep a reference of the resource name' do
+            expect(Queue.all.map(&:name)).to include(queue_name)
           end
 
           it 'should create a reference between the queue and the resource' do
             expect(queue.resources.map(&:name)).to include(resource_name)
+          end
+
+          it 'should add the work to the resource that it came from' do
+            expect(result_work).to eq(work_data)
           end
 
           it 'should remove the item from the set' do
