@@ -119,7 +119,7 @@ module Sidekiq
               let(:worker_class) do
                 Class.new do
                   include Worker
-                  should_retry? do |job, error, hit_count|
+                  sidekiq_should_retry? do |job, error, hit_count|
                     !error.is_a?(StandardError) && !job['borked!'] && hit_count.to_i < 10
                   end
                 end

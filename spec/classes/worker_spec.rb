@@ -46,14 +46,14 @@ module Sidekiq
         its(:resource) { is_expected.to eq(resource) }
       end
 
-      describe '.should_retry?' do
+      describe '.sidekiq_should_retry?' do
         let(:some_value) { Faker::Lorem.word }
         let(:retry_block) { ->() { some_value } }
         let(:klass) do
           block = retry_block
           Class.new do
             include Worker
-            should_retry?(&block)
+            sidekiq_should_retry?(&block)
           end
         end
 

@@ -14,7 +14,7 @@ module Sidekiq
           client_push('class' => self, 'args' => args, 'queue' => options[:queue], 'resource' => options[:resource])
         end
 
-        def should_retry?(&block)
+        def sidekiq_should_retry?(&block)
           self.sidekiq_should_retry_block = block
         end
 
