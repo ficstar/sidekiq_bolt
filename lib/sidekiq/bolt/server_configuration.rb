@@ -3,7 +3,7 @@ module Sidekiq
 
     def self.configure_server(config)
       config.options[:fetch] = Fetch
-      config.options[:scheduled_enq] = RetryPoller
+      config.options[:scheduled_enq] = Poller
       config.server_middleware do |chain|
         chain.prepend ServerMiddleware::JobMetaData
         chain.remove Middleware::Server::RetryJobs

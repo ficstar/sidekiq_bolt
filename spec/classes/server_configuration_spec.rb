@@ -12,7 +12,7 @@ module Sidekiq
         end
 
         it 'should set the scheduled enq to our RetryPoller' do
-          expect(Sidekiq.options[:scheduled_enq]).to eq(RetryPoller)
+          expect(Sidekiq.options[:scheduled_enq]).to eq(Poller)
         end
 
         it 'should remove the Sidekiq::Middleware::Server::RetryJobs server middleware' do

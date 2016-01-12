@@ -2,7 +2,7 @@ require 'rspec'
 
 module Sidekiq
   module Bolt
-    describe RetryPoller do
+    describe Poller do
 
       let(:now) { Time.now }
 
@@ -11,7 +11,7 @@ module Sidekiq
       describe '#enqueue_jobs' do
         it 'should run the default Enq for Sidekiq' do
           expect_any_instance_of(Scheduled::Enq).to receive(:enqueue_jobs)
-          RetryPoller.new.enqueue_jobs
+          Poller.new.enqueue_jobs
         end
 
         describe 'retrying work' do
@@ -30,7 +30,7 @@ module Sidekiq
 
           before do
             global_redis.zadd('bolt:retry', work_time.to_f, serialized_work)
-            RetryPoller.new.enqueue_jobs
+            Poller.new.enqueue_jobs
           end
 
           it 'should add the work to the queue that it came from' do
