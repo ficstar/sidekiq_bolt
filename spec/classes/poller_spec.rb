@@ -28,8 +28,10 @@ module Sidekiq
         end
 
         shared_examples_for 'enqueuing scheduled jobs' do |set|
+          let(:scheduled_items) { {serialized_work => work_time} }
+
           before do
-            global_redis.zadd("bolt:#{set}", work_time.to_f, serialized_work)
+            scheduled_items.each { |item, time| global_redis.zadd("bolt:#{set}", time.to_f, item) }
             Poller.new.enqueue_jobs
           end
 
@@ -62,6 +64,25 @@ module Sidekiq
 
             it 'should not re-enqueue the work' do
               expect(result_work).to be_nil
+            end
+          end
+
+          context 'with multiple expired items' do
+            let(:work_time_two) { now - 100 }
+            let(:result_allocation) { resource.allocate(2) }
+            let(:result_work_two) { result_allocation[3] }
+            let(:work_data_two) { SecureRandom.uuid }
+            #noinspection RubyStringKeysInHashInspection
+            let(:work_two) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work_data_two} }
+            let(:serialized_work_two) { JSON.dump(work_two) }
+            let(:scheduled_items) { {serialized_work => work_time, serialized_work_two => work_time_two} }
+
+            it 'should schedule the first item' do
+              expect([result_work, result_work_two]).to include(work_data)
+            end
+
+            it 'should schedule the second item' do
+              expect([result_work, result_work_two]).to include(work_data_two)
             end
           end
         end

@@ -3,9 +3,9 @@ local set_name = table.remove(ARGV, 1)
 local queue_prefix = table.remove(ARGV, 1)
 local current_time = table.remove(ARGV, 1)
 local set_key = namespace .. set_name
-local serialized_job = redis.call('zrangebyscore', set_key, '-inf', current_time, 'LIMIT', 0, 1)[1]
+local serialized_jobs = redis.call('zrangebyscore', set_key, '-inf', current_time)
 
-if serialized_job then
+for _, serialized_job in ipairs(serialized_jobs) do
     local retry = cjson.decode(serialized_job)
     local resource_queue_key = namespace .. 'resource:queue:' .. queue_prefix .. retry.queue .. ':' .. retry.resource
     local resource_queues_key = namespace .. 'resource:queues:' .. retry.resource
