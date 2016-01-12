@@ -79,6 +79,62 @@ module Sidekiq
         end
       end
 
+      describe '#perform_in' do
+        let(:now) { Time.now }
+        let(:interval) { rand(1..999) }
+        let(:scheduled_job) { global_redis.zrange('bolt:scheduled', 0, -1).first }
+        let(:result_work) { JSON.load(scheduled_job) }
+        let(:result_item) { Sidekiq.load_json(result_work['work']) }
+        let(:result_queue) { result_work['queue'] }
+        let(:result_resource) { result_work['resource'] }
+
+        before { klass.perform_in(interval, *args) }
+
+        around { |example| Timecop.freeze(now) { example.run } }
+
+        it 'should enqueue the work to the default queue/resource' do
+          expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
+        end
+
+        it 'should schedule to run in the specified interval' do
+          expect(global_redis.zscore('bolt:scheduled', scheduled_job)).to eq(now.to_f + interval)
+        end
+
+        it 'should save the queue for later scheduling' do
+          expect(result_queue).to eq(queue_name)
+        end
+
+        it 'should save the resource for later scheduling' do
+          expect(result_resource).to eq(resource_name)
+        end
+
+        context 'with an overridden resource name' do
+          let(:klass) { MockWorkerTwo }
+          let(:resource_name) { MockWorkerTwo::RESOURCE_NAME }
+
+          it 'should enqueue the work to the specified resource' do
+            expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorkerTwo', 'args' => args)
+          end
+
+          it 'should save the resource for later scheduling' do
+            expect(result_resource).to eq(resource_name)
+          end
+        end
+
+        context 'with an overridden queue name' do
+          let(:klass) { MockWorkerThree }
+          let(:queue_name) { MockWorkerThree::QUEUE_NAME }
+
+          it 'should enqueue the work to the specified queue' do
+            expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorkerThree', 'args' => args)
+          end
+
+          it 'should save the queue for later scheduling' do
+            expect(result_queue).to eq(queue_name)
+          end
+        end
+      end
+
       describe '.perform_async_with_options' do
         let(:options) { {} }
         before { klass.perform_async_with_options(options, *args) }
