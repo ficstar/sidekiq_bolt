@@ -13,8 +13,10 @@ module Sidekiq
 
       def enqueue_jobs
         @enq.enqueue_jobs
-        Bolt.redis do |redis|
-          redis.eval(POLL_SCRIPT, keys: NAMESPACE_KEY, argv: [Time.now.to_f])
+        {retry: 'retrying:', scheduled: ''}.each do |set, prefix|
+          Bolt.redis do |redis|
+            redis.eval(POLL_SCRIPT, keys: NAMESPACE_KEY, argv: ["bolt:#{set}", prefix, Time.now.to_f])
+          end
         end
       end
     end
