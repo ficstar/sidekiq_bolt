@@ -132,6 +132,11 @@ module Sidekiq
                   end
                 end
               end
+              let(:frozen_resource) { global_redis.zrange('bolt:frozen_resource', 0, -1).first }
+              let(:expected_defrost_time) { Time.now.to_f + 1 }
+              let(:now) { Time.at(7777111111) }
+
+              around { |example| Timecop.freeze(now) { example.run } }
 
               before do
                 job['borked!'] = borked
@@ -143,6 +148,14 @@ module Sidekiq
                 expect(resource.frozen).to eq(true)
               end
 
+              it 'should schedule this resource to be unfrozen later' do
+                expect(frozen_resource).to eq(resource_name)
+              end
+
+              it 'should schedule the resource to be unfrozen at an interval specified by the worker' do
+                expect(global_redis.zscore('bolt:frozen_resource', frozen_resource)).to eq(expected_defrost_time)
+              end
+
               context 'when the block returns nil' do
                 let(:error) { Interrupt }
 
@@ -152,15 +165,27 @@ module Sidekiq
 
                 context 'when the job has something the worker does not like' do
                   let(:borked) { true }
+                  let(:expected_defrost_time) { Time.now.to_f + 7 }
+
                   it 'should freeze the resource' do
                     expect(resource.frozen).to eq(true)
+                  end
+
+                  it 'should schedule the resource to be unfrozen at an interval specified by the worker' do
+                    expect(global_redis.zscore('bolt:frozen_resource', frozen_resource)).to eq(expected_defrost_time)
                   end
                 end
 
                 context 'when retried too many times' do
                   let(:retry_count) { 10 }
+                  let(:expected_defrost_time) { Time.now.to_f + 13 }
+
                   it 'should freeze the resource' do
                     expect(resource.frozen).to eq(true)
+                  end
+
+                  it 'should schedule the resource to be unfrozen at an interval specified by the worker' do
+                    expect(global_redis.zscore('bolt:frozen_resource', frozen_resource)).to eq(expected_defrost_time)
                   end
                 end
 
