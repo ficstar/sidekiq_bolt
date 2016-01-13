@@ -48,7 +48,11 @@ module Sidekiq
         define_method("#{property}=") do |value|
           Bolt.redis do |conn|
             instance_variable_set(instance_variable, value)
-            conn.set("#{namespace}:#{name}", value)
+            if value
+              conn.set("#{namespace}:#{name}", value)
+            else
+              conn.del("#{namespace}:#{name}")
+            end
           end
         end
       end

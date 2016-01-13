@@ -19,6 +19,15 @@ describe Sidekiq::Bolt::PropertyList do
         expect(global_redis.get('queue_type:list')).to eq('Q')
       end
 
+      context 'when the set value is nil' do
+        it 'should remove the key from redis' do
+          property_klass.define_property(:queue_type, :type)
+          subject.type = 'Q'
+          subject.type = nil
+          expect(global_redis.get('queue_type:list')).to be_nil
+        end
+      end
+
       context 'with a different property' do
         it 'should define a method to access attributes from redis' do
           property_klass.define_property(:meta_data, :project_name)
