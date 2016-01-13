@@ -137,17 +137,27 @@ module Sidekiq
               let(:frozen_resource) { global_redis.zrange('bolt:frozen_resource', 0, -1).first }
               let(:expected_defrost_time) { Time.now.to_f + 1 }
               let(:now) { Time.at(7777111111) }
+              let(:resource_already_frozen) { false }
 
               around { |example| Timecop.freeze(now) { example.run } }
 
               before do
                 job['borked!'] = borked
                 job["retry_count:#{error}"] = retry_count
+                resource.frozen = resource_already_frozen
                 subject.call(worker, job, nil) { raise error }
               end
 
               it 'should freeze the resource' do
                 expect(resource.frozen).to eq(true)
+              end
+
+              context 'when the resource is already frozen' do
+                let(:resource_already_frozen) { true }
+
+                it 'should not schedule this resource to be unfrozen later' do
+                  expect(frozen_resource).to be_nil
+                end
               end
 
               it 'should schedule this resource to be unfrozen later' do
