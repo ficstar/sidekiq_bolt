@@ -122,7 +122,9 @@ module Sidekiq
                 Class.new do
                   include Worker
                   sidekiq_freeze_resource_after_retry_for do |job, error, hit_count|
-                    if error.is_a?(StandardError)
+                    if job['borked!'] == 'ice age'
+                      :never
+                    elsif error.is_a?(StandardError)
                       1
                     elsif job['borked!']
                       7
@@ -189,6 +191,17 @@ module Sidekiq
                   end
                 end
 
+                context 'when the resource is not to be unfrozen' do
+                  let(:borked) { 'ice age' }
+
+                  it 'should freeze the resource' do
+                    expect(resource.frozen).to eq(true)
+                  end
+
+                  it 'should not schedule this resource to be unfrozen later' do
+                    expect(frozen_resource).to be_nil
+                  end
+                end
               end
             end
 

@@ -18,12 +18,18 @@ module Sidekiq
           current_retries = job[retry_count_key].to_i
           job[retry_count_key] = current_retries + 1
 
+          resource = Resource.new(job['resource'])
+
           if worker.sidekiq_freeze_resource_after_retry_for_block
             unfreeze_in = worker.sidekiq_freeze_resource_after_retry_for_block.call(job, e, job[retry_count_key])
             if unfreeze_in
-              desfrost_at = Time.now.to_f + unfreeze_in
-              Bolt.redis do |redis|
-                redis.eval(FREEZE_RESOURCE_SCRIPT, keys: NAMESPACE_KEY, argv: [job['resource'], desfrost_at])
+              if unfreeze_in == :never
+                resource.frozen = true
+              else
+                desfrost_at = Time.now.to_f + unfreeze_in
+                Bolt.redis do |redis|
+                  redis.eval(FREEZE_RESOURCE_SCRIPT, keys: NAMESPACE_KEY, argv: [job['resource'], desfrost_at])
+                end
               end
             end
           end
@@ -42,7 +48,7 @@ module Sidekiq
               redis.eval(ADD_RETRY_SCRIPT, keys: NAMESPACE_KEY, argv: [job['queue'], job['resource'], serialized_job, retry_at])
             end
           else
-            Resource.new(job['resource']).add_work(job['queue'], serialized_job, true)
+            resource.add_work(job['queue'], serialized_job, true)
           end
         end
 
