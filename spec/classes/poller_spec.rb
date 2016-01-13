@@ -27,6 +27,47 @@ module Sidekiq
           Poller.new.enqueue_jobs
         end
 
+        describe 'unfreezing frozen resources' do
+          let(:scheduled_items) { {resource_name => work_time} }
+
+          before do
+            resource.frozen = true
+            scheduled_items.each { |item, time| global_redis.zadd('bolt:frozen_resource', time.to_f, item) }
+            Poller.new.enqueue_jobs
+          end
+
+          it 'should unfreeze the resource' do
+            expect(resource.frozen).to eq(false)
+          end
+
+          it 'should remove the scheduled defrost' do
+            expect(global_redis.zrange('bolt:frozen_resource', 0, -1)).to be_empty
+          end
+
+          context 'when the resource is schedule to be defrosted later' do
+            let(:work_time) { now + 120 }
+
+            it 'should leave the queue frozen' do
+              expect(resource.frozen).to eq(true)
+            end
+          end
+
+          context 'with multiple expired items' do
+            let(:resource_name_two) { Faker::Lorem.word }
+            let(:resource_two) { Resource.new(resource_name_two) }
+            let(:work_time_two) { now - 100 }
+            let(:scheduled_items) { {resource_name => work_time, resource_name_two => work_time_two} }
+
+            it 'should unfreeze the first resource' do
+              expect(resource.frozen).to eq(false)
+            end
+
+            it 'should unfreeze the second resource' do
+              expect(resource_two.frozen).to eq(false)
+            end
+          end
+        end
+
         shared_examples_for 'enqueuing scheduled jobs' do |set|
           let(:scheduled_items) { {serialized_work => work_time} }
 
