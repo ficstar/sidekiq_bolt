@@ -13,40 +13,16 @@ module Sidekiq
       private
 
       def define_counter_methods(namespace, property)
-        define_incr(namespace, property)
-        define_incrby(namespace, property)
-        define_decr(namespace, property)
-        define_decrby(namespace, property)
+        define_counter_method(namespace, property, :incr)
+        define_counter_method(namespace, property, :incrby)
+        define_counter_method(namespace, property, :decr)
+        define_counter_method(namespace, property, :decrby)
       end
 
-      def define_decrby(namespace, property)
-        define_method("#{property}_decrby") do |amount|
+      def define_counter_method(namespace, property, redis_method)
+        define_method("#{property}_#{redis_method}") do |*args|
           Bolt.redis do |conn|
-            conn.decrby("#{namespace}:#{name}", amount)
-          end
-        end
-      end
-
-      def define_decr(namespace, property)
-        define_method("#{property}_decr") do
-          Bolt.redis do |conn|
-            conn.decr("#{namespace}:#{name}")
-          end
-        end
-      end
-
-      def define_incrby(namespace, property)
-        define_method("#{property}_incrby") do |amount|
-          Bolt.redis do |conn|
-            conn.incrby("#{namespace}:#{name}", amount)
-          end
-        end
-      end
-
-      def define_incr(namespace, property)
-        define_method("#{property}_incr") do
-          Bolt.redis do |conn|
-            conn.incr("#{namespace}:#{name}")
+            conn.public_send(redis_method, "#{namespace}:#{name}", *args)
           end
         end
       end
