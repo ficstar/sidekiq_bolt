@@ -123,7 +123,7 @@ module Sidekiq
                   include Worker
                   sidekiq_freeze_resource_after_retry_for do |job, error, hit_count|
                     if job['borked!'] == 'ice age'
-                      :never
+                      :forever
                     elsif error.is_a?(StandardError)
                       1
                     elsif job['borked!']

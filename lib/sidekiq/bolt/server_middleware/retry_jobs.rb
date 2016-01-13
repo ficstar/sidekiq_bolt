@@ -23,7 +23,7 @@ module Sidekiq
           if worker.sidekiq_freeze_resource_after_retry_for_block
             unfreeze_in = worker.sidekiq_freeze_resource_after_retry_for_block.call(job, e, job[retry_count_key])
             if unfreeze_in
-              if unfreeze_in == :never
+              if unfreeze_in == :forever
                 resource.frozen = true
               else
                 desfrost_at = Time.now.to_f + unfreeze_in
