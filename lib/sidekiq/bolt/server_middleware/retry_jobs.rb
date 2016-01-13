@@ -16,6 +16,11 @@ module Sidekiq
           current_retries = job[retry_count_key].to_i
           job[retry_count_key] = current_retries + 1
 
+          resource = Resource.new(job['resource'])
+          if worker.sidekiq_freeze_resource_after_retry_for_block
+            resource.frozen = worker.sidekiq_freeze_resource_after_retry_for_block.call(job, e, job[retry_count_key])
+          end
+
           unless job['retry'] && (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job, e, job[retry_count_key]))
             raise
           end
@@ -30,7 +35,7 @@ module Sidekiq
               redis.eval(ADD_RETRY_SCRIPT, keys: NAMESPACE_KEY, argv: [job['queue'], job['resource'], serialized_job, retry_at])
             end
           else
-            Resource.new(job['resource']).add_work(job['queue'], serialized_job, true)
+            resource.add_work(job['queue'], serialized_job, true)
           end
         end
 

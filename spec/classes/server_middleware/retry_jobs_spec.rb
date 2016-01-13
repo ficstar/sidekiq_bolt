@@ -115,6 +115,58 @@ module Sidekiq
               end
             end
 
+            context 'when the worker specifies a sidekiq_freeze_resource_after_retry_for_block' do
+              let(:borked) { false }
+              let(:retry_count) { nil }
+              let(:worker_class) do
+                Class.new do
+                  include Worker
+                  sidekiq_freeze_resource_after_retry_for do |job, error, hit_count|
+                    if error.is_a?(StandardError)
+                      1
+                    elsif job['borked!']
+                      7
+                    elsif hit_count.to_i > 10
+                      13
+                    end
+                  end
+                end
+              end
+
+              before do
+                job['borked!'] = borked
+                job["retry_count:#{error}"] = retry_count
+                subject.call(worker, job, nil) { raise error }
+              end
+
+              it 'should freeze the resource' do
+                expect(resource.frozen).to eq(true)
+              end
+
+              context 'when the block returns nil' do
+                let(:error) { Interrupt }
+
+                it 'should not freeze the resource' do
+                  expect(resource.frozen).to eq(false)
+                end
+
+                context 'when the job has something the worker does not like' do
+                  let(:borked) { true }
+                  it 'should freeze the resource' do
+                    expect(resource.frozen).to eq(true)
+                  end
+                end
+
+                context 'when retried too many times' do
+                  let(:retry_count) { 10 }
+                  it 'should freeze the resource' do
+                    expect(resource.frozen).to eq(true)
+                  end
+                end
+
+              end
+            end
+
             context 'when the worker specifies a sidekiq_should_retry_block' do
               let(:worker_class) do
                 Class.new do
