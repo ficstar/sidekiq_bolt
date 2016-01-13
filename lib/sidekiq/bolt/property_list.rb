@@ -35,7 +35,11 @@ module Sidekiq
 
             result = conn.get("#{namespace}:#{name}")
             result = result.to_i if [:int, :counter].include?(type)
-            instance_variable_set(instance_variable, result)
+            if type == :counter
+              result
+            else
+              instance_variable_set(instance_variable, result)
+            end
           end
         end
       end

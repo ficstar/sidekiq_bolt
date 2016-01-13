@@ -106,6 +106,13 @@ describe Sidekiq::Bolt::PropertyList do
         expect(property_klass.new(name).busy).to eq(1)
       end
 
+      it 'should not cache counters' do
+        global_redis.set('queue_type:busy', 5)
+        subject.busy
+        expect_any_instance_of(Redis).to receive(:get)
+        subject.busy
+      end
+
       it 'should should define a method to increment the counter by a specified number' do
         subject.busy_incrby(5)
         expect(property_klass.new(name).busy).to eq(5)
