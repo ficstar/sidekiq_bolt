@@ -1,7 +1,7 @@
 module Sidekiq
   module Bolt
     module Worker
-      attr_accessor :queue, :resource
+      attr_accessor :queue, :resource, :parent_job_id
 
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')

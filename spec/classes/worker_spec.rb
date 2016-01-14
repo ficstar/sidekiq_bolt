@@ -46,6 +46,12 @@ module Sidekiq
         its(:resource) { is_expected.to eq(resource) }
       end
 
+      describe '#parent_job_id' do
+        let(:jid) { SecureRandom.uuid }
+        before { subject.parent_job_id = jid }
+        its(:parent_job_id) { is_expected.to eq(jid) }
+      end
+
       describe '.sidekiq_should_retry?' do
         let(:some_value) { Faker::Lorem.word }
         let(:retry_block) { ->() { some_value } }
