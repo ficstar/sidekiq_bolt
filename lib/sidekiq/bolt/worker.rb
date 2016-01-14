@@ -27,7 +27,15 @@ module Sidekiq
         end
 
         def perform_async_with_options(options, *args)
-          client_push('class' => self, 'args' => args, 'queue' => options[:queue], 'resource' => options[:resource])
+          #noinspection RubyStringKeysInHashInspection
+          item = {
+              'class' => self,
+              'args' => args,
+              'queue' => options[:queue],
+              'resource' => options[:resource],
+              'jid' => options[:jid],
+          }
+          client_push(item)
         end
 
         def sidekiq_should_retry?(&block)
@@ -45,7 +53,7 @@ module Sidekiq
 
         private
         def client_push(item)
-          item.merge!('jid' => SecureRandom.base64(16))
+          item['jid'] ||= SecureRandom.base64(16)
           Sidekiq::Bolt::Client.new.push(item)
         end
       end

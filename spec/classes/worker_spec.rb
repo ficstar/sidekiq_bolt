@@ -204,6 +204,15 @@ module Sidekiq
             expect(result_item['resource']).to eq(new_resource)
           end
         end
+
+        context 'with an overridden jid' do
+          let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
+          let(:options) { {jid: new_jid} }
+
+          it 'should use the new queue' do
+            expect(result_item['jid']).to eq(new_jid)
+          end
+        end
       end
 
     end
