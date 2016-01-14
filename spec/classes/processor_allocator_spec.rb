@@ -37,19 +37,6 @@ module Sidekiq
             it { is_expected.to eq(1) }
           end
         end
-
-        context 'when called concurrently' do
-          let(:concurrency) { 3 }
-          let(:allocation) { 3 }
-
-          subject do
-            concurrency.times.map do
-              Thread.start { allocator.allocate(allocation) }
-            end.map(&:value).reduce(&:+).to_i
-          end
-
-          it { is_expected.to eq(3) }
-        end
       end
 
     end
