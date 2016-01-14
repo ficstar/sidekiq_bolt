@@ -6,11 +6,12 @@ module Sidekiq
       describe JobMetaData do
 
         describe '#call' do
-          let(:worker) { Struct.new(:queue, :resource).new }
+          let(:worker) { Struct.new(:queue, :resource, :parent_job_id).new }
           let(:queue_name) { Faker::Lorem.word }
           let(:resource_name) { Faker::Lorem.word }
+          let(:parent_job_id) { SecureRandom.uuid }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'queue' => queue_name, 'resource' => resource_name} }
+          let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'pjid' => parent_job_id} }
 
           it 'should yield' do
             expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
@@ -23,6 +24,7 @@ module Sidekiq
 
             its(:queue) { is_expected.to eq(Queue.new(queue_name)) }
             its(:resource) { is_expected.to eq(Resource.new(resource_name)) }
+            its(:parent_job_id) { is_expected.to eq(parent_job_id) }
           end
 
         end
