@@ -9,21 +9,26 @@ module Sidekiq
                      else
                        options[:concurrency_pool]
                      end
-        @allocation = Hash.new(0)
+        @allocation = Hash.new { |hash, key| hash[key] = Allocation.new(Mutex.new, 0) }
       end
 
       def allocate(amount, resource_name = nil)
-        MUTEX.synchronize do
+        resource_allocation = @allocation[resource_name]
+        resource_allocation.mutex.synchronize do
           concurrency = @resources[resource_name]
-          @allocation[resource_name] += amount
-          diff = concurrency - @allocation[resource_name]
+          resource_allocation.allocation += amount
+          diff = concurrency - resource_allocation.allocation
           if diff < 0
             amount += diff
-            @allocation[resource_name] += diff
+            resource_allocation.allocation += diff
           end
           amount
         end
       end
+
+      private
+
+      Allocation = Struct.new(:mutex, :allocation)
 
     end
   end
