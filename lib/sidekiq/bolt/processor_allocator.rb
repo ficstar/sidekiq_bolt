@@ -12,10 +12,10 @@ module Sidekiq
         @allocation = Hash.new { |hash, key| hash[key] = Allocation.new(Mutex.new, 0) }
       end
 
-      def allocate(amount, resource_name = nil)
-        resource_allocation = @allocation[resource_name]
+      def allocate(amount, resource_type = nil)
+        resource_allocation = @allocation[resource_type]
         resource_allocation.mutex.synchronize do
-          concurrency = @resources[resource_name]
+          concurrency = @resources[resource_type]
           resource_allocation.allocation += amount
           diff = concurrency - resource_allocation.allocation
           if diff < 0
@@ -26,12 +26,12 @@ module Sidekiq
         end
       end
 
-      def free(amount, resource_name = nil)
-        @allocation[resource_name].allocation -= amount
+      def free(amount, resource_type = nil)
+        @allocation[resource_type].allocation -= amount
       end
 
-      def allocation(resource_name = nil)
-        @allocation[resource_name].allocation
+      def allocation(resource_type = nil)
+        @allocation[resource_type].allocation
       end
 
       private

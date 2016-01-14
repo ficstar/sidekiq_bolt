@@ -58,7 +58,7 @@ module Sidekiq
         end
 
         context 'with a specific resource' do
-          let(:resource_name) { :some_resource }
+          let(:resource_type) { :some_resource }
           let(:options) { {concurrency_pool: {some_resource: concurrency}} }
           it_behaves_like 'allocating for a resource type', :some_resource
         end
@@ -83,16 +83,16 @@ module Sidekiq
         end
 
         context 'with a specific resource' do
-          let(:resource_name) { Faker::Lorem.word.to_sym }
-          let(:options) { {concurrency_pool: {resource_name => concurrency}} }
+          let(:resource_type) { Faker::Lorem.word.to_sym }
+          let(:options) { {concurrency_pool: {resource_type => concurrency}} }
           let(:resources_to_free) { rand(1...concurrency) }
 
           before do
-            allocator.allocate(concurrency, resource_name)
-            allocator.free(resources_to_free, resource_name)
+            allocator.allocate(concurrency, resource_type)
+            allocator.free(resources_to_free, resource_type)
           end
 
-          subject { allocator.allocation(resource_name) }
+          subject { allocator.allocation(resource_type) }
 
           it { is_expected.to eq(concurrency - resources_to_free) }
         end
