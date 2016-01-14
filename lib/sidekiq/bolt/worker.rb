@@ -33,7 +33,8 @@ module Sidekiq
               'args' => args,
               'queue' => options[:queue],
               'resource' => options[:resource],
-              'jid' => options[:jid],
+              'jid' => options[:job_id],
+              'pjid' => options[:parent_job_id],
           }
           client_push(item)
         end

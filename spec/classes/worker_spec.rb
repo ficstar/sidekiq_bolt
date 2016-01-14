@@ -207,10 +207,19 @@ module Sidekiq
 
         context 'with an overridden jid' do
           let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
-          let(:options) { {jid: new_jid} }
+          let(:options) { {job_id: new_jid} }
 
           it 'should use the new queue' do
             expect(result_item['jid']).to eq(new_jid)
+          end
+        end
+
+        context 'with a parent jid' do
+          let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
+          let(:options) { {parent_job_id: new_jid} }
+
+          it 'should use the new queue' do
+            expect(result_item['pjid']).to eq(new_jid)
           end
         end
       end
