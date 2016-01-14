@@ -37,6 +37,17 @@ module Sidekiq
             it { is_expected.to eq(1) }
           end
         end
+
+        context 'when called from multiple places' do
+          let(:concurrency) { 5 }
+          let(:allocation) { 3 }
+          let!(:first_count) { allocator.allocate(5) }
+          let!(:second_count) { allocator.allocate(5) }
+
+          it 'should divide the workers between the two results' do
+            expect(first_count + second_count).to eq(5)
+          end
+        end
       end
 
     end
