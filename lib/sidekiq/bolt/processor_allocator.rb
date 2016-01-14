@@ -4,17 +4,22 @@ module Sidekiq
       MUTEX = Mutex.new
 
       def initialize(options)
-        @concurrency = options[:concurrency]
-        @allocation = 0
+        @resources = if options[:concurrency]
+                       {nil => options[:concurrency]}
+                     else
+                       options[:concurrency_pool]
+                     end
+        @allocation = Hash.new(0)
       end
 
-      def allocate(amount)
+      def allocate(amount, resource_name = nil)
         MUTEX.synchronize do
-          @allocation += amount
-          diff = @concurrency - @allocation
+          concurrency = @resources[resource_name]
+          @allocation[resource_name] += amount
+          diff = concurrency - @allocation[resource_name]
           if diff < 0
             amount += diff
-            @allocation += diff
+            @allocation[resource_name] += diff
           end
           amount
         end

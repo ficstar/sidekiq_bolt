@@ -8,46 +8,61 @@ module Sidekiq
       let(:allocator) { ProcessorAllocator.new(options) }
 
       describe '#allocate' do
-        let(:allocation) { 1 }
-        let(:concurrency) { 12 }
-        let(:options) { {concurrency: concurrency} }
+        shared_examples_for 'allocating for a resource type' do |type|
+          let(:allocation) { 1 }
+          let(:concurrency) { 12 }
 
-        subject { allocator.allocate(allocation) }
+          subject do
+            type ? allocator.allocate(allocation, type) : allocator.allocate(allocation)
+          end
 
-        it { is_expected.to eq(1) }
-
-        context 'when called multiple times' do
-          before { allocator.allocate(allocation) }
           it { is_expected.to eq(1) }
-        end
 
-        context 'when called with a different allocation' do
-          let(:allocation) { 5 }
-          it { is_expected.to eq(5) }
-        end
-
-        context 'when there are not enough workers' do
-          let(:concurrency) { 0 }
-          it { is_expected.to eq(0) }
-
-          context 'when we can allocate some workers' do
-            let(:concurrency) { 1 }
-            let(:allocation) { 2 }
-
+          context 'when called multiple times' do
+            before { allocator.allocate(allocation, type) }
             it { is_expected.to eq(1) }
           end
-        end
 
-        context 'when called from multiple places' do
-          let(:concurrency) { 5 }
-          let(:allocation) { 3 }
-          let!(:first_count) { allocator.allocate(5) }
-          let!(:second_count) { allocator.allocate(5) }
+          context 'when called with a different allocation' do
+            let(:allocation) { 5 }
+            it { is_expected.to eq(5) }
+          end
 
-          it 'should divide the workers between the two results' do
-            expect(first_count + second_count).to eq(5)
+          context 'when there are not enough workers' do
+            let(:concurrency) { 0 }
+            it { is_expected.to eq(0) }
+
+            context 'when we can allocate some workers' do
+              let(:concurrency) { 1 }
+              let(:allocation) { 2 }
+
+              it { is_expected.to eq(1) }
+            end
+          end
+
+          context 'when called from multiple places' do
+            let(:concurrency) { 5 }
+            let(:allocation) { 3 }
+            let!(:first_count) { allocator.allocate(5, type) }
+            let!(:second_count) { allocator.allocate(5, type) }
+
+            it 'should divide the workers between the two results' do
+              expect(first_count + second_count).to eq(5)
+            end
           end
         end
+
+        context 'with a global resource pool' do
+          let(:options) { {concurrency: concurrency} }
+          it_behaves_like 'allocating for a resource type'
+        end
+
+        context 'with a specific resource' do
+          let(:resource_name) { :some_resource }
+          let(:options) { {concurrency_pool: {some_resource: concurrency}} }
+          it_behaves_like 'allocating for a resource type', :some_resource
+        end
+
       end
 
     end
