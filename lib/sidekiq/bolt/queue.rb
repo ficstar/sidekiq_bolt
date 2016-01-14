@@ -59,7 +59,7 @@ module Sidekiq
       end
 
       def busy
-        resources.map(&:allocated).reduce(&:+) || 0
+        Bolt.redis { |redis| redis.get("queue:busy:#{name}").to_i }
       end
 
       def enqueue(resource_name, workload, retrying = false)

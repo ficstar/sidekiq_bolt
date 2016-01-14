@@ -188,6 +188,26 @@ module Sidekiq
             its(:busy) { is_expected.to eq(resource.allocated + resource_two.allocated) }
           end
         end
+
+        context 'with multiple queues sharing the same resource' do
+          let(:resource) { Resource.new(Faker::Lorem.word) }
+          let(:name_two) { Faker::Lorem.word }
+          let(:queue_two) { Queue.new(name_two) }
+
+          before do
+            3.times { resource.add_work(name, SecureRandom.uuid) }
+            2.times { resource.add_work(name_two, SecureRandom.uuid) }
+            resource.allocate(5)
+          end
+
+          it 'should isolate the first queues from the second' do
+            expect(subject.busy).to eq(3)
+          end
+
+          it 'should isolate the second queues from the first' do
+            expect(queue_two.busy).to eq(2)
+          end
+        end
       end
 
       describe '#enqueue' do
