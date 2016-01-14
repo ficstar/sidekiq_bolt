@@ -26,6 +26,14 @@ module Sidekiq
         end
       end
 
+      def free(amount, resource_name = nil)
+        @allocation[resource_name].allocation -= amount
+      end
+
+      def allocation(resource_name = nil)
+        @allocation[resource_name].allocation
+      end
+
       private
 
       Allocation = Struct.new(:mutex, :allocation)

@@ -65,6 +65,39 @@ module Sidekiq
 
       end
 
+      describe '#free' do
+        let(:concurrency) { 12 }
+
+        context 'with a global resource pool' do
+          let(:options) { {concurrency: concurrency} }
+          let(:resources_to_free) { rand(1...concurrency) }
+
+          before do
+            allocator.allocate(concurrency)
+            allocator.free(resources_to_free)
+          end
+
+          subject { allocator.allocation }
+
+          it { is_expected.to eq(concurrency - resources_to_free) }
+        end
+
+        context 'with a specific resource' do
+          let(:resource_name) { Faker::Lorem.word.to_sym }
+          let(:options) { {concurrency_pool: {resource_name => concurrency}} }
+          let(:resources_to_free) { rand(1...concurrency) }
+
+          before do
+            allocator.allocate(concurrency, resource_name)
+            allocator.free(resources_to_free, resource_name)
+          end
+
+          subject { allocator.allocation(resource_name) }
+
+          it { is_expected.to eq(concurrency - resources_to_free) }
+        end
+      end
+
     end
   end
 end
