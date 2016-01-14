@@ -45,6 +45,7 @@ module Sidekiq
 
         private
         def client_push(item)
+          item.merge!('jid' => SecureRandom.base64(16))
           Sidekiq::Bolt::Client.new.push(item)
         end
       end

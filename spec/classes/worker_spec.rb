@@ -79,10 +79,20 @@ module Sidekiq
       end
 
       describe '.perform_async' do
-        before { klass.perform_async(*args) }
+        let(:result_jid) { result_item['jid'] }
+        let(:expected_jid) { SecureRandom.base64(16) }
+
+        before do
+          allow(SecureRandom).to receive(:base64).with(16).and_return(expected_jid)
+          klass.perform_async(*args)
+        end
 
         it 'should enqueue the work to the default queue/resource' do
           expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
+        end
+
+        it 'should generate a job id for this work' do
+          expect(result_jid).to eq(expected_jid)
         end
 
         context 'with an overridden resource name' do
