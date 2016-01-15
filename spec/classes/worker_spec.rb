@@ -27,8 +27,15 @@ module Sidekiq
       let(:result_work) { resource.allocate(1) }
       let(:result_item) { Sidekiq.load_json(result_work[1]) }
       let(:klass) { MockWorker }
+      let(:scheduler_class) { Struct.new(:job) }
 
       subject { klass.new }
+
+      before do
+        allow(Scheduler).to receive(:new) do |job|
+          scheduler_class.new(job)
+        end
+      end
 
       it { is_expected.to be_a_kind_of(Sidekiq::Worker) }
 
@@ -89,10 +96,11 @@ module Sidekiq
         let(:result_parent_job_id) { result_item['pjid'] }
         let(:expected_jid) { SecureRandom.base64(16) }
         let(:expected_parent_job_id) { result_item['queue'] }
+        let(:block) { nil }
 
         before do
           allow(SecureRandom).to receive(:base64).with(16).and_return(expected_jid)
-          klass.perform_async(*args)
+          klass.perform_async(*args, &block)
         end
 
         it 'should enqueue the work to the default queue/resource' do
@@ -101,6 +109,15 @@ module Sidekiq
 
         it 'should generate a job id for this work' do
           expect(result_jid).to eq(expected_jid)
+        end
+
+        context 'when a block is provided' do
+          let(:result_scheduler) { scheduler_class.new }
+          let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }
+
+          it 'should yield a scheduler with the job' do
+            expect(result_scheduler.job).to eq(result_item)
+          end
         end
 
         context 'with an overridden queue name' do
@@ -180,10 +197,21 @@ module Sidekiq
 
       describe '.perform_async_with_options' do
         let(:options) { {} }
-        before { klass.perform_async_with_options(options, *args) }
+        let(:block) { nil }
+
+        before { klass.perform_async_with_options(options, *args, &block) }
 
         it 'should enqueue the work to the default queue/resource' do
           expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
+        end
+
+        context 'when a block is provided' do
+          let(:result_scheduler) { scheduler_class.new }
+          let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }
+
+          it 'should yield a scheduler with the job' do
+            expect(result_scheduler.job).to eq(result_item)
+          end
         end
 
         context 'when the class sets the resource name' do

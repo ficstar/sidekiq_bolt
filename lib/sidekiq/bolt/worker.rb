@@ -17,6 +17,11 @@ module Sidekiq
       end
 
       module ClassMethods
+        def perform_async(*args, &block)
+          #noinspection RubyStringKeysInHashInspection
+          client_push({'class' => self, 'args' => args}, &block)
+        end
+
         def perform_in(interval, *args)
           schedule_at = Time.now.to_f + interval
           job = get_sidekiq_options.merge('class' => self.to_s, 'args' => args)
@@ -26,7 +31,7 @@ module Sidekiq
           end
         end
 
-        def perform_async_with_options(options, *args)
+        def perform_async_with_options(options, *args, &block)
           #noinspection RubyStringKeysInHashInspection
           item = {
               'class' => self,
@@ -36,7 +41,7 @@ module Sidekiq
               'jid' => options[:job_id],
               'pjid' => options[:parent_job_id],
           }
-          client_push(item)
+          client_push(item, &block)
         end
 
         def sidekiq_should_retry?(&block)
@@ -53,9 +58,11 @@ module Sidekiq
         end
 
         private
-        def client_push(item)
+
+        def client_push(item, &block)
           item['jid'] ||= SecureRandom.base64(16)
           item['pjid'] ||= get_sidekiq_options['queue']
+          block.call(Scheduler.new(item)) if block
           Sidekiq::Bolt::Client.new.push(item)
         end
       end
