@@ -103,7 +103,7 @@ module Sidekiq
           expect(result_jid).to eq(expected_jid)
         end
 
-        context 'with an overriden queue name' do
+        context 'with an overridden queue name' do
           let(:klass) { MockWorkerThree }
           let(:queue_name) { MockWorkerThree::QUEUE_NAME }
 
