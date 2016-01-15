@@ -9,6 +9,7 @@ module RedisHelpers
 
   before do
     Sidekiq.redis = {url: 'redis://redis.dev/13', namespace: :bolt}
+    global_redis.script(:kill) rescue nil
     keys = global_redis.keys
     global_redis.pipelined do
       keys.each { |key| global_redis.del(key) }
