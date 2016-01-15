@@ -47,7 +47,7 @@ module Sidekiq
               let(:prev_parent_job_id) { SecureRandom.uuid }
 
               it 'should raise an error' do
-                expect { subject.call(nil, job, nil) {} }.to raise_error
+                expect { subject.call(nil, job, nil) {} }.to raise_error(JobSuccession::DuplicateJobError, "Attempted to enqueue duplicate job '#{job_id}' with parent '#{parent_job_id}'")
               end
             end
           end
