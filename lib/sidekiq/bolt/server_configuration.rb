@@ -17,6 +17,7 @@ module Sidekiq
     def self.configure_client(config)
       config.client_middleware do |chain|
         chain.add ClientMiddleware::BlockQueue
+        chain.add ClientMiddleware::JobSuccession
       end
     end
 
