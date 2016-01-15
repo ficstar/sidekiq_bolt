@@ -16,7 +16,8 @@ module Sidekiq
           let(:queue_name) { Faker::Lorem.word }
           let(:resource_name) { Faker::Lorem.word }
           let(:retry_job) { true }
-          let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'retry' => retry_job} }
+          let(:job_id) { SecureRandom.uuid }
+          let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'retry' => retry_job, 'jid' => job_id} }
 
           it 'should yield' do
             expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
@@ -52,6 +53,17 @@ module Sidekiq
             it 'should increment the number of times this error has been hit' do
               subject.call(worker, job, nil) { raise error }
               expect(error_job["retry_count:#{error}"]).to eq(1)
+            end
+
+            describe 'error logging' do
+              let(:log_message) do
+                "Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}"
+              end
+
+              it 'should log the error and backtrace to sidekiq' do
+                expect(Sidekiq.logger).to receive(:warn).with(log_message)
+                subject.call(worker, job, nil) { raise error }
+              end
             end
 
             context 'when this work cannot retry' do
