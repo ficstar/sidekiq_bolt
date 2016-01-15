@@ -86,7 +86,9 @@ module Sidekiq
 
       describe '.perform_async' do
         let(:result_jid) { result_item['jid'] }
+        let(:result_parent_job_id) { result_item['pjid'] }
         let(:expected_jid) { SecureRandom.base64(16) }
+        let(:expected_parent_job_id) { result_item['queue'] }
 
         before do
           allow(SecureRandom).to receive(:base64).with(16).and_return(expected_jid)
@@ -99,6 +101,15 @@ module Sidekiq
 
         it 'should generate a job id for this work' do
           expect(result_jid).to eq(expected_jid)
+        end
+
+        context 'with an overriden queue name' do
+          let(:klass) { MockWorkerThree }
+          let(:queue_name) { MockWorkerThree::QUEUE_NAME }
+
+          it 'should set parent job id to the queue' do
+            expect(result_parent_job_id).to eq(expected_parent_job_id)
+          end
         end
 
         context 'with an overridden resource name' do

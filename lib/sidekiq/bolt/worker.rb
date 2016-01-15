@@ -55,6 +55,7 @@ module Sidekiq
         private
         def client_push(item)
           item['jid'] ||= SecureRandom.base64(16)
+          item['pjid'] ||= get_sidekiq_options['queue']
           Sidekiq::Bolt::Client.new.push(item)
         end
       end
