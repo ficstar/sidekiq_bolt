@@ -10,6 +10,7 @@ module Sidekiq
 
       def call(_, job, _)
         yield
+      ensure
         Bolt.redis do |redis|
           redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: [job['pjid'], job['jid']])
         end

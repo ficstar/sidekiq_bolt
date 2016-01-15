@@ -10,6 +10,7 @@ module Sidekiq
         #noinspection RubyStringKeysInHashInspection
         let(:job) { {'pjid' => parent_job_id, 'jid' => job_id} }
         let(:next_job) { {} }
+        let(:block) { -> {} }
 
         before do
           global_redis.sadd("dependencies:#{parent_job_id}", job_id)
@@ -20,14 +21,30 @@ module Sidekiq
           expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
         end
 
-        it 'should remove the parent job dependency' do
-          subject.call(nil, job, nil) {}
-          expect(global_redis.smembers("dependencies:#{parent_job_id}")).to be_empty
+        shared_examples_for 'removing job dependencies' do
+          before do
+            subject.call(nil, job, nil, &block) rescue nil
+          end
+
+          it 'should remove the parent job dependency' do
+            expect(global_redis.smembers("dependencies:#{parent_job_id}")).to be_empty
+          end
+
+          it 'should delete the parent key' do
+            expect(global_redis.get("parent:#{job_id}")).to be_nil
+          end
         end
 
-        it 'should delete the parent key' do
-          subject.call(nil, job, nil) {}
-          expect(global_redis.get("parent:#{job_id}")).to be_nil
+        it_behaves_like 'removing job dependencies'
+
+        context 'when the provided block raises an error' do
+          let(:block) { ->() { raise 'It broke!' } }
+
+          it_behaves_like 'removing job dependencies'
+
+          it 'should re-raise the error' do
+            expect { subject.call(nil, job, nil, &block) }.to raise_error
+          end
         end
 
       end
