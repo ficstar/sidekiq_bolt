@@ -11,9 +11,10 @@ module Sidekiq
         let(:job) { {'pjid' => parent_job_id, 'jid' => job_id} }
         let(:next_job) { {} }
         let(:block) { -> {} }
+        let(:dependencies) { [job_id, SecureRandom.uuid] }
 
         before do
-          global_redis.sadd("dependencies:#{parent_job_id}", job_id)
+          dependencies.each { |jid| global_redis.sadd("dependencies:#{parent_job_id}", jid) }
           global_redis.set("parent:#{job_id}", parent_job_id)
         end
 
@@ -22,16 +23,34 @@ module Sidekiq
         end
 
         shared_examples_for 'removing job dependencies' do
-          before do
-            subject.call(nil, job, nil, &block) rescue nil
-          end
-
           it 'should remove the parent job dependency' do
-            expect(global_redis.smembers("dependencies:#{parent_job_id}")).to be_empty
+            subject.call(nil, job, nil, &block) rescue nil
+            expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
           end
 
           it 'should delete the parent key' do
+            subject.call(nil, job, nil, &block) rescue nil
             expect(global_redis.get("parent:#{job_id}")).to be_nil
+          end
+
+          context 'when the parent job no longer has any dependencies' do
+            let(:dependencies) { [job_id] }
+            let(:grandparent_job_id) { SecureRandom.uuid }
+
+            before do
+              global_redis.sadd("dependencies:#{grandparent_job_id}", parent_job_id)
+              global_redis.set("parent:#{parent_job_id}", grandparent_job_id)
+            end
+
+            it 'should remove the grand-parent job dependency' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.smembers("dependencies:#{grandparent_job_id}")).not_to include(parent_job_id)
+            end
+
+            it 'should delete the grand-parent key' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.get("parent:#{parent_job_id}")).to be_nil
+            end
           end
         end
 
