@@ -9,9 +9,15 @@ while parent_job_id do
     redis.call('srem', parent_dependencies_key, job_id)
     redis.call('del', parent_link_key)
 
-    local next_parent_link_key = namespace .. 'parent:' .. parent_job_id
-    local next_parent_job_id = redis.call('get', next_parent_link_key)
+    local dependency_count = redis.call('scard', parent_dependencies_key)
 
-    job_id = parent_job_id
-    parent_job_id = next_parent_job_id
+    if dependency_count > 0 then
+        parent_job_id = nil
+    else
+        local next_parent_link_key = namespace .. 'parent:' .. parent_job_id
+        local next_parent_job_id = redis.call('get', next_parent_link_key)
+
+        job_id = parent_job_id
+        parent_job_id = next_parent_job_id
+    end
 end

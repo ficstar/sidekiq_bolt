@@ -23,6 +23,13 @@ module Sidekiq
         end
 
         shared_examples_for 'removing job dependencies' do
+          let(:grandparent_job_id) { SecureRandom.uuid }
+
+          before do
+            global_redis.sadd("dependencies:#{grandparent_job_id}", parent_job_id)
+            global_redis.set("parent:#{parent_job_id}", grandparent_job_id)
+          end
+
           it 'should remove the parent job dependency' do
             subject.call(nil, job, nil, &block) rescue nil
             expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
@@ -33,14 +40,18 @@ module Sidekiq
             expect(global_redis.get("parent:#{job_id}")).to be_nil
           end
 
+          it 'should not remove the grand-parent job dependency' do
+            subject.call(nil, job, nil, &block) rescue nil
+            expect(global_redis.smembers("dependencies:#{grandparent_job_id}")).to include(parent_job_id)
+          end
+
+          it 'should not delete the grand-parent key' do
+            subject.call(nil, job, nil, &block) rescue nil
+            expect(global_redis.get("parent:#{parent_job_id}")).to eq(grandparent_job_id)
+          end
+
           context 'when the parent job no longer has any dependencies' do
             let(:dependencies) { [job_id] }
-            let(:grandparent_job_id) { SecureRandom.uuid }
-
-            before do
-              global_redis.sadd("dependencies:#{grandparent_job_id}", parent_job_id)
-              global_redis.set("parent:#{parent_job_id}", grandparent_job_id)
-            end
 
             it 'should remove the grand-parent job dependency' do
               subject.call(nil, job, nil, &block) rescue nil
