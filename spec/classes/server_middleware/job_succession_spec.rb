@@ -40,6 +40,24 @@ module Sidekiq
             expect(global_redis.get("parent:#{job_id}")).to be_nil
           end
 
+          context 'when this job has child dependencies' do
+            let(:child_job_id) { SecureRandom.uuid }
+
+            before do
+              global_redis.sadd("dependencies:#{job_id}", child_job_id)
+            end
+
+            it 'should not remove the parent job dependency' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.smembers("dependencies:#{parent_job_id}")).to include(job_id)
+            end
+
+            it 'should not delete the parent key' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.get("parent:#{job_id}")).not_to be_nil
+            end
+          end
+
           it 'should not remove the grand-parent job dependency' do
             subject.call(nil, job, nil, &block) rescue nil
             expect(global_redis.smembers("dependencies:#{grandparent_job_id}")).to include(parent_job_id)
