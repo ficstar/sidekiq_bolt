@@ -22,9 +22,10 @@ while parent_job_id do
         local next_parent_job_id = redis.call('get', next_parent_link_key)
 
         local scheduled_work_key = namespace .. 'successive_work:' .. job_id
-        local serialized_work = redis.call('lpop', scheduled_work_key)
+        local scheduled_items = redis.call('lrange', scheduled_work_key, 0, -1)
 
-        if serialized_work then
+        redis.call('del', scheduled_work_key)
+        for _, serialized_work in ipairs(scheduled_items) do
             local work = cjson.decode(serialized_work)
 
             local resource_queues_key = namespace .. 'resource:queues:' .. work.resource

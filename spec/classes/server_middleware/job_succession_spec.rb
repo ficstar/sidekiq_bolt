@@ -48,13 +48,13 @@ module Sidekiq
               let(:resource) { Resource.new(resource_name) }
               let(:queue) { Queue.new(queue_name) }
               let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
-              let(:serialized_job) { JSON.dump(scheduled_job) }
-              let(:result_allocation) { resource.allocate(1) }
+              let(:jobs_to_schedule) { [scheduled_job] }
+              let(:result_allocation) { resource.allocate(2) }
               let(:result_queue) { result_allocation[0] }
               let(:result_work) { result_allocation[1] }
 
               before do
-                global_redis.lpush("successive_work:#{job_id}", serialized_job)
+                jobs_to_schedule.each { |job| global_redis.lpush("successive_work:#{job_id}", JSON.dump(job)) }
                 subject.call(nil, job, nil, &block) rescue nil
               end
 
@@ -76,6 +76,30 @@ module Sidekiq
 
               it 'should keep a global reference of this queue' do
                 expect(Queue.all.map(&:name)).to include(queue_name)
+              end
+
+              context 'with multiple jobs' do
+                let(:work_two) { SecureRandom.uuid }
+                let(:queue_name_two) { Faker::Lorem.word }
+                let(:resource_name_two) { Faker::Lorem.word }
+                let(:resource_two) { Resource.new(resource_name_two) }
+                let(:queue_two) { Queue.new(queue_name_two) }
+                let(:scheduled_job_two) { {'queue' => queue_name_two, 'resource' => resource_name_two, 'work' => work_two} }
+                let(:jobs_to_schedule) { [scheduled_job, scheduled_job_two] }
+                let(:result_allocation_two) { resource_two.allocate(2) }
+                let(:result_work_two) { result_allocation_two[1] }
+
+                it 'should enqueue the first scheduled work' do
+                  expect(result_work).to eq(work)
+                end
+
+                it 'should enqueue the second scheduled work' do
+                  expect(result_work_two).to eq(work_two)
+                end
+
+                it 'should clear the schedule succession queue' do
+                  expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                end
               end
             end
 
