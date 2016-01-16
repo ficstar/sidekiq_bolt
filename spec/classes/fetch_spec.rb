@@ -15,6 +15,10 @@ module Sidekiq
         it { is_expected.to respond_to(:bulk_requeue) }
       end
 
+      describe '.local_queue' do
+        it { expect(Fetch.local_queue).to be_a_kind_of(::Queue) }
+      end
+
       describe 'initialization' do
         it 'should set up the global processor allocator' do
           subject

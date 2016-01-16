@@ -12,6 +12,11 @@ module Sidekiq
         def processor_allocator=(value)
           MUTEX.synchronize { @processor_allocator ||= value }
         end
+
+        def local_queue
+          return @local_queue if @local_queue
+          MUTEX.synchronize { @local_queue ||= ::Queue.new }
+        end
       end
 
       def initialize(options)
