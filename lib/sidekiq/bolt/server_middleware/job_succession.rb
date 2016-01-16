@@ -10,10 +10,18 @@ module Sidekiq
         REMOVE_DEPENDENCY_SCRIPT = File.read(REMOVE_DEPENDENCY_SCRIPT_PATH)
 
         def call(_, job, _)
-          yield
-        ensure
-          Bolt.redis do |redis|
-            redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: [job['pjid'], job['jid']])
+          failed = false
+          begin
+            yield
+          rescue
+            failed = true
+            raise
+          ensure
+            argv = [job['pjid'], job['jid']]
+            argv << 'failed' if failed
+            Bolt.redis do |redis|
+              redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
+            end
           end
         end
 

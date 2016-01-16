@@ -41,78 +41,6 @@ module Sidekiq
               expect(global_redis.get("parent:#{job_id}")).to be_nil
             end
 
-            context 'when completing this job schedules other jobs' do
-              let(:work) { SecureRandom.uuid }
-              let(:queue_name) { Faker::Lorem.word }
-              let(:resource_name) { Faker::Lorem.word }
-              let(:resource) { Resource.new(resource_name) }
-              let(:queue) { Queue.new(queue_name) }
-              let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
-              let(:jobs_to_schedule) { [scheduled_job] }
-              let(:result_allocation) { resource.allocate(2) }
-              let(:result_queue) { result_allocation[0] }
-              let(:result_work) { result_allocation[1] }
-              let(:queue_blocked) { false }
-
-              before do
-                queue.blocked = queue_blocked
-                jobs_to_schedule.each { |job| global_redis.lpush("successive_work:#{job_id}", JSON.dump(job)) }
-                subject.call(nil, job, nil, &block) rescue nil
-              end
-
-              it 'should enqueue the scheduled work' do
-                expect(result_work).to eq(work)
-              end
-
-              it 'should add it to the right queue' do
-                expect(result_queue).to eq(queue_name)
-              end
-
-              it 'should create a link from the queue to the resource' do
-                expect(queue.resources.map(&:name)).to include(resource_name)
-              end
-
-              it 'should keep a global reference of this resource' do
-                expect(Resource.all.map(&:name)).to include(resource_name)
-              end
-
-              it 'should keep a global reference of this queue' do
-                expect(Queue.all.map(&:name)).to include(queue_name)
-              end
-
-              context 'when the queue is blocked' do
-                let(:queue_blocked) { true }
-
-                it 'should not enqueue the scheduled work' do
-                  expect(result_work).to be_nil
-                end
-              end
-
-              context 'with multiple jobs' do
-                let(:work_two) { SecureRandom.uuid }
-                let(:queue_name_two) { Faker::Lorem.word }
-                let(:resource_name_two) { Faker::Lorem.word }
-                let(:resource_two) { Resource.new(resource_name_two) }
-                let(:queue_two) { Queue.new(queue_name_two) }
-                let(:scheduled_job_two) { {'queue' => queue_name_two, 'resource' => resource_name_two, 'work' => work_two} }
-                let(:jobs_to_schedule) { [scheduled_job, scheduled_job_two] }
-                let(:result_allocation_two) { resource_two.allocate(2) }
-                let(:result_work_two) { result_allocation_two[1] }
-
-                it 'should enqueue the first scheduled work' do
-                  expect(result_work).to eq(work)
-                end
-
-                it 'should enqueue the second scheduled work' do
-                  expect(result_work_two).to eq(work_two)
-                end
-
-                it 'should clear the schedule succession queue' do
-                  expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
-                end
-              end
-            end
-
             context 'when this job has child dependencies' do
               let(:child_job_id) { SecureRandom.uuid }
 
@@ -156,7 +84,89 @@ module Sidekiq
             end
           end
 
-          it_behaves_like 'removing job dependencies'
+          describe 'a successful job' do
+            it_behaves_like 'removing job dependencies'
+
+            it 'should not mark this job as failed' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.get("job_failed:#{job_id}")).to be_nil
+            end
+
+            describe 'job scheduling' do
+
+              context 'when completing this job schedules other jobs' do
+                let(:work) { SecureRandom.uuid }
+                let(:queue_name) { Faker::Lorem.word }
+                let(:resource_name) { Faker::Lorem.word }
+                let(:resource) { Resource.new(resource_name) }
+                let(:queue) { Queue.new(queue_name) }
+                let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
+                let(:jobs_to_schedule) { [scheduled_job] }
+                let(:result_allocation) { resource.allocate(2) }
+                let(:result_queue) { result_allocation[0] }
+                let(:result_work) { result_allocation[1] }
+                let(:queue_blocked) { false }
+
+                before do
+                  queue.blocked = queue_blocked
+                  jobs_to_schedule.each { |job| global_redis.lpush("successive_work:#{job_id}", JSON.dump(job)) }
+                  subject.call(nil, job, nil, &block) rescue nil
+                end
+
+                it 'should enqueue the scheduled work' do
+                  expect(result_work).to eq(work)
+                end
+
+                it 'should add it to the right queue' do
+                  expect(result_queue).to eq(queue_name)
+                end
+
+                it 'should create a link from the queue to the resource' do
+                  expect(queue.resources.map(&:name)).to include(resource_name)
+                end
+
+                it 'should keep a global reference of this resource' do
+                  expect(Resource.all.map(&:name)).to include(resource_name)
+                end
+
+                it 'should keep a global reference of this queue' do
+                  expect(Queue.all.map(&:name)).to include(queue_name)
+                end
+
+                context 'when the queue is blocked' do
+                  let(:queue_blocked) { true }
+
+                  it 'should not enqueue the scheduled work' do
+                    expect(result_work).to be_nil
+                  end
+                end
+
+                context 'with multiple jobs' do
+                  let(:work_two) { SecureRandom.uuid }
+                  let(:queue_name_two) { Faker::Lorem.word }
+                  let(:resource_name_two) { Faker::Lorem.word }
+                  let(:resource_two) { Resource.new(resource_name_two) }
+                  let(:queue_two) { Queue.new(queue_name_two) }
+                  let(:scheduled_job_two) { {'queue' => queue_name_two, 'resource' => resource_name_two, 'work' => work_two} }
+                  let(:jobs_to_schedule) { [scheduled_job, scheduled_job_two] }
+                  let(:result_allocation_two) { resource_two.allocate(2) }
+                  let(:result_work_two) { result_allocation_two[1] }
+
+                  it 'should enqueue the first scheduled work' do
+                    expect(result_work).to eq(work)
+                  end
+
+                  it 'should enqueue the second scheduled work' do
+                    expect(result_work_two).to eq(work_two)
+                  end
+
+                  it 'should clear the schedule succession queue' do
+                    expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                  end
+                end
+              end
+            end
+          end
 
           context 'when the provided block raises an error' do
             let(:block) { ->() { raise 'It broke!' } }
@@ -165,6 +175,69 @@ module Sidekiq
 
             it 'should re-raise the error' do
               expect { subject.call(nil, job, nil, &block) }.to raise_error
+            end
+
+            it 'should mark this job as failed' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.get("job_failed:#{job_id}")).to eq('true')
+            end
+
+            describe 'job scheduling' do
+
+              context 'when completing this job schedules other jobs' do
+                let(:work) { SecureRandom.uuid }
+                let(:queue_name) { Faker::Lorem.word }
+                let(:resource_name) { Faker::Lorem.word }
+                let(:resource) { Resource.new(resource_name) }
+                let(:queue) { Queue.new(queue_name) }
+                let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
+                let(:result_allocation) { resource.allocate(1) }
+                let(:result_work) { result_allocation[1] }
+                let(:successive_job_id) { job_id }
+                let(:failure_limit) { nil }
+                let(:failure_count) { 0 }
+
+                before do
+                  global_redis.lpush("successive_work:#{successive_job_id}", JSON.dump(scheduled_job))
+                  global_redis.set("job_failure_limit:#{successive_job_id}", failure_limit) if failure_limit
+                  global_redis.set("job_failured_count:#{successive_job_id}", failure_count)
+                  subject.call(nil, job, nil, &block) rescue nil
+                end
+
+                it 'should not enqueue the scheduled work' do
+                  expect(result_work).to be_nil
+                end
+
+                it 'should mark the parent job as failed' do
+                  subject.call(nil, job, nil, &block) rescue nil
+                  expect(global_redis.get("job_failed:#{parent_job_id}")).to eq('true')
+                end
+
+                context 'when the parent schedules jobs' do
+                  let(:dependencies) { [job_id] }
+                  let(:successive_job_id) { parent_job_id }
+
+                  it 'should not enqueue the scheduled work' do
+                    expect(result_work).to be_nil
+                  end
+
+                  context 'when we have a retry limit' do
+                    let(:failure_limit) { 2 }
+
+                    it 'should enqueue the scheduled work' do
+                      expect(result_work).to eq(work)
+                    end
+
+                    context 'when the parent has too many child failures' do
+                      let(:failure_count) { 1 }
+
+                      it 'should not enqueue the scheduled work' do
+                        expect(result_work).to be_nil
+                      end
+                    end
+                  end
+                end
+              end
             end
           end
 
