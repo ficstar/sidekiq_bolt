@@ -62,7 +62,13 @@ module Sidekiq
         def client_push(item, &block)
           item['jid'] ||= SecureRandom.base64(16)
           item['pjid'] ||= get_sidekiq_options['queue']
-          block.call(Scheduler.new(item)) if block
+
+          if block
+            sheduler = Scheduler.new(item)
+            block.call(sheduler)
+            sheduler.schedule!
+          end
+
           Sidekiq::Bolt::Client.new.push(item)
         end
       end

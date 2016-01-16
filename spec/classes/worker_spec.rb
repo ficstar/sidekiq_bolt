@@ -27,7 +27,13 @@ module Sidekiq
       let(:result_work) { resource.allocate(1) }
       let(:result_item) { Sidekiq.load_json(result_work[1]) }
       let(:klass) { MockWorker }
-      let(:scheduler_class) { Struct.new(:job) }
+      let(:scheduler_class) do
+        Struct.new(:job) do
+          def schedule!
+
+          end
+        end
+      end
 
       subject { klass.new }
 
@@ -100,43 +106,54 @@ module Sidekiq
 
         before do
           allow(SecureRandom).to receive(:base64).with(16).and_return(expected_jid)
-          klass.perform_async(*args, &block)
         end
 
-        it 'should enqueue the work to the default queue/resource' do
-          expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
+        describe 'enqueuing the job' do
+          before { klass.perform_async(*args, &block) }
+
+          it 'should enqueue the work to the default queue/resource' do
+            expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
+          end
+
+          it 'should generate a job id for this work' do
+            expect(result_jid).to eq(expected_jid)
+          end
+
+          context 'with an overridden queue name' do
+            let(:klass) { MockWorkerThree }
+            let(:queue_name) { MockWorkerThree::QUEUE_NAME }
+
+            it 'should set parent job id to the queue' do
+              expect(result_parent_job_id).to eq(expected_parent_job_id)
+            end
+          end
+
+          context 'with an overridden resource name' do
+            let(:klass) { MockWorkerTwo }
+            let(:resource_name) { MockWorkerTwo::RESOURCE_NAME }
+
+            it 'should enqueue the work to the specified resource' do
+              expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorkerTwo', 'args' => args)
+            end
+          end
         end
 
-        it 'should generate a job id for this work' do
-          expect(result_jid).to eq(expected_jid)
-        end
 
         context 'when a block is provided' do
           let(:result_scheduler) { scheduler_class.new }
           let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }
 
           it 'should yield a scheduler with the job' do
+            klass.perform_async(*args, &block)
             expect(result_scheduler.job).to eq(result_item)
           end
-        end
 
-        context 'with an overridden queue name' do
-          let(:klass) { MockWorkerThree }
-          let(:queue_name) { MockWorkerThree::QUEUE_NAME }
-
-          it 'should set parent job id to the queue' do
-            expect(result_parent_job_id).to eq(expected_parent_job_id)
+          it 'should call #schedule! on the Scheduler' do
+            expect_any_instance_of(scheduler_class).to receive(:schedule!)
+            klass.perform_async(*args, &block)
           end
         end
 
-        context 'with an overridden resource name' do
-          let(:klass) { MockWorkerTwo }
-          let(:resource_name) { MockWorkerTwo::RESOURCE_NAME }
-
-          it 'should enqueue the work to the specified resource' do
-            expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorkerTwo', 'args' => args)
-          end
-        end
       end
 
       describe '#perform_in' do
