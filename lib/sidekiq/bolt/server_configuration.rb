@@ -9,9 +9,7 @@ module Sidekiq
         chain.remove Middleware::Server::RetryJobs
         chain.add ServerMiddleware::RetryJobs
       end
-      config.client_middleware do |chain|
-        chain.add ClientMiddleware::BlockQueue
-      end
+      configure_client(config)
     end
 
     def self.configure_client(config)

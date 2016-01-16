@@ -30,6 +30,10 @@ module Sidekiq
         it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue client middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::BlockQueue)
         end
+
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession client middleware' do
+          expect(Sidekiq.client_middleware).to exist(ClientMiddleware::JobSuccession)
+        end
       end
 
       describe '.configure_client' do
