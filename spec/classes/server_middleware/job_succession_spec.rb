@@ -52,8 +52,10 @@ module Sidekiq
               let(:result_allocation) { resource.allocate(2) }
               let(:result_queue) { result_allocation[0] }
               let(:result_work) { result_allocation[1] }
+              let(:queue_blocked) { false }
 
               before do
+                queue.blocked = queue_blocked
                 jobs_to_schedule.each { |job| global_redis.lpush("successive_work:#{job_id}", JSON.dump(job)) }
                 subject.call(nil, job, nil, &block) rescue nil
               end
@@ -76,6 +78,14 @@ module Sidekiq
 
               it 'should keep a global reference of this queue' do
                 expect(Queue.all.map(&:name)).to include(queue_name)
+              end
+
+              context 'when the queue is blocked' do
+                let(:queue_blocked) { true }
+
+                it 'should not enqueue the scheduled work' do
+                  expect(result_work).to be_nil
+                end
               end
 
               context 'with multiple jobs' do

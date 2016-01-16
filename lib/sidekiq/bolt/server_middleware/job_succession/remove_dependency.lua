@@ -28,15 +28,20 @@ while parent_job_id do
         for _, serialized_work in ipairs(scheduled_items) do
             local work = cjson.decode(serialized_work)
 
-            local resource_queues_key = namespace .. 'resource:queues:' .. work.resource
-            local queue_resources_key = namespace .. 'queue:resources:' .. work.queue
-            local queue_key = namespace .. 'resource:queue:' .. work.queue .. ':' .. work.resource
-            redis.call('lpush', queue_key, work.work)
+            local queue_blocked_key = namespace .. 'queue:blocked:' .. work.queue
+            local queue_blocked = redis.call('get', queue_blocked_key)
 
-            redis.call('sadd', resource_queues_key, work.queue)
-            redis.call('sadd', queue_resources_key, work.resource)
-            redis.call('sadd', resources_key, work.resource)
-            redis.call('sadd', queues_key, work.queue)
+            if not queue_blocked then
+                local resource_queues_key = namespace .. 'resource:queues:' .. work.resource
+                local queue_resources_key = namespace .. 'queue:resources:' .. work.queue
+                local queue_key = namespace .. 'resource:queue:' .. work.queue .. ':' .. work.resource
+                redis.call('lpush', queue_key, work.work)
+
+                redis.call('sadd', resource_queues_key, work.queue)
+                redis.call('sadd', queue_resources_key, work.resource)
+                redis.call('sadd', resources_key, work.resource)
+                redis.call('sadd', queues_key, work.queue)
+            end
         end
 
         job_id = parent_job_id
