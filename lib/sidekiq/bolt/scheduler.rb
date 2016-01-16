@@ -30,8 +30,12 @@ module Sidekiq
         new_job['jid'] = options[:job_id] if options[:job_id]
         new_job['pjid'] = options[:parent_job_id] if options[:parent_job_id]
 
-        serialized_job = Sidekiq.dump_json(new_job)
-        items.concat [new_job['queue'], new_job['resource'], serialized_job]
+        new_job = Sidekiq.client_middleware.invoke(worker_class.to_s, new_job, new_job['queue']) { new_job }
+
+        if new_job
+          serialized_job = Sidekiq.dump_json(new_job)
+          items.concat [new_job['queue'], new_job['resource'], serialized_job]
+        end
       end
 
       def schedule!

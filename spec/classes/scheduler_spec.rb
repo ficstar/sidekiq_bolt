@@ -25,11 +25,17 @@ module Sidekiq
       let(:result_queue) { result_item['queue'] }
       let(:result_resource) { result_item['resource'] }
       let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
+      let(:middleware) { double(:middleware) }
+      let(:middleware_block) { ->(_, _, _, &block) { block.call } }
 
       subject { scheduler }
 
       before do
         allow(SecureRandom).to receive(:base64).with(16).and_return(new_jid)
+        allow(Sidekiq).to receive(:client_middleware).and_return(middleware)
+        allow(middleware).to receive(:invoke) do |worker, job, queue, &block|
+          middleware_block.call(worker, job, queue, &block)
+        end
       end
 
       shared_examples_for 'a method scheduling a worker' do
@@ -45,7 +51,9 @@ module Sidekiq
           }
         end
 
-        before { scheduler.schedule! }
+        before do
+          scheduler.schedule!
+        end
 
         it 'should schedule this work to run after the previous job' do
           expect(result_work).to eq(expected_work)
@@ -57,6 +65,32 @@ module Sidekiq
 
         it 'should schedule to run in the default resource' do
           expect(result_resource).to eq('default')
+        end
+
+        describe 'running middleware' do
+          let(:middleware_args) { [] }
+          let(:middleware_block) do
+            ->(worker, msg, queue, &block) do
+              result = block.call
+              middleware_args.concat([worker, msg, queue, result])
+              result
+            end
+          end
+
+          it 'should run the client middleware on this item' do
+            expect(middleware_args[0]).to eq(worker_class_name)
+            expect(middleware_args[1]).to eq(expected_work)
+            expect(middleware_args[2]).to eq(expected_work['queue'])
+            expect(middleware_args[3]).to eq(expected_work)
+          end
+
+          context 'when invoking the middleware returns nil' do
+            let(:middleware_block) { ->(_, _, _) { nil } }
+
+            it 'should not schedule the work' do
+              expect(result_work).to be_nil
+            end
+          end
         end
 
         context 'when the worker overrides the queue' do
