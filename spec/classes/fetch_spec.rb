@@ -8,9 +8,18 @@ module Sidekiq
 
       subject { Fetch.new(options) }
 
+      after { Fetch.instance_variable_set(:@processor_allocator, nil) }
+
       describe '.bulk_requeue' do
         subject { Fetch }
         it { is_expected.to respond_to(:bulk_requeue) }
+      end
+
+      describe 'initialization' do
+        it 'should set up the global processor allocator' do
+          subject
+          expect(Fetch.processor_allocator).to be_a_kind_of(ProcessorAllocator)
+        end
       end
 
       describe '#retrieve_work' do

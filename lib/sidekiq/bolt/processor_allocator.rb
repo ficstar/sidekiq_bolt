@@ -4,10 +4,11 @@ module Sidekiq
       MUTEX = Mutex.new
 
       def initialize(options)
-        @resources = if options[:concurrency]
-                       {nil => options[:concurrency]}
+        @options = options
+        @resources = if @options[:concurrency]
+                       {nil => @options[:concurrency]}
                      else
-                       options[:concurrency_pool]
+                       @options[:concurrency_pool]
                      end
         @allocation = Hash.new { |hash, key| hash[key] = Allocation.new(Mutex.new, 0) }
       end

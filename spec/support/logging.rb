@@ -1,4 +1,4 @@
-module RedisHelpers
+module Logging
   extend RSpec::Core::SharedContext
 
   before do

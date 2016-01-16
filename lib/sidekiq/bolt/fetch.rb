@@ -1,11 +1,21 @@
 module Sidekiq
   module Bolt
     class Fetch
+      MUTEX = Mutex.new
 
-      def self.bulk_requeue(*_)
+      class << self
+        attr_reader :processor_allocator
+
+        def bulk_requeue(*_)
+        end
+
+        def processor_allocator=(value)
+          MUTEX.synchronize { @processor_allocator ||= value }
+        end
       end
 
       def initialize(options)
+        self.class.processor_allocator = ProcessorAllocator.new(options)
         @supported_resource_types = options.fetch(:resource_types) { :* }
       end
 
