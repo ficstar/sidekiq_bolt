@@ -40,6 +40,44 @@ module Sidekiq
             expect(global_redis.get("parent:#{job_id}")).to be_nil
           end
 
+          context 'when completing this job schedules other jobs' do
+            let(:work) { SecureRandom.uuid }
+            let(:queue_name) { Faker::Lorem.word }
+            let(:resource_name) { Faker::Lorem.word }
+            let(:resource) { Resource.new(resource_name) }
+            let(:queue) { Queue.new(queue_name) }
+            let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
+            let(:serialized_job) { JSON.dump(scheduled_job) }
+            let(:result_allocation) { resource.allocate(1) }
+            let(:result_queue) { result_allocation[0] }
+            let(:result_work) { result_allocation[1] }
+
+            before do
+              global_redis.lpush("successive_work:#{job_id}", serialized_job)
+              subject.call(nil, job, nil, &block) rescue nil
+            end
+
+            it 'should enqueue the scheduled work' do
+              expect(result_work).to eq(work)
+            end
+
+            it 'should add it to the right queue' do
+              expect(result_queue).to eq(queue_name)
+            end
+
+            it 'should create a link from the queue to the resource' do
+              expect(queue.resources.map(&:name)).to include(resource_name)
+            end
+
+            it 'should keep a global reference of this resource' do
+              expect(Resource.all.map(&:name)).to include(resource_name)
+            end
+
+            it 'should keep a global reference of this queue' do
+              expect(Queue.all.map(&:name)).to include(queue_name)
+            end
+          end
+
           context 'when this job has child dependencies' do
             let(:child_job_id) { SecureRandom.uuid }
 
