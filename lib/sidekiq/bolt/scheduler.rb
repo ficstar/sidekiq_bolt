@@ -14,14 +14,22 @@ module Sidekiq
       end
 
       def perform_after(worker_class, *args)
+        perform_after_with_options({}, worker_class, *args)
+      end
+
+      def perform_after_with_options(options, worker_class, *args)
         new_job = {
             'class' => worker_class.to_s,
             'jid' => SecureRandom.base64(16),
-            'queue' => 'default',
-            'resource' => 'default',
             'args' => args,
             'retry' => true
         }.merge(worker_class.get_sidekiq_options)
+
+        new_job['queue'] = options[:queue] if options[:queue]
+        new_job['resource'] = options[:resource] if options[:resource]
+        new_job['jid'] = options[:job_id] if options[:job_id]
+        new_job['pjid'] = options[:parent_job_id] if options[:parent_job_id]
+
         serialized_job = Sidekiq.dump_json(new_job)
         items.concat [new_job['queue'], new_job['resource'], serialized_job]
       end

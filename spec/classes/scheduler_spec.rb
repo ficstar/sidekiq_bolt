@@ -19,16 +19,20 @@ module Sidekiq
       let(:parent) { {'jid' => job_id} }
       let(:scheduler) { Scheduler.new(parent) }
       let(:args) { Faker::Lorem.paragraphs }
+      let(:new_jid) { SecureRandom.uuid }
+      let(:serialized_work) { global_redis.lrange("successive_work:#{job_id}", 0, -1).first }
+      let(:result_item) { JSON.load(serialized_work) }
+      let(:result_queue) { result_item['queue'] }
+      let(:result_resource) { result_item['resource'] }
+      let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
 
       subject { scheduler }
 
-      describe '#perform_after' do
-        let(:serialized_work) { global_redis.lrange("successive_work:#{job_id}", 0, -1).first }
-        let(:result_item) { JSON.load(serialized_work) }
-        let(:result_queue) { result_item['queue'] }
-        let(:result_resource) { result_item['resource'] }
-        let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
-        let(:new_jid) { SecureRandom.uuid }
+      before do
+        allow(SecureRandom).to receive(:base64).with(16).and_return(new_jid)
+      end
+
+      shared_examples_for 'a method scheduling a worker' do
         #noinspection RubyStringKeysInHashInspection
         let(:expected_work) do
           {
@@ -41,11 +45,7 @@ module Sidekiq
           }
         end
 
-        before do
-          allow(SecureRandom).to receive(:base64).with(16).and_return(new_jid)
-          scheduler.perform_after(worker_class, *args)
-          scheduler.schedule!
-        end
+        before { scheduler.schedule! }
 
         it 'should schedule this work to run after the previous job' do
           expect(result_work).to eq(expected_work)
@@ -73,7 +73,58 @@ module Sidekiq
           let(:worker_class) { Class.new(worker_class_base) { sidekiq_options retry: false } }
           it { expect(!!result_work['retry']).to eq(false) }
         end
+      end
 
+      describe '#perform_after' do
+        before { scheduler.perform_after(worker_class, *args) }
+        it_behaves_like 'a method scheduling a worker'
+      end
+
+      describe '#perform_after_with_options' do
+        let(:options) { {} }
+        before { scheduler.perform_after_with_options(options, worker_class, *args) }
+        it_behaves_like 'a method scheduling a worker'
+
+        describe 'using the options' do
+          before { scheduler.schedule! }
+
+          context 'when the queue is overridden' do
+            let(:queue_name) { Faker::Lorem.word }
+            let(:options) { {queue: queue_name} }
+
+            it 'should schedule to run in the specified queue' do
+              expect(result_queue).to eq(queue_name)
+            end
+
+          end
+
+          context 'when the queue is overridden' do
+            let(:resource_name) { Faker::Lorem.word }
+            let(:options) { {resource: resource_name} }
+
+            it 'should schedule to run in the default resource' do
+              expect(result_resource).to eq(resource_name)
+            end
+          end
+
+          context 'when the job id is overridden' do
+            let(:custom_jid) { SecureRandom.uuid }
+            let(:options) { {job_id: custom_jid} }
+
+            it 'should use that job id' do
+              expect(result_work['jid']).to eq(custom_jid)
+            end
+          end
+
+          context 'when the parent job id is overridden' do
+            let(:custom_jid) { SecureRandom.uuid }
+            let(:options) { {parent_job_id: custom_jid} }
+
+            it 'should use that job id' do
+              expect(result_work['pjid']).to eq(custom_jid)
+            end
+          end
+        end
       end
 
     end
