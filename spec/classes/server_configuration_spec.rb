@@ -19,6 +19,10 @@ module Sidekiq
           expect(Sidekiq.server_middleware).not_to exist(Middleware::Server::RetryJobs)
         end
 
+        it 'should add the Sidekiq::Bolt::ServerMiddleware::JobSuccession middleware' do
+          expect(Sidekiq.server_middleware).to exist(ServerMiddleware::JobSuccession)
+        end
+
         it 'should add the Sidekiq::Bolt::ServerMiddleware::RetryJobs server middleware' do
           expect(Sidekiq.server_middleware).to exist(ServerMiddleware::RetryJobs)
         end
@@ -27,11 +31,11 @@ module Sidekiq
           expect(Sidekiq.server_middleware.first.klass).to eq(ServerMiddleware::JobMetaData)
         end
 
-        it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue client middleware' do
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::BlockQueue)
         end
 
-        it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession client middleware' do
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::JobSuccession)
         end
       end
@@ -39,11 +43,11 @@ module Sidekiq
       describe '.configure_client' do
         before { Bolt.configure_client(Sidekiq) }
 
-        it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue client middleware' do
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::BlockQueue)
         end
 
-        it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession client middleware' do
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::JobSuccession)
         end
       end
