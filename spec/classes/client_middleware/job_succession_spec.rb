@@ -29,6 +29,11 @@ module Sidekiq
             expect(global_redis.smembers("dependencies:#{parent_job_id}")).to include(job_id)
           end
 
+          it 'should create a dependency on its own completion' do
+            subject.call(nil, job, nil) {}
+            expect(global_redis.smembers("dependencies:#{job_id}")).to include(job_id)
+          end
+
           it 'should create a reference to the parent job' do
             subject.call(nil, job, nil) {}
             expect(global_redis.get("parent:#{job_id}")).to eq(parent_job_id)
