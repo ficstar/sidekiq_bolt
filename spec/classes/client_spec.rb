@@ -19,6 +19,13 @@ module Sidekiq
 
       it { is_expected.to be_a_kind_of(Sidekiq::Client) }
 
+      describe '#skeleton_push' do
+        it 'should push the item on to the queue for the specified resource' do
+          subject.skeleton_push(item)
+          expect(result_item).to include(original_item)
+        end
+      end
+
       describe 'push items into the queue' do
         let(:now) { Time.now }
 

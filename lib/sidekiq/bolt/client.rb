@@ -2,6 +2,14 @@ module Sidekiq
   module Bolt
     class Client < Sidekiq::Client
 
+      def skeleton_push(item)
+        queue_name = item['queue']
+        queue = Queue.new(queue_name)
+        resource_name = item['resource']
+        work = Sidekiq.dump_json(item)
+        queue.enqueue(resource_name, work, !!item['error'])
+      end
+
       private
 
       def atomic_push(_, payloads)
@@ -12,13 +20,9 @@ module Sidekiq
 
         now = Time.now
         payloads.each do |entry|
-          queue_name = entry['queue']
-          queue = Queue.new(queue_name)
           entry['resource'] ||= 'default'
-          resource_name = entry['resource']
           entry['enqueued_at'.freeze] = now
-          work = Sidekiq.dump_json(entry)
-          queue.enqueue(resource_name, work, !!entry['error'])
+          skeleton_push(entry)
         end
       end
 
