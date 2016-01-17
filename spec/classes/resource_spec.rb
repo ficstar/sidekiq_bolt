@@ -652,11 +652,12 @@ module Sidekiq
             JSON.load(serialized_work)['work']
           end
         end
+        let(:work_count) { 5 }
 
         before do
           allow(Socket).to receive(:gethostname).and_return(host)
-          5.times { subject.add_work(queue, SecureRandom.uuid) }
-          allocated_work.concat subject.allocate(5).each_slice(2).map { |_, work| work }
+          work_count.times { subject.add_work(queue, SecureRandom.uuid) }
+          allocated_work.concat subject.allocate(work_count).each_slice(2).map { |_, work| work }
         end
 
         it 'should decrement the allocation count' do
@@ -667,6 +668,25 @@ module Sidekiq
         it 'should decrement the queue busy count' do
           subject.free(queue, allocated_work.first)
           expect(global_redis.get('queue:busy:queue')).to eq('4')
+        end
+
+        context 'when the work has already been removed' do
+          let(:work_count) { 1 }
+          before do
+            2.times { subject.free(queue, allocated_work.first) }
+          end
+
+          it 'should not decrement the allocation count' do
+            expect(subject.allocated).to eq(0)
+          end
+
+          it 'should not store an over allocation count' do
+            expect(global_redis.get("resource:over-allocated:#{name}")).to be_nil
+          end
+
+          it 'should only decrement the queue busy once' do
+            expect(global_redis.get('queue:busy:queue')).to eq('0')
+          end
         end
 
         context 'when more work has been done than is available from this resource' do
