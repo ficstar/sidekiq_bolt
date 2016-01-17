@@ -12,7 +12,6 @@ while job_id do
     local dependencies_key = namespace .. 'dependencies:' .. job_id
     redis.call('srem', dependencies_key, job_id)
 
-    local parent_link_key = namespace .. 'parent:' .. job_id
     local dependency_count = redis.call('scard', dependencies_key)
 
     parent_failure_count = 0
@@ -28,6 +27,7 @@ while job_id do
         job_id = nil
         parent_job_id = nil
     else
+        local parent_link_key = namespace .. 'parent:' .. job_id
         local next_parent_link_key
         local next_parent_job_id
 
