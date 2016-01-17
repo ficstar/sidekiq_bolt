@@ -59,6 +59,12 @@ module Sidekiq
         its(:resource) { is_expected.to eq(resource) }
       end
 
+      describe '#original_message' do
+        let(:original_message) { SecureRandom.uuid }
+        before { subject.original_message = original_message }
+        its(:original_message) { is_expected.to eq(original_message) }
+      end
+
       describe '#parent_job_id' do
         let(:jid) { SecureRandom.uuid }
         before { subject.parent_job_id = jid }
