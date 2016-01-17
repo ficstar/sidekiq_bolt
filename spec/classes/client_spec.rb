@@ -9,13 +9,29 @@ module Sidekiq
       let(:args) { Faker::Lorem.paragraphs }
       let(:at) { nil }
       let(:error) { nil }
+      let(:run_local) { false }
       #noinspection RubyStringKeysInHashInspection
-      let(:item) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => args, 'at' => at, 'error' => error} }
+      let(:item) do
+        {
+            'queue' => queue_name,
+            'resource' => resource_name,
+            'class' => klass,
+            'args' => args,
+            'at' => at,
+            'error' => error,
+            'local' => run_local
+        }
+      end
       let!(:original_item) { item.dup }
       let(:resource) { Resource.new(resource_name) }
       let(:result_work) { resource.allocate(1) }
       let(:result_queue) { result_work[0] }
-      let(:result_item) { Sidekiq.load_json(result_work[1]) }
+      let(:result_item) { Sidekiq.load_json(result_work[1]) if result_work[1] }
+      let(:worker_id) { SecureRandom.uuid }
+
+      before do
+        allow(Socket).to receive(:gethostname).and_return(worker_id)
+      end
 
       it { is_expected.to be_a_kind_of(Sidekiq::Client) }
 
@@ -23,6 +39,37 @@ module Sidekiq
         it 'should push the item on to the queue for the specified resource' do
           subject.skeleton_push(item)
           expect(result_item).to include(original_item)
+        end
+
+        context 'when the work is run locally' do
+          let(:queue) { Queue.new(queue_name) }
+          let(:run_local) { true }
+          let(:backup_work_key) { "resource:backup:worker:#{worker_id}" }
+          let(:serialized_backup_work) { global_redis.lrange(backup_work_key, 0, -1).first }
+          let(:backup_item) { JSON.load(serialized_backup_work) }
+          let(:backup_queue) { backup_item['queue'] }
+          let(:backup_resource) { backup_item['resource'] }
+          let(:backup_work) { Sidekiq.load_json(backup_item['work']) }
+
+          it 'should not push the item on to the queue' do
+            subject.skeleton_push(item)
+            expect(result_item).to be_nil
+          end
+
+          it 'should back up the work' do
+            subject.skeleton_push(item)
+            expect(backup_work).to include(original_item)
+          end
+
+          it 'should increment the resource allocation' do
+            subject.skeleton_push(item)
+            expect(resource.allocated).to eq(1)
+          end
+
+          it 'should increment the queue busy count' do
+            subject.skeleton_push(item)
+            expect(queue.busy).to eq(1)
+          end
         end
       end
 

@@ -2,12 +2,25 @@ module Sidekiq
   module Bolt
     class Client < Sidekiq::Client
 
+      NAMESPACE_KEY = [''].freeze
+      ROOT = File.dirname(__FILE__)
+      SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
+      BACKUP_WORK_SCRIPT_PATH = "#{SCRIPT_ROOT}/backup.lua"
+      BACKUP_WORK_DEPENDENCY_SCRIPT = File.read(BACKUP_WORK_SCRIPT_PATH)
+
       def skeleton_push(item)
         queue_name = item['queue']
-        queue = Queue.new(queue_name)
         resource_name = item['resource']
         work = Sidekiq.dump_json(item)
-        queue.enqueue(resource_name, work, !!item['error'])
+        if item['local']
+          argv = [item['queue'], item['resource'], work, Socket.gethostname]
+          Bolt.redis do |redis|
+            redis.eval(BACKUP_WORK_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
+          end
+        else
+          queue = Queue.new(queue_name)
+          queue.enqueue(resource_name, work, !!item['error'])
+        end
       end
 
       private
