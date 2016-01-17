@@ -7,6 +7,7 @@ module Sidekiq
           worker.queue = Queue.new(job['queue'])
           worker.resource = Resource.new(job['resource'])
           worker.parent_job_id = job['pjid']
+          worker.original_message = job
           yield
         end
 
