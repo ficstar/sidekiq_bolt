@@ -10,6 +10,8 @@ local parent_failure_count
 
 while job_id do
     local dependencies_key = namespace .. 'dependencies:' .. job_id
+    redis.call('srem', dependencies_key, job_id)
+
     local parent_link_key = namespace .. 'parent:' .. job_id
     local dependency_count = redis.call('scard', dependencies_key)
 

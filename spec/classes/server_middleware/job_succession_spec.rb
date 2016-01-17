@@ -16,6 +16,7 @@ module Sidekiq
 
           before do
             dependencies.each { |jid| global_redis.sadd("dependencies:#{parent_job_id}", jid) }
+            global_redis.sadd("dependencies:#{job_id}", job_id)
             global_redis.set("parent:#{job_id}", parent_job_id)
           end
 
@@ -34,6 +35,11 @@ module Sidekiq
             it 'should remove the parent job dependency' do
               subject.call(nil, job, nil, &block) rescue nil
               expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
+            end
+
+            it 'should remove the its own job dependency' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.smembers("dependencies:#{job_id}")).not_to include(job_id)
             end
 
             it 'should delete the parent key' do
