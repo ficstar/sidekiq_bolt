@@ -3,14 +3,16 @@ local parent_job_id = table.remove(ARGV, 1)
 local job_id = table.remove(ARGV, 1)
 local job_failed = table.remove(ARGV, 1)
 
+local dependencies_key = namespace .. 'dependencies:' .. job_id
+redis.call('srem', dependencies_key, job_id)
+
 local resources_key = namespace .. 'resources'
 local queues_key = namespace .. 'queues'
 
 local parent_failure_count
 
 while job_id do
-    local dependencies_key = namespace .. 'dependencies:' .. job_id
-    redis.call('srem', dependencies_key, job_id)
+    dependencies_key = namespace .. 'dependencies:' .. job_id
 
     local dependency_count = redis.call('scard', dependencies_key)
 
