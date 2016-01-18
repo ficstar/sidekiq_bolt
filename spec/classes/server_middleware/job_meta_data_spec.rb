@@ -12,6 +12,7 @@ module Sidekiq
           let(:parent_job_id) { SecureRandom.uuid }
           #noinspection RubyStringKeysInHashInspection
           let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'pjid' => parent_job_id} }
+          let(:original_message) { Sidekiq.load_json(subject.original_message) }
 
           it 'should yield' do
             expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
@@ -25,7 +26,7 @@ module Sidekiq
             its(:queue) { is_expected.to eq(Queue.new(queue_name)) }
             its(:resource) { is_expected.to eq(Resource.new(resource_name)) }
             its(:parent_job_id) { is_expected.to eq(parent_job_id) }
-            its(:original_message) { is_expected.to eq(job) }
+            it { expect(original_message).to eq(job) }
           end
 
         end
