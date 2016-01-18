@@ -31,7 +31,7 @@ module Sidekiq
           return super
         end
 
-        now = Time.now
+        now = Time.now.to_f
         payloads.each do |entry|
           entry['resource'] ||= 'default'
           entry['enqueued_at'.freeze] = now
