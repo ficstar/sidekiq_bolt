@@ -73,6 +73,16 @@ module Sidekiq
         end
       end
 
+      def acknowledge_work
+        fetched_work.force_acknowledge
+      end
+
+      private
+
+      def fetched_work
+        @fetched_work ||= Fetch::UnitOfWork.new(queue.name, resource.name, original_message)
+      end
+
     end
   end
 end

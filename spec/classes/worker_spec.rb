@@ -54,7 +54,6 @@ module Sidekiq
 
       describe '#resource' do
         let(:resource_name) { Faker::Lorem }
-        let(:resource) { Resource.new(resource_name) }
         before { subject.resource = resource }
         its(:resource) { is_expected.to eq(resource) }
       end
@@ -289,6 +288,22 @@ module Sidekiq
           it 'should use the new queue' do
             expect(result_item['pjid']).to eq(new_jid)
           end
+        end
+      end
+
+      describe '#acknowledge_work' do
+        let(:original_message) { SecureRandom.uuid }
+        before do
+          resource.add_work(queue_name, original_message)
+          subject.queue = Queue.new(queue_name)
+          subject.resource = resource
+          subject.original_message = original_message
+          resource.allocate(1)
+        end
+
+        it 'should acknowledge that the work is done' do
+          subject.acknowledge_work
+          expect(resource.allocated).to eq(0)
         end
       end
 
