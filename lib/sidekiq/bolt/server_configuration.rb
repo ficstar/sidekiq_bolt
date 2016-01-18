@@ -6,6 +6,7 @@ module Sidekiq
       config.options[:scheduled_enq] = Poller
       config.server_middleware do |chain|
         chain.prepend ServerMiddleware::JobMetaData
+        chain.add ServerMiddleware::TypeSafety
         chain.add ServerMiddleware::JobSuccession
         chain.remove Middleware::Server::RetryJobs
         chain.add ServerMiddleware::RetryJobs
