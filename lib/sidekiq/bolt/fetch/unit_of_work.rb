@@ -6,6 +6,10 @@ module Sidekiq
         alias :message :job
 
         def acknowledge
+          force_acknowledge unless queue == '$async_local'
+        end
+
+        def force_acknowledge
           resource.free(queue, job)
         end
 

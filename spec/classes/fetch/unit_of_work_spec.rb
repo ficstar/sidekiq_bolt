@@ -16,7 +16,7 @@ module Sidekiq
       its(:job) { is_expected.to eq(work) }
       its(:message) { is_expected.to eq(work) }
 
-      shared_examples_for 'acknowledging work' do |method|
+      shared_examples_for 'freeing up a resource' do |method|
         it 'should free the work from the resource' do
           expect_any_instance_of(Resource).to receive(:free) do |resource, queue_name, job|
             expect(resource.name).to eq(resource_name)
@@ -27,8 +27,25 @@ module Sidekiq
         end
       end
 
+      shared_examples_for 'acknowledging work' do |method|
+        it_behaves_like 'freeing up a resource', method
+
+        context 'when the queue is "$async_local"' do
+          let(:queue) { '$async_local' }
+
+          it 'should not free the work' do
+            expect_any_instance_of(Resource).not_to receive(:free)
+            subject.public_send(method)
+          end
+        end
+      end
+
       describe '#acknowledge' do
         it_behaves_like 'acknowledging work', :acknowledge
+      end
+
+      describe '#force_acknowledge' do
+        it_behaves_like 'freeing up a resource', :acknowledge
       end
 
       describe '#requeue' do
