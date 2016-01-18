@@ -35,6 +35,10 @@ module Sidekiq
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::BlockQueue)
         end
 
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::TypeSafety middleware' do
+          expect(Sidekiq.client_middleware).to exist(ClientMiddleware::TypeSafety)
+        end
+
         it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::JobSuccession)
         end
@@ -45,6 +49,10 @@ module Sidekiq
 
         it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue middleware' do
           expect(Sidekiq.client_middleware).to exist(ClientMiddleware::BlockQueue)
+        end
+
+        it 'should add the Sidekiq::Bolt::ClientMiddleware::TypeSafety middleware' do
+          expect(Sidekiq.client_middleware).to exist(ClientMiddleware::TypeSafety)
         end
 
         it 'should add the Sidekiq::Bolt::ClientMiddleware::JobSuccession middleware' do
