@@ -80,6 +80,9 @@ module Sidekiq
             ServerMiddleware::RetryJobs.new.call(self, job, nil) { raise error } if error
           end
         end
+      rescue => error
+        Sidekiq.logger.error("Local async job failed: #{error}\n#{error.backtrace * "\n"}")
+      ensure
         fetched_work.force_acknowledge
       end
 

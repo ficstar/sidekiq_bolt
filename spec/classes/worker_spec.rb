@@ -292,7 +292,8 @@ module Sidekiq
       end
 
       describe '#acknowledge_work' do
-        let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id, 'retry' => true} }
+        let(:retryable) { true }
+        let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id, 'retry' => retryable} }
         let(:original_message) { Sidekiq.dump_json(original_job) }
         let(:job_id) { SecureRandom.uuid }
         let(:parent_job_id) { SecureRandom.uuid }
@@ -322,11 +323,26 @@ module Sidekiq
           end
 
           context 'when an error is provided' do
-            let(:error) { StandardError.new('IT DIED!') }
+            let(:error) { StandardError.new(Faker::Lorem.word).tap { |error| error.set_backtrace(Faker::Lorem.paragraphs) } }
 
             it 'should call the RetryJobs server middleware' do
               subject.acknowledge_work(error)
               expect(resource.retrying).to eq(1)
+            end
+
+            context 'when this job cannot retry' do
+              let(:retryable) { false }
+
+              it 'should still acknowledge that the work is done' do
+                subject.acknowledge_work(error)
+                expect(resource.allocated).to eq(0)
+              end
+
+              it 'should indicate that the job failed completely in the logs' do
+                expect(Sidekiq.logger).to receive(:error).with("Local async job failed: #{error}\n#{error.backtrace * "\n"}")
+                subject.acknowledge_work(error)
+              end
+
             end
           end
 
