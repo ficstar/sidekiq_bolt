@@ -12,8 +12,8 @@ module Sidekiq
         queue_name = item['queue']
         resource_name = item['resource']
         work = Sidekiq.dump_json(item)
-        if item['local']
-          argv = [item['queue'], item['resource'], work, Socket.gethostname]
+        if item['queue'] == '$async_local'
+          argv = ['$async_local', item['resource'], work, Socket.gethostname]
           Bolt.redis do |redis|
             redis.eval(BACKUP_WORK_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
           end

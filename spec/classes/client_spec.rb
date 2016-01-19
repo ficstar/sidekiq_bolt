@@ -9,7 +9,6 @@ module Sidekiq
       let(:args) { Faker::Lorem.paragraphs }
       let(:at) { nil }
       let(:error) { nil }
-      let(:run_local) { false }
       #noinspection RubyStringKeysInHashInspection
       let(:item) do
         {
@@ -18,8 +17,7 @@ module Sidekiq
             'class' => klass,
             'args' => args,
             'at' => at,
-            'error' => error,
-            'local' => run_local
+            'error' => error
         }
       end
       let!(:original_item) { item.dup }
@@ -42,6 +40,7 @@ module Sidekiq
         end
 
         context 'when the work is run locally' do
+          let(:queue_name) { '$async_local' }
           let(:queue) { Queue.new(queue_name) }
           let(:run_local) { true }
           let(:backup_work_key) { "resource:backup:worker:#{worker_id}" }
