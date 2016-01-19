@@ -9,7 +9,7 @@ module Sidekiq
         REMOVE_DEPENDENCY_SCRIPT_PATH = "#{SCRIPT_ROOT}/remove_dependency.lua"
         REMOVE_DEPENDENCY_SCRIPT = File.read(REMOVE_DEPENDENCY_SCRIPT_PATH)
 
-        def call(_, job, _)
+        def call(_, job, queue)
           failed = false
           begin
             yield
@@ -17,10 +17,12 @@ module Sidekiq
             failed = true
             raise
           ensure
-            argv = [job['pjid'], job['jid']]
-            argv << 'failed' if failed
-            Bolt.redis do |redis|
-              redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
+            if failed || queue != '$async_local'
+              argv = [job['pjid'], job['jid']]
+              argv << 'failed' if failed
+              Bolt.redis do |redis|
+                redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
+              end
             end
           end
         end

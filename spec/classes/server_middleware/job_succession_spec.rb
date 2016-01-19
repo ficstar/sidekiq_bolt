@@ -24,6 +24,22 @@ module Sidekiq
             expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
           end
 
+          context 'when the job originated from the $async_local queue' do
+            before { subject.call(nil, job, '$async_local', &block) rescue nil }
+
+            it 'should not remove any dependencies' do
+              expect(global_redis.smembers("dependencies:#{parent_job_id}")).to include(job_id)
+            end
+
+            context 'when the block raises an error' do
+              let(:block) { ->() { raise 'IT BROKE!' } }
+
+              it 'should still remove the dependencies' do
+                expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
+              end
+            end
+          end
+
           shared_examples_for 'removing job dependencies' do
             let(:grandparent_job_id) { SecureRandom.uuid }
 
