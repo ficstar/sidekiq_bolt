@@ -311,7 +311,7 @@ module Sidekiq
         end
 
         describe 'job succession' do
-          let(:queue_name) { '$async_local' }
+          let(:resource_name) { '$async_local' }
 
           before { global_redis.sadd("dependencies:#{parent_job_id}", job_id) }
 
@@ -320,8 +320,8 @@ module Sidekiq
             expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
           end
 
-          context 'when the original queue was not the $async_local queue' do
-            let(:queue_name) { Faker::Lorem.word }
+          context 'when the original resource was not $async_local' do
+            let(:resource_name) { Faker::Lorem.word }
 
             it 'should not call the JobSuccession server middleware' do
               subject.acknowledge_work

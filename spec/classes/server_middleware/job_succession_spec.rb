@@ -8,8 +8,9 @@ module Sidekiq
         describe '#call' do
           let(:parent_job_id) { SecureRandom.uuid }
           let(:job_id) { SecureRandom.uuid }
+          let(:resource_name) { Faker::Lorem.word }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id} }
+          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name} }
           let(:next_job) { {} }
           let(:block) { -> {} }
           let(:dependencies) { [job_id, SecureRandom.uuid] }
@@ -24,8 +25,10 @@ module Sidekiq
             expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
           end
 
-          context 'when the job originated from the $async_local queue' do
-            before { subject.call(nil, job, '$async_local', &block) rescue nil }
+          context 'when the job originated from the $async_local resource' do
+            let(:resource_name) { '$async_local' }
+
+            before { subject.call(nil, job, nil, &block) rescue nil }
 
             it 'should not remove any dependencies' do
               expect(global_redis.smembers("dependencies:#{parent_job_id}")).to include(job_id)

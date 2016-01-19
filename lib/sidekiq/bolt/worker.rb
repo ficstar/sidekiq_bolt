@@ -74,7 +74,7 @@ module Sidekiq
       end
 
       def acknowledge_work
-        if queue.name == '$async_local'
+        if resource.name == '$async_local'
           ServerMiddleware::JobSuccession.new.call(nil, {'jid' => jid, 'pjid' => parent_job_id}, nil) {}
         end
         fetched_work.force_acknowledge

@@ -30,8 +30,8 @@ module Sidekiq
       shared_examples_for 'acknowledging work' do |method|
         it_behaves_like 'freeing up a resource', method
 
-        context 'when the queue is "$async_local"' do
-          let(:queue) { '$async_local' }
+        context 'when the resource is "$async_local"' do
+          let(:resource_name) { '$async_local' }
 
           it 'should not free the work' do
             expect_any_instance_of(Resource).not_to receive(:free)

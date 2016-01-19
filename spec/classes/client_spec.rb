@@ -40,7 +40,7 @@ module Sidekiq
         end
 
         context 'when the work is run locally' do
-          let(:queue_name) { '$async_local' }
+          let(:resource_name) { '$async_local' }
           let(:queue) { Queue.new(queue_name) }
           let(:run_local) { true }
           let(:backup_work_key) { "resource:backup:worker:#{worker_id}" }
