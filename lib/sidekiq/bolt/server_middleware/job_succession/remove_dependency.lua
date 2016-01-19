@@ -21,8 +21,10 @@ while job_id do
         local job_failed_key = namespace .. 'job_failed:' .. job_id
         redis.call('set', job_failed_key, 'true')
 
-        local parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
-        parent_failure_count = redis.call('incr', parent_failure_count_key)
+        if parent_job_id then
+            local parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
+            parent_failure_count = redis.call('incr', parent_failure_count_key)
+        end
     end
 
     if dependency_count > 0 then

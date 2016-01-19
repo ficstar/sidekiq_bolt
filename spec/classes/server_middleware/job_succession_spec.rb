@@ -25,6 +25,10 @@ module Sidekiq
             expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
           end
 
+          it 'should not raise any script errors' do
+            expect { subject.call(nil, job, nil) {} }.not_to raise_error
+          end
+
           context 'when the job originated from the $async_local resource' do
             let(:resource_name) { '$async_local' }
 
