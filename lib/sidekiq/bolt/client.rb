@@ -20,7 +20,7 @@ module Sidekiq
 
           worker = item['class'].constantize.new
           Sidekiq.server_middleware.invoke(worker, item, queue_name) do
-            worker.perform(item['args'])
+            worker.perform(*item['args'])
           end
         else
           queue = Queue.new(queue_name)

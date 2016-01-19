@@ -80,7 +80,7 @@ module Sidekiq
           describe 'running the job' do
             it 'should create and run the worker within the server middleware' do
               expect(Sidekiq.server_middleware).to receive(:invoke).with(a_kind_of(MockWorker), item, item['queue']) do |&block|
-                expect_any_instance_of(MockWorker).to receive(:perform).with(args)
+                expect_any_instance_of(MockWorker).to receive(:perform).with(*args)
                 block.call
               end
               subject.skeleton_push(item)
