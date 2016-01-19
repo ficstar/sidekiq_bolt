@@ -293,17 +293,41 @@ module Sidekiq
 
       describe '#acknowledge_work' do
         let(:original_message) { SecureRandom.uuid }
+        let(:job_id) { SecureRandom.uuid }
+        let(:parent_job_id) { SecureRandom.uuid }
         before do
           resource.add_work(queue_name, original_message)
           subject.queue = Queue.new(queue_name)
           subject.resource = resource
           subject.original_message = original_message
+          subject.jid = job_id
+          subject.parent_job_id = parent_job_id
           resource.allocate(1)
         end
 
         it 'should acknowledge that the work is done' do
           subject.acknowledge_work
           expect(resource.allocated).to eq(0)
+        end
+
+        describe 'job succession' do
+          let(:queue_name) { '$async_local' }
+
+          before { global_redis.sadd("dependencies:#{parent_job_id}", job_id) }
+
+          it 'should call the JobSuccession server middleware' do
+            subject.acknowledge_work
+            expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
+          end
+
+          context 'when the original queue was not the $async_local queue' do
+            let(:queue_name) { Faker::Lorem.word }
+
+            it 'should not call the JobSuccession server middleware' do
+              subject.acknowledge_work
+              expect(global_redis.smembers("dependencies:#{parent_job_id}")).to include(job_id)
+            end
+          end
         end
       end
 
