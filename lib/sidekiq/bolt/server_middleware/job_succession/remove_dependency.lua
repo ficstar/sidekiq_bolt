@@ -85,5 +85,3 @@ while job_id do
         parent_job_id = next_parent_job_id
     end
 end
-
-return debug
