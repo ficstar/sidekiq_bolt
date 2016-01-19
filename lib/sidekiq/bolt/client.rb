@@ -30,6 +30,13 @@ module Sidekiq
 
       private
 
+      def raw_push(payloads)
+        @redis_pool.with do |conn|
+          atomic_push(conn, payloads)
+        end
+        true
+      end
+
       def atomic_push(_, payloads)
         if payloads.first['at']
           payloads.each { |item| item['sk'] = 'bolt' }

@@ -99,6 +99,11 @@ module Sidekiq
           expect(result_item).to include(original_item)
         end
 
+        it 'should not use a redis multi' do
+          expect_any_instance_of(Redis).not_to receive(:multi)
+          subject.push(item)
+        end
+
         it 'should include the time the item was enqueued at' do
           subject.push(item)
           expect(result_item).to include('enqueued_at' => now.to_f)
