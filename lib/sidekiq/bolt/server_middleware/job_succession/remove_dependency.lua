@@ -47,6 +47,7 @@ while job_id do
             next_parent_job_id = nil
         end
 
+        local scheduled_work_key = namespace .. 'successive_work:' .. job_id
         if job_failed then
             if parent_job_id then
                 local parent_failure_limit_key = namespace .. 'job_failure_limit:' .. parent_job_id
@@ -60,8 +61,8 @@ while job_id do
                     job_failed = true
                 end
             end
+            redis.call('del', scheduled_work_key)
         else
-            local scheduled_work_key = namespace .. 'successive_work:' .. job_id
             local scheduled_items = redis.call('lrange', scheduled_work_key, 0, -1)
 
             redis.call('del', scheduled_work_key)

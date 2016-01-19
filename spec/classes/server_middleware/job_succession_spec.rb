@@ -242,6 +242,10 @@ module Sidekiq
                   expect(global_redis.get("job_failed:#{parent_job_id}")).to eq('true')
                 end
 
+                it 'should still clear the schedule succession queue' do
+                  expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                end
+
                 context 'when the parent schedules jobs' do
                   let(:dependencies) { [job_id] }
                   let(:successive_job_id) { parent_job_id }
