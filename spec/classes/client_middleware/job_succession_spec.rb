@@ -8,8 +8,9 @@ module Sidekiq
         describe '#call' do
           let(:job_id) { SecureRandom.uuid }
           let(:parent_job_id) { SecureRandom.uuid }
+          let(:error) { nil }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id} }
+          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id, 'error' => error} }
           let(:yield_result) { Faker::Lorem.word }
 
           it 'should yield' do
@@ -37,6 +38,15 @@ module Sidekiq
           it 'should create a reference to the parent job' do
             subject.call(nil, job, nil) {}
             expect(global_redis.get("parent:#{job_id}")).to eq(parent_job_id)
+          end
+
+          context 'when this job is retrying' do
+            let(:error) { SecureRandom.uuid }
+
+            it 'should not create a dependency link to the parent job' do
+              subject.call(nil, job, nil) {}
+              expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
+            end
           end
 
           context 'when a dependency has already been created for this job' do

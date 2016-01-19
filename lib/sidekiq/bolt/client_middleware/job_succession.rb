@@ -15,10 +15,12 @@ module Sidekiq
         ADD_DEPENDENCY_SCRIPT = File.read(ADD_DEPENDENCY_SCRIPT_PATH)
 
         def call(_, msg, _, _ = nil)
-          parent_set = Bolt.redis do |redis|
-            redis.eval(ADD_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: [msg['pjid'], msg['jid']])
+          unless msg['error']
+            parent_set = Bolt.redis do |redis|
+              redis.eval(ADD_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: [msg['pjid'], msg['jid']])
+            end
+            raise DuplicateJobError.new(msg['jid'], msg['pjid']) unless parent_set
           end
-          raise DuplicateJobError.new(msg['jid'], msg['pjid']) unless parent_set
           yield
         end
 
