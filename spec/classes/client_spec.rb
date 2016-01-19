@@ -3,6 +3,11 @@ require 'rspec'
 module Sidekiq
   module Bolt
     describe Client do
+      class MockWorker
+        def perform(*_)
+        end
+      end
+
       let(:queue_name) { Faker::Lorem.word }
       let(:resource_name) { Faker::Lorem.word }
       let(:klass) { Faker::Lorem.word }
@@ -50,6 +55,8 @@ module Sidekiq
           let(:backup_resource) { backup_item['resource'] }
           let(:backup_work) { Sidekiq.load_json(backup_item['work']) }
 
+          let(:klass) { MockWorker.to_s }
+
           it 'should not push the item on to the queue' do
             subject.skeleton_push(item)
             expect(result_item).to be_nil
@@ -68,6 +75,16 @@ module Sidekiq
           it 'should increment the queue busy count' do
             subject.skeleton_push(item)
             expect(queue.busy).to eq(1)
+          end
+
+          describe 'running the job' do
+            it 'should create and run the worker within the server middleware' do
+              expect(Sidekiq.server_middleware).to receive(:invoke).with(a_kind_of(MockWorker), item, item['queue']) do |&block|
+                expect_any_instance_of(MockWorker).to receive(:perform).with(args)
+                block.call
+              end
+              subject.skeleton_push(item)
+            end
           end
         end
       end

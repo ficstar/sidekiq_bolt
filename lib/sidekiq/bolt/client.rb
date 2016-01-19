@@ -17,6 +17,11 @@ module Sidekiq
           Bolt.redis do |redis|
             redis.eval(BACKUP_WORK_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
           end
+
+          worker = item['class'].constantize.new
+          Sidekiq.server_middleware.invoke(worker, item, queue_name) do
+            worker.perform(item['args'])
+          end
         else
           queue = Queue.new(queue_name)
           queue.enqueue(resource_name, work, !!item['error'])
