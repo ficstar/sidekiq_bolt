@@ -292,7 +292,8 @@ module Sidekiq
       end
 
       describe '#acknowledge_work' do
-        let(:original_message) { SecureRandom.uuid }
+        let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id, 'retry' => true} }
+        let(:original_message) { Sidekiq.dump_json(original_job) }
         let(:job_id) { SecureRandom.uuid }
         let(:parent_job_id) { SecureRandom.uuid }
         before do
@@ -318,6 +319,15 @@ module Sidekiq
           it 'should call the JobSuccession server middleware' do
             subject.acknowledge_work
             expect(global_redis.smembers("dependencies:#{parent_job_id}")).not_to include(job_id)
+          end
+
+          context 'when an error is provided' do
+            let(:error) { StandardError.new('IT DIED!') }
+
+            it 'should call the RetryJobs server middleware' do
+              subject.acknowledge_work(error)
+              expect(resource.retrying).to eq(1)
+            end
           end
 
           context 'when the original resource was not $async_local' do

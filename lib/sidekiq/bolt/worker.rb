@@ -73,9 +73,12 @@ module Sidekiq
         end
       end
 
-      def acknowledge_work
+      def acknowledge_work(error = nil)
         if resource.name == '$async_local'
-          ServerMiddleware::JobSuccession.new.call(nil, {'jid' => jid, 'pjid' => parent_job_id}, nil) {}
+          job = error ? Sidekiq.load_json(original_message) : {'jid' => jid, 'pjid' => parent_job_id}
+          ServerMiddleware::JobSuccession.new.call(self, job, nil) do
+            ServerMiddleware::RetryJobs.new.call(self, job, nil) { raise error } if error
+          end
         end
         fetched_work.force_acknowledge
       end
