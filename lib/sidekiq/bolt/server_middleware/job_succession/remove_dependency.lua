@@ -48,15 +48,17 @@ while job_id do
         end
 
         if job_failed then
-            local parent_failure_limit_key = namespace .. 'job_failure_limit:' .. parent_job_id
-            local parent_failure_limit = tonumber(redis.call('get', parent_failure_limit_key))
+            if parent_job_id then
+                local parent_failure_limit_key = namespace .. 'job_failure_limit:' .. parent_job_id
+                local parent_failure_limit = tonumber(redis.call('get', parent_failure_limit_key))
 
-            if not parent_failure_limit then parent_failure_limit = 0 end
+                if not parent_failure_limit then parent_failure_limit = 0 end
 
-            if parent_failure_count < parent_failure_limit then
-                job_failed = false
-            else
-                job_failed = true
+                if parent_failure_count < parent_failure_limit then
+                    job_failed = false
+                else
+                    job_failed = true
+                end
             end
         else
             local scheduled_work_key = namespace .. 'successive_work:' .. job_id
