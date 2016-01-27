@@ -14,7 +14,7 @@ module Sidekiq
       end
 
       def allocate(amount, resource_type = nil)
-        return amount if resource_type == '$async_local'
+        return amount if resource_type == Resource::ASYNC_LOCAL_RESOURCE
 
         resource_allocation = @allocation[resource_type]
         resource_allocation.mutex.synchronize do
@@ -30,7 +30,7 @@ module Sidekiq
       end
 
       def free(amount, resource_type = nil)
-        @allocation[resource_type].allocation -= amount unless resource_type == '$async_local'
+        @allocation[resource_type].allocation -= amount unless resource_type == Resource::ASYNC_LOCAL_RESOURCE
       end
 
       def allocation(resource_type = nil)

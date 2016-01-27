@@ -74,7 +74,7 @@ module Sidekiq
       end
 
       def acknowledge_work(error = nil)
-        if resource.name == '$async_local'
+        if resource.name == Resource::ASYNC_LOCAL_RESOURCE
           job = error ? Sidekiq.load_json(original_message) : {'jid' => jid, 'pjid' => parent_job_id}
           ServerMiddleware::JobSuccession.new.call(self, job, nil) do
             ServerMiddleware::RetryJobs.new.call(self, job, nil) { raise error } if error

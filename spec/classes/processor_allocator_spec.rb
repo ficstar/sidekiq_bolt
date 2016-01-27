@@ -65,7 +65,7 @@ module Sidekiq
 
         describe 'allocating from $async_local resource' do
           let(:allocation) { rand(1..999999) }
-          subject { allocator.allocate(allocation, '$async_local') }
+          subject { allocator.allocate(allocation, Resource::ASYNC_LOCAL_RESOURCE) }
           it { is_expected.to eq(allocation) }
         end
 
@@ -104,7 +104,7 @@ module Sidekiq
         end
 
         context 'with the $async_local resource' do
-          let(:resource_type) { '$async_local' }
+          let(:resource_type) { Resource::ASYNC_LOCAL_RESOURCE }
           let(:allocation) { rand(1..999999) }
 
           subject { allocator.allocation(resource_type) }

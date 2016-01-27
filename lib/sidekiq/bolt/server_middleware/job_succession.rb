@@ -17,7 +17,7 @@ module Sidekiq
             failed = true
             raise
           ensure
-            if failed || job['resource'] != '$async_local'
+            if failed || job['resource'] != Resource::ASYNC_LOCAL_RESOURCE
               argv = [job['pjid'], job['jid']]
               argv << 'failed' if failed
               Bolt.redis do |redis|

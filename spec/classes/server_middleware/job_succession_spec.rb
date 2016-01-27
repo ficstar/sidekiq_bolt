@@ -30,7 +30,7 @@ module Sidekiq
           end
 
           context 'when the job originated from the $async_local resource' do
-            let(:resource_name) { '$async_local' }
+            let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
 
             before { subject.call(nil, job, nil, &block) rescue nil }
 

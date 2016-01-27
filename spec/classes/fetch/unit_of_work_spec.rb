@@ -31,7 +31,7 @@ module Sidekiq
         it_behaves_like 'freeing up a resource', method
 
         context 'when the resource is "$async_local"' do
-          let(:resource_name) { '$async_local' }
+          let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
 
           it 'should not free the work' do
             expect_any_instance_of(Resource).not_to receive(:free)

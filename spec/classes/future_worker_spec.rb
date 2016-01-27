@@ -27,7 +27,7 @@ module Sidekiq
       let(:worker_class) { FutureWorker::MockWorker }
       let(:worker) { worker_class.new }
       let(:args) { Faker::Lorem.paragraphs }
-      let(:resource) { Resource.new('$async_local') }
+      let(:resource) { Resource.new(Resource::ASYNC_LOCAL_RESOURCE) }
 
       subject { worker }
 

@@ -9,12 +9,12 @@ module Sidekiq
 
       module ClassMethods
         def perform_async(*args, &block)
-          client_push({'class' => self, 'args' => args, 'resource' => '$async_local'}, &block)
+          client_push({'class' => self, 'args' => args, 'resource' => Resource::ASYNC_LOCAL_RESOURCE}, &block)
         end
 
         def perform_async_with_options(options, *args, &block)
           #noinspection RubySuperCallWithoutSuperclassInspection
-          super(options.merge(resource: '$async_local'), *args, &block)
+          super(options.merge(resource: Resource::ASYNC_LOCAL_RESOURCE), *args, &block)
         end
 
         def perform_in(*_)

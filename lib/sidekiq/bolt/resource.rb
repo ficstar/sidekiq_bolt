@@ -3,6 +3,8 @@ module Sidekiq
     class Resource < Struct.new(:name)
       extend PropertyList
 
+      ASYNC_LOCAL_RESOURCE = '$async_local'
+
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
       TYPE_FILTER_SCRIPT_PATH = "#{SCRIPT_ROOT}/type_filter.lua"

@@ -313,7 +313,7 @@ module Sidekiq
         end
 
         describe 'job succession' do
-          let(:resource_name) { '$async_local' }
+          let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
 
           before { global_redis.sadd("dependencies:#{parent_job_id}", job_id) }
 

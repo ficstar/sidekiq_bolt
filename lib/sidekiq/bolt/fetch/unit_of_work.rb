@@ -6,7 +6,7 @@ module Sidekiq
         alias :message :job
 
         def acknowledge
-          force_acknowledge unless resource_name == '$async_local'
+          force_acknowledge unless resource_name == Resource::ASYNC_LOCAL_RESOURCE
         end
 
         def force_acknowledge
