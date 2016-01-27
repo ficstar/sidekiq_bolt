@@ -15,6 +15,7 @@ while job_id do
     dependencies_key = namespace .. 'dependencies:' .. job_id
 
     local dependency_count = redis.call('scard', dependencies_key)
+    local scheduled_work_key = namespace .. 'successive_work:' .. job_id
 
     parent_failure_count = 0
     if job_failed then
@@ -25,6 +26,7 @@ while job_id do
             local parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
             parent_failure_count = redis.call('incr', parent_failure_count_key)
         end
+        redis.call('del', scheduled_work_key)
     end
 
     if dependency_count > 0 then
@@ -47,7 +49,6 @@ while job_id do
             next_parent_job_id = nil
         end
 
-        local scheduled_work_key = namespace .. 'successive_work:' .. job_id
         if job_failed then
             if parent_job_id then
                 local parent_failure_limit_key = namespace .. 'job_failure_limit:' .. parent_job_id
@@ -61,7 +62,6 @@ while job_id do
                     job_failed = true
                 end
             end
-            redis.call('del', scheduled_work_key)
         else
             local scheduled_items = redis.call('lrange', scheduled_work_key, 0, -1)
 

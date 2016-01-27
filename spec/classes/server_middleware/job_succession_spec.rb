@@ -225,11 +225,13 @@ module Sidekiq
                 let(:successive_job_id) { job_id }
                 let(:failure_limit) { nil }
                 let(:failure_count) { 0 }
+                let(:immediate_dependencies) { [job_id] }
 
                 before do
                   global_redis.lpush("successive_work:#{successive_job_id}", JSON.dump(scheduled_job))
                   global_redis.set("job_failure_limit:#{successive_job_id}", failure_limit) if failure_limit
                   global_redis.set("job_failured_count:#{successive_job_id}", failure_count)
+                  immediate_dependencies.each { |dependency| global_redis.sadd("dependencies:#{job_id}", dependency) }
                   subject.call(nil, job, nil, &block) rescue nil
                 end
 
@@ -244,6 +246,14 @@ module Sidekiq
 
                 it 'should still clear the schedule succession queue' do
                   expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                end
+
+                context 'when this job has other dependencies' do
+                  let(:immediate_dependencies) { [job_id, SecureRandom.uuid] }
+
+                  it 'should still clear the schedule succession queue' do
+                    expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                  end
                 end
 
                 context 'when the parent schedules jobs' do
