@@ -30,7 +30,7 @@ module Sidekiq
       end
 
       def free(amount, resource_type = nil)
-        @allocation[resource_type].allocation -= amount
+        @allocation[resource_type].allocation -= amount unless resource_type == '$async_local'
       end
 
       def allocation(resource_type = nil)

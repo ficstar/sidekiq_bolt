@@ -65,9 +65,7 @@ module Sidekiq
 
         describe 'allocating from $async_local resource' do
           let(:allocation) { rand(1..999999) }
-
           subject { allocator.allocate(allocation, '$async_local') }
-
           it { is_expected.to eq(allocation) }
         end
 
@@ -95,14 +93,28 @@ module Sidekiq
           let(:options) { {concurrency_pool: {resource_type => concurrency}} }
           let(:resources_to_free) { rand(1...concurrency) }
 
+          subject { allocator.allocation(resource_type) }
+
           before do
             allocator.allocate(concurrency, resource_type)
             allocator.free(resources_to_free, resource_type)
           end
 
+          it { is_expected.to eq(concurrency - resources_to_free) }
+        end
+
+        context 'with the $async_local resource' do
+          let(:resource_type) { '$async_local' }
+          let(:allocation) { rand(1..999999) }
+
           subject { allocator.allocation(resource_type) }
 
-          it { is_expected.to eq(concurrency - resources_to_free) }
+          before do
+            allocator.allocate(allocation, resource_type)
+            allocator.free(999999, resource_type)
+          end
+
+          it { is_expected.to eq(0) }
         end
       end
 
