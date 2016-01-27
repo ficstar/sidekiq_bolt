@@ -59,8 +59,37 @@ module Sidekiq
 
         context 'with a specific resource' do
           let(:resource_type) { :some_resource }
-          let(:options) { {concurrency_pool: {some_resource: concurrency}} }
+          let(:options) { {concurrency: concurrency, concurrency_pool: {some_resource: concurrency}} }
           it_behaves_like 'allocating for a resource type', :some_resource
+
+          describe 'allocating from the global pool' do
+            let(:concurrency) { 1 }
+            let(:allocation) { 1 }
+
+            context 'when each resource consumes the entire pool' do
+              it 'should have no resources left' do
+                expect(allocator.allocate(allocation)).to be_zero
+              end
+            end
+
+            context 'when there are resources left for the default type' do
+              let(:concurrency) { 2 }
+              let(:options) { {concurrency: concurrency, concurrency_pool: {some_resource: 1}} }
+
+              it 'should allow allocation' do
+                expect(allocator.allocate(allocation)).to eq(1)
+              end
+
+              context 'with multiple resources' do
+                let(:options) { {concurrency: concurrency, concurrency_pool: {some_resource: 1, some_other_resource: 1}} }
+
+                it 'should have no resources left' do
+                  expect(allocator.allocate(allocation)).to be_zero
+                end
+              end
+            end
+
+          end
         end
 
         describe 'allocating from $async_local resource' do
@@ -90,7 +119,7 @@ module Sidekiq
 
         context 'with a specific resource' do
           let(:resource_type) { Faker::Lorem.word.to_sym }
-          let(:options) { {concurrency_pool: {resource_type => concurrency}} }
+          let(:options) { {concurrency: concurrency, concurrency_pool: {resource_type => concurrency}} }
           let(:resources_to_free) { rand(1...concurrency) }
 
           subject { allocator.allocation(resource_type) }

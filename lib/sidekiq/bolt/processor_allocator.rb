@@ -5,10 +5,12 @@ module Sidekiq
 
       def initialize(options)
         @options = options
-        @resources = if @options[:concurrency]
-                       {nil => @options[:concurrency]}
+        @resources = if @options[:concurrency_pool]
+                       default_resources_consumed = @options[:concurrency_pool].values.reduce(&:+)
+                       default_resources_left = @options[:concurrency] - default_resources_consumed
+                       @options[:concurrency_pool].merge(nil => default_resources_left)
                      else
-                       @options[:concurrency_pool]
+                       {nil => @options[:concurrency]}
                      end
         @allocation = Hash.new { |hash, key| hash[key] = Allocation.new(Mutex.new, 0) }
       end
