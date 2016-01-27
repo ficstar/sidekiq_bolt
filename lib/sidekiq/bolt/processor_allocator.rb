@@ -14,6 +14,8 @@ module Sidekiq
       end
 
       def allocate(amount, resource_type = nil)
+        return amount if resource_type == '$async_local'
+
         resource_allocation = @allocation[resource_type]
         resource_allocation.mutex.synchronize do
           concurrency = @resources[resource_type]

@@ -63,6 +63,14 @@ module Sidekiq
           it_behaves_like 'allocating for a resource type', :some_resource
         end
 
+        describe 'allocating from $async_local resource' do
+          let(:allocation) { rand(1..999999) }
+
+          subject { allocator.allocate(allocation, '$async_local') }
+
+          it { is_expected.to eq(allocation) }
+        end
+
       end
 
       describe '#free' do
