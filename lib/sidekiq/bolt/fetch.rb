@@ -39,9 +39,16 @@ module Sidekiq
       end
 
       def find_work
+
         supported_resources.each do |resource|
-          queue, work = resource.allocate(1)
-          return UnitOfWork.new(queue, resource.name, work) if work
+          if processor_allocator.allocate(1, resource.type).nonzero?
+            queue, work = resource.allocate(1)
+            if work
+              return UnitOfWork.new(queue, resource.name, work)
+            else
+              processor_allocator.free(1, resource.type)
+            end
+          end
         end
         nil
       end

@@ -4,7 +4,9 @@ module Sidekiq
   module Bolt
     describe Fetch do
 
-      let(:options) { {} }
+      let(:resource_type) { nil }
+      let(:concurrency_pool) { {resource_type => 100} }
+      let(:options) { {concurrency_pool: concurrency_pool} }
 
       subject { Fetch.new(options) }
 
@@ -37,16 +39,37 @@ module Sidekiq
         context 'when there is work to be done' do
           let(:queue_name) { Faker::Lorem.word }
           let(:resource_name) { Faker::Lorem.word }
+          let(:resource) { Resource.new(resource_name) }
           let(:work) { SecureRandom.uuid }
           let(:expected_work) { Fetch::UnitOfWork.new(queue_name, resource_name, work) }
 
-          before { Resource.new(resource_name).add_work(queue_name, work) }
+          before { resource.add_work(queue_name, work) }
 
           its(:retrieve_work) { is_expected.to eq(expected_work) }
 
           it 'should not sleep' do
             expect(subject).not_to receive(:sleep).with(1)
             subject.retrieve_work
+          end
+
+          context 'when that work has already been consumed' do
+            before { resource.allocate(1) }
+
+            it 'should return the worker allocation' do
+              subject.retrieve_work
+              expect(Fetch.processor_allocator.allocation(resource_type)).to be_zero
+            end
+          end
+
+          context 'when we do not have enough workers' do
+            let(:concurrency_pool) { {resource_type => 0} }
+
+            its(:retrieve_work) { is_expected.to be_nil }
+
+            it 'should sleep' do
+              expect(subject).to receive(:sleep)
+              subject.retrieve_work
+            end
           end
         end
 
@@ -56,7 +79,8 @@ module Sidekiq
           let(:resource) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type } }
           let(:resource_type_two) { Faker::Lorem.word }
           let(:resource_two) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type_two } }
-          let(:options) { {resource_types: [resource_type]} }
+          let(:concurrency_pool) { {resource_type => 100, resource_type_two => 100, nil => 100} }
+          let(:options) { {resource_types: [resource_type], concurrency_pool: concurrency_pool} }
 
           let(:work) { SecureRandom.uuid }
           let(:work_two) { SecureRandom.uuid }
@@ -69,6 +93,26 @@ module Sidekiq
 
           it 'should only pull work from the specified resource type' do
             expect(subject.retrieve_work).to eq(expected_work)
+          end
+
+          context 'when that work has already been consumed' do
+            before { resource.allocate(1) }
+
+            it 'should return the worker allocation' do
+              subject.retrieve_work
+              expect(Fetch.processor_allocator.allocation(resource_type)).to be_zero
+            end
+          end
+
+          context 'when we do not have enough workers' do
+            let(:concurrency_pool) { {resource_type => 0, resource_type_two => 0, nil => 0} }
+
+            its(:retrieve_work) { is_expected.to be_nil }
+
+            it 'should sleep' do
+              expect(subject).to receive(:sleep)
+              subject.retrieve_work
+            end
           end
         end
       end

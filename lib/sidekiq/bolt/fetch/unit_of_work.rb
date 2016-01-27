@@ -11,6 +11,7 @@ module Sidekiq
 
         def force_acknowledge
           resource.free(queue, job)
+          Fetch.processor_allocator.free(1, resource.type) if Fetch.processor_allocator
         end
 
         def requeue

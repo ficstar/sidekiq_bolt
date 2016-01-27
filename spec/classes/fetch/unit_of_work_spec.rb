@@ -5,8 +5,15 @@ module Sidekiq
     describe Fetch::UnitOfWork do
 
       let(:queue) { Faker::Lorem.word }
+      let(:resource_type) { Faker::Lorem.word }
       let(:resource_name) { Faker::Lorem.word }
       let(:work) { SecureRandom.uuid }
+
+      before do
+        Resource.new(resource_name).type = resource_type
+        Fetch.processor_allocator = ProcessorAllocator.new(concurrency_pool: {resource_type => 1})
+        Fetch.processor_allocator.allocate(1, resource_type)
+      end
 
       subject { Fetch::UnitOfWork.new(queue, resource_name, work) }
 
@@ -24,6 +31,11 @@ module Sidekiq
             expect(job).to eq(work)
           end
           subject.public_send(method)
+        end
+
+        it 'should free the worker' do
+          subject.public_send(method)
+          expect(Fetch.processor_allocator.allocation(resource_type)).to be_zero
         end
       end
 
