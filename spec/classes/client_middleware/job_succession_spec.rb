@@ -40,6 +40,18 @@ module Sidekiq
             expect(global_redis.get("parent:#{job_id}")).to eq(parent_job_id)
           end
 
+          it 'should ensure that the parent job is not considered complete' do
+            global_redis.set("job_completed:#{parent_job_id}", 'true')
+            subject.call(nil, job, nil) {}
+            expect(global_redis.get("job_completed:#{parent_job_id}")).to be_nil
+          end
+
+          it 'should ensure that this job is not considered complete' do
+            global_redis.set("job_completed:#{job_id}", 'true')
+            subject.call(nil, job, nil) {}
+            expect(global_redis.get("job_completed:#{job_id}")).to be_nil
+          end
+
           context 'when this job is retrying' do
             let(:error) { SecureRandom.uuid }
 
