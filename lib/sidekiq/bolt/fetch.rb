@@ -20,7 +20,8 @@ module Sidekiq
       end
 
       def initialize(options)
-        self.class.processor_allocator = ProcessorAllocator.new(options)
+        @options = options
+        processor_allocator
         @supported_resource_types = options.fetch(:resource_types) { :* }
       end
 
@@ -30,6 +31,12 @@ module Sidekiq
       end
 
       private
+
+      attr_reader :options
+
+      def processor_allocator
+        self.class.processor_allocator ||= ProcessorAllocator.new(options)
+      end
 
       def find_work
         supported_resources.each do |resource|
