@@ -146,6 +146,10 @@ module Sidekiq
                   expect(result_work).to eq(work)
                 end
 
+                it 'should indicate that this job has completed' do
+                  expect(global_redis.get("job_completed:#{job_id}")).to eq('true')
+                end
+
                 it 'should add it to the right queue' do
                   expect(result_queue).to eq(queue_name)
                 end

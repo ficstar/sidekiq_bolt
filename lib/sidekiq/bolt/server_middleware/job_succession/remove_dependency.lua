@@ -63,6 +63,9 @@ while job_id do
                 end
             end
         else
+            local job_completed_key = namespace .. 'job_completed:' .. job_id
+            redis.call('set', job_completed_key, 'true')
+
             local scheduled_items = redis.call('lrange', scheduled_work_key, 0, -1)
 
             redis.call('del', scheduled_work_key)
