@@ -87,6 +87,15 @@ module Sidekiq
                   expect(allocator.allocate(allocation)).to be_zero
                 end
               end
+
+              context 'with an empty resource set' do
+                let(:allocation) { 2 }
+                let(:options) { {concurrency: concurrency, concurrency_pool: {}} }
+
+                it 'should allow full allocation' do
+                  expect(allocator.allocate(allocation)).to eq(2)
+                end
+              end
             end
 
           end
