@@ -23,8 +23,10 @@ module Sidekiq
       end
 
       def perform(*args)
+        Sidekiq::Logging.with_context("#{self.class} JID-#{jid}") { Sidekiq.logger.debug('start async work') }
         perform_future(*args).on_complete do |_, error|
           acknowledge_work(error)
+          Sidekiq::Logging.with_context("#{self.class} JID-#{jid}") { Sidekiq.logger.debug('async work complete') }
         end
       end
 
