@@ -5,8 +5,9 @@ module Sidekiq
     describe Fetch do
 
       let(:resource_type) { nil }
-      let(:concurrency_pool) { {resource_type => 100} }
-      let(:options) { {concurrency_pool: concurrency_pool} }
+      let(:concurrency_pool) { {} }
+      let(:concurrency) { 100 }
+      let(:options) { {concurrency: concurrency, concurrency_pool: concurrency_pool} }
 
       subject { Fetch.new(options) }
 
@@ -62,7 +63,7 @@ module Sidekiq
           end
 
           context 'when we do not have enough workers' do
-            let(:concurrency_pool) { {resource_type => 0} }
+            let(:concurrency) { 0 }
 
             its(:retrieve_work) { is_expected.to be_nil }
 
@@ -80,7 +81,7 @@ module Sidekiq
           let(:resource_type_two) { Faker::Lorem.word }
           let(:resource_two) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type_two } }
           let(:concurrency_pool) { {resource_type => 100, resource_type_two => 100, nil => 100} }
-          let(:options) { {resource_types: [resource_type], concurrency_pool: concurrency_pool} }
+          let(:options) { {concurrency: concurrency, resource_types: [resource_type], concurrency_pool: concurrency_pool} }
 
           let(:work) { SecureRandom.uuid }
           let(:work_two) { SecureRandom.uuid }
