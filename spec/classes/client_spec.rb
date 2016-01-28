@@ -107,6 +107,12 @@ module Sidekiq
             expect(Fetch.processor_allocator.allocation(resource_name)).to eq(1)
           end
 
+          it 'should add a UnitOfWork to the local_queue of the Fetch' do
+            subject.skeleton_push(item)
+            work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
+            expect(work).to eq(Fetch::UnitOfWork.new(queue_name, resource_name, Sidekiq.dump_json(item)))
+          end
+
           context 'when the resource is already allocated to the limit' do
             let(:resource_limit) { 3 }
             let(:queue) { Queue.new(queue_name) }
@@ -139,6 +145,12 @@ module Sidekiq
             it 'should not allocate a worker' do
               subject.skeleton_push(item)
               expect(Fetch.processor_allocator.allocation(resource_name)).to eq(0)
+            end
+
+            it 'should not locally schedule any work' do
+              subject.skeleton_push(item)
+              work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
+              expect(work).to be_nil
             end
           end
         end

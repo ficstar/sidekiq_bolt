@@ -15,13 +15,19 @@ module Sidekiq
           run_work_now(item)
         end
 
-        unless allocate_worker(item) { backup_work(item, work) }
+        unless allocate_worker(item) { schedule_local_work(item, work) }
           enqueue_item(item, work)
         end
       end
 
       def allocate_worker(item, &block)
         Fetch.processor_allocator.allocate(1, item['resource'], &block).nonzero?
+      end
+
+      def schedule_local_work(item, work)
+        backup_work(item, work).tap do |success|
+          Fetch.local_queue << Fetch::UnitOfWork.new(item['queue'], item['resource'], work) if success
+        end
       end
 
       private
