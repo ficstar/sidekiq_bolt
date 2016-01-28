@@ -62,6 +62,15 @@ module Sidekiq
           let(:options) { {concurrency: concurrency, concurrency_pool: {some_resource: concurrency}} }
           it_behaves_like 'allocating for a resource type', :some_resource
 
+          context 'with an invalid resource' do
+            let(:concurrency) { 1 }
+            let(:allocation) { 1 }
+
+            it 'should just return 0 without causing a fuss' do
+              expect(allocator.allocate(allocation, SecureRandom.uuid)).to be_zero
+            end
+          end
+
           describe 'allocating from the global pool' do
             let(:concurrency) { 1 }
             let(:allocation) { 1 }

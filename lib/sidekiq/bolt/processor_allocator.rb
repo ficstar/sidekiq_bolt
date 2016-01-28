@@ -20,7 +20,7 @@ module Sidekiq
 
         resource_allocation = @allocation[resource_type]
         resource_allocation.mutex.synchronize do
-          concurrency = @resources[resource_type]
+          concurrency = @resources[resource_type].to_i
           resource_allocation.allocation += amount
           diff = concurrency - resource_allocation.allocation
           if diff < 0
