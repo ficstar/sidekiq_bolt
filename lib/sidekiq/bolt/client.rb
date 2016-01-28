@@ -14,18 +14,15 @@ module Sidekiq
         if item['resource'] == Resource::ASYNC_LOCAL_RESOURCE
           backup_work(item, work)
           run_work_now(item, queue_name)
-        elsif allocate_worker(item)
-          unless backup_work(item, work)
-            enqueue_item(item, work)
-            Fetch.processor_allocator.free(1, item['resource'])
-          end
-        else
+        end
+
+        unless allocate_worker(item) { backup_work(item, work) }
           enqueue_item(item, work)
         end
       end
 
-      def allocate_worker(item)
-        Fetch.processor_allocator.allocate(1, item['resource']).nonzero?
+      def allocate_worker(item, &block)
+        Fetch.processor_allocator.allocate(1, item['resource'], &block).nonzero?
       end
 
       private
