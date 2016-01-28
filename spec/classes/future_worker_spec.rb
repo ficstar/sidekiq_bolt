@@ -33,7 +33,7 @@ module Sidekiq
 
       before do
         Bolt.configure_server(Sidekiq)
-        #Sidekiq.server_middleware { |chain| chain.remove(Middleware::Server::RetryJobs) }
+        Fetch.processor_allocator = ProcessorAllocator.new(concurrency: 0)
         allow(worker).to receive(:acknowledge_work)
       end
 
