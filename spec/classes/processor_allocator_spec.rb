@@ -33,6 +33,16 @@ module Sidekiq
             let(:concurrency) { 0 }
             it { is_expected.to eq(0) }
 
+            it 'should not yield' do
+              expect do |block|
+                if type
+                  allocator.allocate(allocation, type, &block)
+                else
+                  allocator.allocate(allocation, &block)
+                end
+              end.not_to yield_control
+            end
+
             context 'when we can allocate some workers' do
               let(:concurrency) { 1 }
               let(:allocation) { 2 }
