@@ -28,12 +28,12 @@ module Sidekiq
       let(:worker) { worker_class.new }
       let(:args) { Faker::Lorem.paragraphs }
       let(:resource) { Resource.new(Resource::ASYNC_LOCAL_RESOURCE) }
+      let(:sidekiq_options) { {concurrency: 0} }
 
       subject { worker }
 
       before do
         Bolt.configure_server(Sidekiq)
-        Fetch.processor_allocator = ProcessorAllocator.new(concurrency: 0)
         allow(worker).to receive(:acknowledge_work)
       end
 

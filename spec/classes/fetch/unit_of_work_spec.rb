@@ -8,10 +8,10 @@ module Sidekiq
       let(:resource_type) { Faker::Lorem.word }
       let(:resource_name) { Faker::Lorem.word }
       let(:work) { SecureRandom.uuid }
+      let(:sidekiq_options) { {concurrency: 1, concurrency_pool: {resource_type => 1}} }
 
       before do
         Resource.new(resource_name).type = resource_type
-        Fetch.processor_allocator = ProcessorAllocator.new(concurrency: 1, concurrency_pool: {resource_type => 1})
         Fetch.processor_allocator.allocate(1, resource_type)
       end
 

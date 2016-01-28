@@ -4,13 +4,12 @@ module Sidekiq
       MUTEX = Mutex.new
 
       class << self
-        attr_reader :processor_allocator
-
         def bulk_requeue(*_)
         end
 
-        def processor_allocator=(value)
-          MUTEX.synchronize { @processor_allocator ||= value }
+        def processor_allocator
+          return @processor_allocator if @processor_allocator
+          MUTEX.synchronize { @processor_allocator ||= ProcessorAllocator.new(Sidekiq.options) }
         end
 
         def local_queue
@@ -35,7 +34,7 @@ module Sidekiq
       attr_reader :options
 
       def processor_allocator
-        self.class.processor_allocator ||= ProcessorAllocator.new(options)
+        self.class.processor_allocator
       end
 
       def local_queue

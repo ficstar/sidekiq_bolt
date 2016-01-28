@@ -31,11 +31,10 @@ module Sidekiq
       let(:result_queue) { result_work[0] }
       let(:result_item) { Sidekiq.load_json(result_work[1]) if result_work[1] }
       let(:worker_id) { SecureRandom.uuid }
-      let(:options) { {concurrency: 0} }
+      let(:sidekiq_options) { {concurrency: 0} }
 
       before do
         allow(Socket).to receive(:gethostname).and_return(worker_id)
-        Fetch.processor_allocator = ProcessorAllocator.new(options)
       end
 
       it { is_expected.to be_a_kind_of(Sidekiq::Client) }
@@ -94,7 +93,7 @@ module Sidekiq
         end
 
         context 'when we have local workers available to perform this work' do
-          let(:options) { {concurrency: 1, concurrency_pool: {resource_name => 1}} }
+          let(:sidekiq_options) { {concurrency: 1, concurrency_pool: {resource_name => 1}} }
           let(:resource_limit) { nil }
           let(:klass) { MockWorker.to_s }
 

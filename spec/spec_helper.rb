@@ -36,6 +36,7 @@ RSpec.configure do |config|
   require_relative '../lib/sidekiq/bolt'
 
   config.include RedisHelpers
+  config.include Setup
   config.include Logging
   config.include Cleanup
 

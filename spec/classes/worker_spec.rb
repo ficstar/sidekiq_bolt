@@ -34,6 +34,7 @@ module Sidekiq
           end
         end
       end
+      let(:sidekiq_options) { {concurrency: 0} }
 
       subject { klass.new }
 
@@ -41,7 +42,6 @@ module Sidekiq
         allow(Scheduler).to receive(:new) do |job|
           scheduler_class.new(job)
         end
-        Fetch.processor_allocator = ProcessorAllocator.new(concurrency: 0)
       end
 
       it { is_expected.to be_a_kind_of(Sidekiq::Worker) }
