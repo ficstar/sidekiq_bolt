@@ -11,9 +11,10 @@ module Sidekiq
         shared_examples_for 'allocating for a resource type' do |type|
           let(:allocation) { 1 }
           let(:concurrency) { 12 }
+          let(:block) { nil }
 
           subject do
-            type ? allocator.allocate(allocation, type) : allocator.allocate(allocation)
+            type ? allocator.allocate(allocation, type, &block) : allocator.allocate(allocation, &block)
           end
 
           it { is_expected.to eq(1) }
@@ -48,6 +49,16 @@ module Sidekiq
 
             it 'should divide the workers between the two results' do
               expect(first_count + second_count).to eq(5)
+            end
+          end
+
+          context 'when we are not sure if we want to allocate' do
+            let(:block) { ->() { false } }
+            it { is_expected.to eq(0) }
+
+            context 'when we have determined that we actually need the resource' do
+              let(:block) { ->() { true } }
+              it { is_expected.to eq(1) }
             end
           end
         end
