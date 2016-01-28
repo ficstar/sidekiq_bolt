@@ -10,15 +10,22 @@ module Sidekiq
 
       def skeleton_push(item)
         queue_name = item['queue']
-        resource_name = item['resource']
         work = Sidekiq.dump_json(item)
         if item['resource'] == Resource::ASYNC_LOCAL_RESOURCE
           backup_work(item, work)
           run_work_now(item, queue_name)
+        elsif allocate_worker(item)
+          unless backup_work(item, work)
+            enqueue_item(item, work)
+            Fetch.processor_allocator.free(1, item['resource'])
+          end
         else
-          queue = Queue.new(queue_name)
-          queue.enqueue(resource_name, work, !!item['error'])
+          enqueue_item(item, work)
         end
+      end
+
+      def allocate_worker(item)
+        Fetch.processor_allocator.allocate(1, item['resource']).nonzero?
       end
 
       private
@@ -45,7 +52,7 @@ module Sidekiq
       end
 
       def backup_work(item, work)
-        argv = [item['queue'], Resource::ASYNC_LOCAL_RESOURCE, work, Socket.gethostname]
+        argv = [item['queue'], item['resource'], work, Socket.gethostname]
         Bolt.redis do |redis|
           redis.eval(BACKUP_WORK_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
         end
@@ -56,6 +63,11 @@ module Sidekiq
         Sidekiq.server_middleware.invoke(worker, item, queue_name) do
           worker.perform(*item['args'])
         end
+      end
+
+      def enqueue_item(item, work)
+        queue = Queue.new(item['queue'])
+        queue.enqueue(item['resource'], work, !!item['error'])
       end
 
     end

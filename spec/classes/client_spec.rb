@@ -92,6 +92,56 @@ module Sidekiq
             end
           end
         end
+
+        context 'when we have local workers available to perform this work' do
+          let(:options) { {concurrency: 1, concurrency_pool: {resource_name => 1}} }
+          let(:resource_limit) { nil }
+          let(:klass) { MockWorker.to_s }
+
+          before { resource.limit = resource_limit }
+
+          it_behaves_like 'backing up local work'
+
+          it 'should allocate a worker' do
+            subject.skeleton_push(item)
+            expect(Fetch.processor_allocator.allocation(resource_name)).to eq(1)
+          end
+
+          context 'when the resource is already allocated to the limit' do
+            let(:resource_limit) { 3 }
+            let(:queue) { Queue.new(queue_name) }
+            let(:backup_work_key) { "resource:backup:worker:#{worker_id}" }
+            let(:serialized_backup_work) { global_redis.lrange(backup_work_key, 0, -1).first }
+
+            before { global_redis.set("resource:allocated:#{resource_name}", resource_limit) }
+
+            it 'should push the item on to the queue' do
+              subject.skeleton_push(item)
+              global_redis.set("resource:allocated:#{resource_name}", 0)
+              expect(result_item).not_to be_nil
+            end
+
+            it 'should not back up the work' do
+              subject.skeleton_push(item)
+              expect(serialized_backup_work).to be_nil
+            end
+
+            it 'should not increment the resource allocation' do
+              subject.skeleton_push(item)
+              expect(resource.allocated).to eq(resource_limit)
+            end
+
+            it 'should not increment the queue busy count' do
+              subject.skeleton_push(item)
+              expect(queue.busy).to eq(0)
+            end
+
+            it 'should not allocate a worker' do
+              subject.skeleton_push(item)
+              expect(Fetch.processor_allocator.allocation(resource_name)).to eq(0)
+            end
+          end
+        end
       end
 
       describe 'push items into the queue' do
