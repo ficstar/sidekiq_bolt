@@ -24,8 +24,8 @@ module Sidekiq
             concurrency = @resources[resource_type].to_i
             resource_allocation.allocation += amount
             diff = concurrency - resource_allocation.allocation
-            if diff < 0 &&
-                amount += diff
+            if diff < 0
+              amount += diff
               resource_allocation.allocation += diff
             end
             amount
