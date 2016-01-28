@@ -44,32 +44,45 @@ module Sidekiq
           let(:work) { SecureRandom.uuid }
           let(:expected_work) { Fetch::UnitOfWork.new(queue_name, resource_name, work) }
 
-          before { resource.add_work(queue_name, work) }
+          context 'when work has been scheduled locally' do
+            before { Fetch.local_queue << expected_work }
 
-          its(:retrieve_work) { is_expected.to eq(expected_work) }
+            its(:retrieve_work) { is_expected.to eq(expected_work) }
 
-          it 'should not sleep' do
-            expect(subject).not_to receive(:sleep).with(1)
-            subject.retrieve_work
-          end
-
-          context 'when that work has already been consumed' do
-            before { resource.allocate(1) }
-
-            it 'should return the worker allocation' do
+            it 'should not sleep' do
+              expect(subject).not_to receive(:sleep).with(1)
               subject.retrieve_work
-              expect(Fetch.processor_allocator.allocation(resource_type)).to be_zero
             end
           end
 
-          context 'when we do not have enough workers' do
-            let(:concurrency) { 0 }
+          context 'when the work comes from a resource' do
+            before { resource.add_work(queue_name, work) }
 
-            its(:retrieve_work) { is_expected.to be_nil }
+            its(:retrieve_work) { is_expected.to eq(expected_work) }
 
-            it 'should sleep' do
-              expect(subject).to receive(:sleep)
+            it 'should not sleep' do
+              expect(subject).not_to receive(:sleep).with(1)
               subject.retrieve_work
+            end
+
+            context 'when that work has already been consumed' do
+              before { resource.allocate(1) }
+
+              it 'should return the worker allocation' do
+                subject.retrieve_work
+                expect(Fetch.processor_allocator.allocation(resource_type)).to be_zero
+              end
+            end
+
+            context 'when we do not have enough workers' do
+              let(:concurrency) { 0 }
+
+              its(:retrieve_work) { is_expected.to be_nil }
+
+              it 'should sleep' do
+                expect(subject).to receive(:sleep)
+                subject.retrieve_work
+              end
             end
           end
         end

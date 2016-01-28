@@ -38,7 +38,19 @@ module Sidekiq
         self.class.processor_allocator ||= ProcessorAllocator.new(options)
       end
 
+      def local_queue
+        self.class.local_queue
+      end
+
       def find_work
+        find_local_work || find_resource_work
+      end
+
+      def find_local_work
+        local_queue.pop unless local_queue.empty?
+      end
+
+      def find_resource_work
         supported_resources.each do |resource|
           if allocate_worker(resource)
             work = allocate_work(resource)
