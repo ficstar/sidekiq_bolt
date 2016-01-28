@@ -34,10 +34,11 @@ module Sidekiq
       let(:sidekiq_options) { {concurrency: 0} }
 
       before do
-        allow(Socket).to receive(:gethostname).and_return(worker_id)
+        allow_any_instance_of(Client).to receive(:identity).and_return(worker_id)
       end
 
       it { is_expected.to be_a_kind_of(Sidekiq::Client) }
+      it { is_expected.to be_a_kind_of(Sidekiq::Util) }
 
       describe '#skeleton_push' do
         it 'should push the item on to the queue for the specified resource' do

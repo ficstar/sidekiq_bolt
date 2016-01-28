@@ -8,6 +8,8 @@ module Sidekiq
 
       subject { Resource.new(name) }
 
+      it { is_expected.to be_a_kind_of(Sidekiq::Util) }
+
       describe '.all' do
         let(:resource_names) { %w(res1 res2 res3) }
         let(:resources) { resource_names.map { |name| Resource.new(name) } }
@@ -609,7 +611,7 @@ module Sidekiq
             end
 
             before do
-              allow(Socket).to receive(:gethostname).and_return(host)
+              allow_any_instance_of(Resource).to receive(:identity).and_return(host)
               subject.allocate(amount)
             end
 
@@ -655,7 +657,7 @@ module Sidekiq
         let(:work_count) { 5 }
 
         before do
-          allow(Socket).to receive(:gethostname).and_return(host)
+          allow_any_instance_of(Resource).to receive(:identity).and_return(host)
           work_count.times { subject.add_work(queue, SecureRandom.uuid) }
           allocated_work.concat subject.allocate(work_count).each_slice(2).map { |_, work| work }
         end

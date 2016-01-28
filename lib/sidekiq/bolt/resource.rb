@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     class Resource < Struct.new(:name)
+      include Util
       extend PropertyList
 
       ASYNC_LOCAL_RESOURCE = '$async_local'
@@ -80,13 +81,13 @@ module Sidekiq
 
       def allocate(amount)
         Bolt.redis do |redis|
-          redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, amount, Socket.gethostname, *queues.shuffle])
+          redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, amount, identity, *queues.shuffle])
         end
       end
 
       def free(queue, work)
         Bolt.redis do |redis|
-          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work, Socket.gethostname])
+          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work, identity])
         end
       end
 

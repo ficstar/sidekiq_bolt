@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     class Client < Sidekiq::Client
+      include Util
 
       NAMESPACE_KEY = [''].freeze
       ROOT = File.dirname(__FILE__)
@@ -54,7 +55,7 @@ module Sidekiq
       end
 
       def backup_work(item, work)
-        argv = [item['queue'], item['resource'], work, Socket.gethostname]
+        argv = [item['queue'], item['resource'], work, identity]
         Bolt.redis do |redis|
           redis.eval(BACKUP_WORK_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
         end
