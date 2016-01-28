@@ -46,18 +46,14 @@ module Sidekiq
           expect(result_item).to include(original_item)
         end
 
-        context 'when the work is run locally' do
-          let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
+        shared_examples_for 'backing up local work' do
           let(:queue) { Queue.new(queue_name) }
-          let(:run_local) { true }
           let(:backup_work_key) { "resource:backup:worker:#{worker_id}" }
           let(:serialized_backup_work) { global_redis.lrange(backup_work_key, 0, -1).first }
           let(:backup_item) { JSON.load(serialized_backup_work) }
           let(:backup_queue) { backup_item['queue'] }
           let(:backup_resource) { backup_item['resource'] }
           let(:backup_work) { Sidekiq.load_json(backup_item['work']) }
-
-          let(:klass) { MockWorker.to_s }
 
           it 'should not push the item on to the queue' do
             subject.skeleton_push(item)
@@ -78,6 +74,13 @@ module Sidekiq
             subject.skeleton_push(item)
             expect(queue.busy).to eq(1)
           end
+        end
+
+        context 'when the work is run locally' do
+          let(:klass) { MockWorker.to_s }
+          let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
+
+          it_behaves_like 'backing up local work'
 
           describe 'running the job' do
             it 'should create and run the worker within the server middleware' do
