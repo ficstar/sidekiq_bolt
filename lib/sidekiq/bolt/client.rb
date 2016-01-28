@@ -9,11 +9,10 @@ module Sidekiq
       BACKUP_WORK_DEPENDENCY_SCRIPT = File.read(BACKUP_WORK_SCRIPT_PATH)
 
       def skeleton_push(item)
-        queue_name = item['queue']
         work = Sidekiq.dump_json(item)
         if item['resource'] == Resource::ASYNC_LOCAL_RESOURCE
           backup_work(item, work)
-          run_work_now(item, queue_name)
+          run_work_now(item)
         end
 
         unless allocate_worker(item) { backup_work(item, work) }
@@ -55,9 +54,9 @@ module Sidekiq
         end
       end
 
-      def run_work_now(item, queue_name)
+      def run_work_now(item)
         worker = item['class'].constantize.new
-        Sidekiq.server_middleware.invoke(worker, item, queue_name) do
+        Sidekiq.server_middleware.invoke(worker, item, item['queue']) do
           worker.perform(*item['args'])
         end
       end
