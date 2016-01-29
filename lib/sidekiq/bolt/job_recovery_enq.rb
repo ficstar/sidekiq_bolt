@@ -4,9 +4,13 @@ module Sidekiq
 
       def enqueue_jobs
         processes = Bolt.redis { |redis| redis.smembers('bolt:processes') }
-        processes.each do |process|
-          alive = Bolt.redis { |redis| redis.get("bolt:processes:#{process}") }
-          ProcessSweeper.new(process).sweep unless alive
+        process_states = Bolt.redis do |redis|
+          redis.multi do
+            processes.each { |process| redis.get("bolt:processes:#{process}") }
+          end
+        end
+        processes.each.with_index do |process, index|
+          ProcessSweeper.new(process).sweep unless process_states[index]
         end
       end
 
