@@ -27,6 +27,16 @@ module Sidekiq
           Poller.new.enqueue_jobs
         end
 
+        context 'when extra enqs have been configured' do
+          let(:custom_enq) { Class.new { define_method(:enqueue_jobs) {} } }
+          let(:sidekiq_options) { {additional_scheduled_enqs: [custom_enq]} }
+
+          it 'should run those Enqs' do
+            expect_any_instance_of(custom_enq).to receive(:enqueue_jobs)
+            Poller.new.enqueue_jobs
+          end
+        end
+
         describe 'unfreezing frozen resources' do
           let(:scheduled_items) { {resource_name => work_time} }
 

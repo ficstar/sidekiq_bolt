@@ -10,11 +10,12 @@ module Sidekiq
       NAMESPACE_KEY = [''].freeze
 
       def initialize
-        @enq = Scheduled::Enq.new
+        enq_klasses = [Scheduled::Enq] + Sidekiq.options.fetch(:additional_scheduled_enqs) { [] }
+        @enqs = enq_klasses.map(&:new)
       end
 
       def enqueue_jobs
-        @enq.enqueue_jobs
+        @enqs.map(&:enqueue_jobs)
         {retry: 'retrying:', scheduled: ''}.each do |set, prefix|
           Bolt.redis do |redis|
             now = Time.now.to_f
