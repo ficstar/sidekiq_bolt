@@ -6,7 +6,7 @@ module Sidekiq
         processes = Bolt.redis { |redis| redis.smembers('bolt:processes') }
         process_states = Bolt.redis do |redis|
           redis.multi do
-            processes.each { |process| redis.get("bolt:processes:#{process}") }
+            processes.each { |process| redis.exists("bolt:processes:#{process}") }
           end
         end
         processes.each.with_index do |process, index|
