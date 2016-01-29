@@ -5,7 +5,11 @@ module Sidekiq
     describe Bolt do
 
       describe '.configure_server' do
-        before { Bolt.configure_server(Sidekiq) }
+        before do
+          Sidekiq.options[:additional_scheduled_enqs] = ['SomeEnq']
+          Bolt.configure_server(Sidekiq)
+        end
+        after { Sidekiq.options[:additional_scheduled_enqs] = nil }
 
         it 'should set the fetch to our fetch' do
           expect(Sidekiq.options[:fetch]).to eq(Fetch)
@@ -33,6 +37,14 @@ module Sidekiq
 
         it 'should add the Sidekiq::Bolt::ServerMiddleware::MetaDataMiddleware as the first server middleware' do
           expect(Sidekiq.server_middleware.first.klass).to eq(ServerMiddleware::JobMetaData)
+        end
+
+        it 'should include the JobRecoveryEnq among the additional_scheduled_enqs' do
+          expect(Sidekiq.options[:additional_scheduled_enqs]).to include(JobRecoveryEnq)
+        end
+
+        it 'should include previously defined additional_scheduled_enqs' do
+          expect(Sidekiq.options[:additional_scheduled_enqs]).to include('SomeEnq')
         end
 
         it 'should add the Sidekiq::Bolt::ClientMiddleware::BlockQueue middleware' do

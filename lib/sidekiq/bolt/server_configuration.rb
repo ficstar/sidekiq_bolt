@@ -4,6 +4,8 @@ module Sidekiq
     def self.configure_server(config)
       config.options[:fetch] = Fetch
       config.options[:scheduled_enq] = Poller
+      config.options[:additional_scheduled_enqs] ||= []
+      config.options[:additional_scheduled_enqs] << JobRecoveryEnq
       config.server_middleware do |chain|
         chain.prepend ServerMiddleware::JobMetaData
         chain.add ServerMiddleware::TypeSafety
