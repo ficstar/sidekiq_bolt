@@ -17,7 +17,8 @@ module Sidekiq
           let(:resource_name) { Faker::Lorem.word }
           let(:retry_job) { true }
           let(:job_id) { SecureRandom.uuid }
-          let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'retry' => retry_job, 'jid' => job_id} }
+          let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'retry' => retry_job, 'jid' => job_id} }
+          let(:job) { original_job.dup }
 
           it 'should yield' do
             expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
@@ -37,7 +38,12 @@ module Sidekiq
 
             it 'should add this work back to the resource' do
               subject.call(worker, job, nil) { raise error }
-              expect(error_job).to include(job)
+              expect(error_job).to include(original_job)
+            end
+
+            it 'should remove the job id before continuing' do
+              subject.call(worker, job, nil) { raise error }
+              expect(job).not_to include('jid')
             end
 
             it 'should add it for the original queue' do
@@ -106,7 +112,7 @@ module Sidekiq
               end
 
               it 'should save the job' do
-                expect(retry_msg_job).to include(job)
+                expect(retry_msg_job).to include(original_job)
               end
 
               it 'should only retry the job once' do

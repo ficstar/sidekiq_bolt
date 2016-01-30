@@ -52,6 +52,7 @@ module Sidekiq
           else
             resource.add_work(job['queue'], serialized_job, true)
           end
+          job.delete('jid')
         end
 
       end
