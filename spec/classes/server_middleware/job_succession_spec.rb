@@ -34,6 +34,19 @@ module Sidekiq
             expect(global_redis.get("resource:completed:#{resource_name}").to_i).to eq(1)
           end
 
+          context 'when the job id is missing' do
+            before { subject.call(nil, job, nil) { job.delete('jid') } }
+
+            it 'should not remove any dependencies' do
+              expect(global_redis.smembers("dependencies:#{parent_job_id}")).to include(job_id)
+            end
+
+            it 'should not increment the resource completed count' do
+              subject.call(nil, job, nil) {}
+              expect(global_redis.get("resource:completed:#{resource_name}").to_i).to eq(0)
+            end
+          end
+
           context 'when the job originated from the $async_local resource' do
             let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
 
