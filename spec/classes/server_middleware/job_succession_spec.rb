@@ -29,6 +29,11 @@ module Sidekiq
             expect { subject.call(nil, job, nil) {} }.not_to raise_error
           end
 
+          it 'should increment the resource completed count' do
+            subject.call(nil, job, nil) {}
+            expect(global_redis.get("resource:completed:#{resource_name}").to_i).to eq(1)
+          end
+
           context 'when the job originated from the $async_local resource' do
             let(:resource_name) { Resource::ASYNC_LOCAL_RESOURCE }
 
@@ -117,8 +122,18 @@ module Sidekiq
             it_behaves_like 'removing job dependencies'
 
             it 'should not mark this job as failed' do
-              subject.call(nil, job, nil, &block) rescue nil
+              subject.call(nil, job, nil, &block)
               expect(global_redis.get("job_failed:#{job_id}")).to be_nil
+            end
+
+            it 'should increment the success count for this resource' do
+              subject.call(nil, job, nil, &block)
+              expect(global_redis.get("resource:successful:#{resource_name}").to_i).to eq(1)
+            end
+
+            it 'should not increment the failure count for this resource' do
+              subject.call(nil, job, nil, &block)
+              expect(global_redis.get("resource:failed:#{resource_name}").to_i).to eq(0)
             end
 
             describe 'job scheduling' do
@@ -139,7 +154,7 @@ module Sidekiq
                 before do
                   queue.blocked = queue_blocked
                   jobs_to_schedule.each { |job| global_redis.lpush("successive_work:#{job_id}", JSON.dump(job)) }
-                  subject.call(nil, job, nil, &block) rescue nil
+                  subject.call(nil, job, nil, &block)
                 end
 
                 it 'should enqueue the scheduled work' do
@@ -213,6 +228,16 @@ module Sidekiq
             it 'should mark this job as failed' do
               subject.call(nil, job, nil, &block) rescue nil
               expect(global_redis.get("job_failed:#{job_id}")).to eq('true')
+            end
+
+            it 'should not increment the success count for this resource' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.get("resource:successful:#{resource_name}").to_i).to eq(0)
+            end
+
+            it 'should increment the failure count for this resource' do
+              subject.call(nil, job, nil, &block) rescue nil
+              expect(global_redis.get("resource:failed:#{resource_name}").to_i).to eq(1)
             end
 
             describe 'job scheduling' do

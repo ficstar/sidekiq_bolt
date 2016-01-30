@@ -1,6 +1,7 @@
 local namespace = table.remove(KEYS, 1)
 local parent_job_id = table.remove(ARGV, 1)
 local job_id = table.remove(ARGV, 1)
+local resource_name = table.remove(ARGV, 1)
 local job_failed = table.remove(ARGV, 1)
 
 local dependencies_key = namespace .. 'dependencies:' .. job_id
@@ -10,6 +11,17 @@ local resources_key = namespace .. 'resources'
 local queues_key = namespace .. 'queues'
 
 local parent_failure_count
+
+local resource_completed_count_key = namespace .. 'resource:completed:' .. resource_name
+redis.call('incr', resource_completed_count_key)
+
+if job_failed then
+    local resource_failed_count_key = namespace .. 'resource:failed:' .. resource_name
+    redis.call('incr', resource_failed_count_key)
+else
+    local resource_success_count_key = namespace .. 'resource:successful:' .. resource_name
+    redis.call('incr', resource_success_count_key)
+end
 
 while job_id do
     dependencies_key = namespace .. 'dependencies:' .. job_id

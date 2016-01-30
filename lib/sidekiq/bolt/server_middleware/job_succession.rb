@@ -18,7 +18,7 @@ module Sidekiq
             raise
           ensure
             if failed || job['resource'] != Resource::ASYNC_LOCAL_RESOURCE
-              argv = [job['pjid'], job['jid']]
+              argv = [job['pjid'], job['jid'], job['resource']]
               argv << 'failed' if failed
               Bolt.redis do |redis|
                 redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
