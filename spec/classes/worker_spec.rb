@@ -114,6 +114,10 @@ module Sidekiq
           allow(SecureRandom).to receive(:base64).with(16).and_return(expected_jid)
         end
 
+        it 'should return the new job id' do
+          expect(klass.perform_async(*args)).to eq(result_jid)
+        end
+
         describe 'enqueuing the job' do
           before { klass.perform_async(*args, &block) }
 
@@ -143,7 +147,6 @@ module Sidekiq
             end
           end
         end
-
 
         context 'when a block is provided' do
           let(:result_scheduler) { scheduler_class.new }
@@ -222,72 +225,78 @@ module Sidekiq
         let(:options) { {} }
         let(:block) { nil }
 
-        before { klass.perform_async_with_options(options, *args, &block) }
-
-        it 'should enqueue the work to the default queue/resource' do
-          expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
+        it 'should return the new job id' do
+          expect(klass.perform_async_with_options({}, *args)).to eq(result_item['jid'])
         end
 
-        context 'when a block is provided' do
-          let(:result_scheduler) { scheduler_class.new }
-          let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }
+        describe 'enqueuing the job' do
+          before { klass.perform_async_with_options(options, *args, &block) }
 
-          it 'should yield a scheduler with the job' do
-            expect(result_scheduler.job).to eq(result_item)
+          it 'should enqueue the work to the default queue/resource' do
+            expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
           end
-        end
 
-        context 'when the class sets the resource name' do
-          let(:resource_name) { MockWorkerTwo::RESOURCE_NAME }
-          let(:klass) { MockWorkerTwo }
+          context 'when a block is provided' do
+            let(:result_scheduler) { scheduler_class.new }
+            let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }
 
-          it 'should enqueue the work to the proper resource' do
-            expect(result_item['resource']).to eq(resource_name)
+            it 'should yield a scheduler with the job' do
+              expect(result_scheduler.job).to eq(result_item)
+            end
           end
-        end
 
-        context 'when the class sets the queue name' do
-          let(:klass) { MockWorkerThree }
+          context 'when the class sets the resource name' do
+            let(:resource_name) { MockWorkerTwo::RESOURCE_NAME }
+            let(:klass) { MockWorkerTwo }
 
-          it 'should enqueue the work to the proper resource' do
-            expect(result_item['queue']).to eq(MockWorkerThree::QUEUE_NAME)
+            it 'should enqueue the work to the proper resource' do
+              expect(result_item['resource']).to eq(resource_name)
+            end
           end
-        end
 
-        context 'with an overridden queue' do
-          let(:new_queue) { Faker::Lorem.word }
-          let(:options) { {queue: new_queue} }
+          context 'when the class sets the queue name' do
+            let(:klass) { MockWorkerThree }
 
-          it 'should use the new queue' do
-            expect(result_item['queue']).to eq(new_queue)
+            it 'should enqueue the work to the proper resource' do
+              expect(result_item['queue']).to eq(MockWorkerThree::QUEUE_NAME)
+            end
           end
-        end
 
-        context 'with an overridden resource' do
-          let(:new_resource) { Faker::Lorem.word }
-          let(:resource_name) { new_resource }
-          let(:options) { {resource: new_resource} }
+          context 'with an overridden queue' do
+            let(:new_queue) { Faker::Lorem.word }
+            let(:options) { {queue: new_queue} }
 
-          it 'should use the new queue' do
-            expect(result_item['resource']).to eq(new_resource)
+            it 'should use the new queue' do
+              expect(result_item['queue']).to eq(new_queue)
+            end
           end
-        end
 
-        context 'with an overridden jid' do
-          let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
-          let(:options) { {job_id: new_jid} }
+          context 'with an overridden resource' do
+            let(:new_resource) { Faker::Lorem.word }
+            let(:resource_name) { new_resource }
+            let(:options) { {resource: new_resource} }
 
-          it 'should use the new queue' do
-            expect(result_item['jid']).to eq(new_jid)
+            it 'should use the new queue' do
+              expect(result_item['resource']).to eq(new_resource)
+            end
           end
-        end
 
-        context 'with a parent jid' do
-          let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
-          let(:options) { {parent_job_id: new_jid} }
+          context 'with an overridden jid' do
+            let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
+            let(:options) { {job_id: new_jid} }
 
-          it 'should use the new queue' do
-            expect(result_item['pjid']).to eq(new_jid)
+            it 'should use the new queue' do
+              expect(result_item['jid']).to eq(new_jid)
+            end
+          end
+
+          context 'with a parent jid' do
+            let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
+            let(:options) { {parent_job_id: new_jid} }
+
+            it 'should use the new queue' do
+              expect(result_item['pjid']).to eq(new_jid)
+            end
           end
         end
       end
