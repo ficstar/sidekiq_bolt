@@ -9,7 +9,7 @@ module Sidekiq
 
       module ClassMethods
         def perform_async(*args, &block)
-          client_push({'class' => self, 'args' => args, 'resource' => Resource::ASYNC_LOCAL_RESOURCE}, &block)
+          perform_async_with_options({}, *args, &block)
         end
 
         def perform_async_with_options(options, *args, &block)
