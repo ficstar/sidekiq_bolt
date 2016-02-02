@@ -48,6 +48,10 @@ module Sidekiq
 
       attr_reader :prev_job_id, :items
 
+      public
+
+      alias :job_id :prev_job_id
+
     end
   end
 end

@@ -38,6 +38,8 @@ module Sidekiq
         end
       end
 
+      its(:job_id) { is_expected.to eq(job_id) }
+
       shared_examples_for 'a method scheduling a worker' do
         #noinspection RubyStringKeysInHashInspection
         let(:expected_work) do
