@@ -20,6 +20,10 @@ module Sidekiq
 
   class Manager
     include Bolt::Heartbeat
-    alias :'❤' :bolt_heartbeat
+
+    def heartbeat(identity, info, serialized_info)
+      bolt_heartbeat(identity, serialized_info)
+      after(5) { heartbeat(identity, info, serialized_info) }
+    end
   end
 end
