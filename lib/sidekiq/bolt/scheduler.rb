@@ -13,6 +13,10 @@ module Sidekiq
         @items = []
       end
 
+      def job_id
+        prev_job_id
+      end
+
       def perform_after(worker_class, *args)
         perform_after_with_options({}, worker_class, *args)
       end
@@ -47,10 +51,6 @@ module Sidekiq
       private
 
       attr_reader :prev_job_id, :items
-
-      public
-
-      alias :job_id :prev_job_id
 
     end
   end
