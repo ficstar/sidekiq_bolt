@@ -7,8 +7,11 @@ module Sidekiq
       let(:resource) { SecureRandom.uuid }
       let(:name) { SecureRandom.uuid }
       let(:persistent_resource) { PersistentResource.new(name) }
+      let(:worker) { SecureRandom.uuid }
 
       subject { persistent_resource }
+
+      before { allow(persistent_resource).to receive(:identity).and_return(worker) }
 
       it { is_expected.to be_a_kind_of(Sidekiq::Util) }
 
@@ -40,13 +43,11 @@ module Sidekiq
 
       describe '#allocate' do
         let(:score) { '-INF' }
-        let(:worker) { SecureRandom.uuid }
 
         subject { persistent_resource.allocate }
 
         before do
           global_redis.zadd("resources:persistent:#{name}", score, resource)
-          allow(persistent_resource).to receive(:identity).and_return(worker)
         end
 
         it { is_expected.to eq(resource) }
@@ -82,6 +83,44 @@ module Sidekiq
           let(:score) { 'INF' }
 
           it { is_expected.to eq(resource) }
+        end
+      end
+
+      describe '#free' do
+        let(:score) { rand(0...1000).to_f }
+
+        before do
+          subject.create(resource)
+          subject.allocate
+        end
+
+        it 'should re-submit the resource to the pool' do
+          subject.free(resource, score)
+          expect(global_redis.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
+        end
+
+        it 'should add it using the specified score' do
+          subject.free(resource, score)
+          expect(global_redis.zscore("resources:persistent:#{name}", resource)).to eq(score)
+        end
+
+        it 'should remove the resource from the backup' do
+          subject.free(resource, score)
+          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).not_to include(resource)
+        end
+
+        context 'with multiple allocated items' do
+          let(:resource_two) { SecureRandom.uuid }
+
+          before do
+            subject.create(resource_two)
+            subject.allocate
+          end
+
+          it 'should only remove the freed resource' do
+            subject.free(resource, score)
+            expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(resource_two)
+          end
         end
       end
 

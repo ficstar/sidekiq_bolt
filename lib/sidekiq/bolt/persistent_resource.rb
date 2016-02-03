@@ -22,6 +22,15 @@ module Sidekiq
         end
       end
 
+      def free(resource, score)
+        Bolt.redis do |redis|
+          redis.pipelined do
+            redis.zadd("resources:persistent:#{name}", score, resource)
+            redis.lrem("resources:persistent:backup:worker:#{identity}", 0, resource)
+          end
+        end
+      end
+
     end
   end
 end
