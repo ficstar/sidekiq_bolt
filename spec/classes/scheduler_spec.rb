@@ -139,46 +139,65 @@ module Sidekiq
 
       describe '#perform_after_with_options' do
         let(:options) { {} }
-        let!(:result_jid) { scheduler.perform_after_with_options(options, worker_class, *args, &block) }
-        it_behaves_like 'a method scheduling a worker'
 
-        describe 'using the options' do
-          before { scheduler.schedule! }
+        describe 'handling FutureWorkers' do
+          let(:worker_class_base) do
+            Class.new do
+              include FutureWorker
 
-          context 'when the queue is overridden' do
-            let(:queue_name) { Faker::Lorem.word }
-            let(:options) { {queue: queue_name} }
-
-            it 'should schedule to run in the specified queue' do
-              expect(result_queue).to eq(queue_name)
-            end
-
-          end
-
-          context 'when the queue is overridden' do
-            let(:resource_name) { Faker::Lorem.word }
-            let(:options) { {resource: resource_name} }
-
-            it 'should schedule to run in the default resource' do
-              expect(result_resource).to eq(resource_name)
+              def self.to_s
+                @name ||= Faker::Lorem.word
+              end
             end
           end
 
-          context 'when the job id is overridden' do
-            let(:custom_jid) { SecureRandom.uuid }
-            let(:options) { {job_id: custom_jid} }
-
-            it 'should use that job id' do
-              expect(result_work['jid']).to eq(custom_jid)
-            end
+          it 'should not support FutureWorkers' do
+            expect { scheduler.perform_after_with_options(options, worker_class) }.to raise_error(ArgumentError, 'FutureWorkers cannot be scheduled for later!')
           end
+        end
 
-          context 'when the parent job id is overridden' do
-            let(:custom_jid) { SecureRandom.uuid }
-            let(:options) { {parent_job_id: custom_jid} }
+        describe 'work scheduling' do
+          let!(:result_jid) { scheduler.perform_after_with_options(options, worker_class, *args, &block) }
+          it_behaves_like 'a method scheduling a worker'
 
-            it 'should use that job id' do
-              expect(result_work['pjid']).to eq(custom_jid)
+          describe 'using the options' do
+            before { scheduler.schedule! }
+
+            context 'when the queue is overridden' do
+              let(:queue_name) { Faker::Lorem.word }
+              let(:options) { {queue: queue_name} }
+
+              it 'should schedule to run in the specified queue' do
+                expect(result_queue).to eq(queue_name)
+              end
+
+            end
+
+            context 'when the queue is overridden' do
+              let(:resource_name) { Faker::Lorem.word }
+              let(:options) { {resource: resource_name} }
+
+              it 'should schedule to run in the default resource' do
+                expect(result_resource).to eq(resource_name)
+              end
+            end
+
+            context 'when the job id is overridden' do
+              let(:custom_jid) { SecureRandom.uuid }
+              let(:options) { {job_id: custom_jid} }
+
+              it 'should use that job id' do
+                expect(result_work['jid']).to eq(custom_jid)
+              end
+            end
+
+            context 'when the parent job id is overridden' do
+              let(:custom_jid) { SecureRandom.uuid }
+              let(:options) { {parent_job_id: custom_jid} }
+
+              it 'should use that job id' do
+                expect(result_work['pjid']).to eq(custom_jid)
+              end
             end
           end
         end

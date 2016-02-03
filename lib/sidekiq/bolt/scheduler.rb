@@ -22,6 +22,10 @@ module Sidekiq
       end
 
       def perform_after_with_options(options, worker_class, *args)
+        if worker_class.ancestors.find { |ancestor| ancestor == FutureWorker }
+          raise ArgumentError, 'FutureWorkers cannot be scheduled for later!'
+        end
+
         new_job = {
             'class' => worker_class.to_s,
             'jid' => SecureRandom.base64(16),
