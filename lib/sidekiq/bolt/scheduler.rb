@@ -17,8 +17,8 @@ module Sidekiq
         prev_job_id
       end
 
-      def perform_after(worker_class, *args)
-        perform_after_with_options({}, worker_class, *args)
+      def perform_after(worker_class, *args, &block)
+        perform_after_with_options({}, worker_class, *args, &block)
       end
 
       def perform_after_with_options(options, worker_class, *args)
@@ -33,6 +33,12 @@ module Sidekiq
         new_job['resource'] = options[:resource] if options[:resource]
         new_job['jid'] = options[:job_id] if options[:job_id]
         new_job['pjid'] = options[:parent_job_id] if options[:parent_job_id]
+
+        if block_given?
+          scheduler = Scheduler.new(new_job)
+          yield scheduler
+          scheduler.schedule!
+        end
 
         new_job = Sidekiq.client_middleware.invoke(worker_class.to_s, new_job, new_job['queue']) { new_job }
 

@@ -27,6 +27,7 @@ module Sidekiq
       let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
       let(:middleware) { double(:middleware) }
       let(:middleware_block) { ->(_, _, _, &block) { block.call } }
+      let(:block) { nil }
 
       subject { scheduler }
 
@@ -59,6 +60,22 @@ module Sidekiq
 
         it 'should schedule this work to run after the previous job' do
           expect(result_work).to eq(expected_work)
+        end
+
+        context 'when a block is provided' do
+          let(:worker_class_two) { Class.new(worker_class_base) {} }
+          let(:block) do
+            ->(scheduler) do
+              scheduler.perform_after(worker_class_two)
+            end
+          end
+          let(:serialized_work_two) { global_redis.lrange("successive_work:#{new_jid}", 0, -1).first }
+          let(:result_item_two) { JSON.load(serialized_work_two) }
+          let(:result_work_two) { Sidekiq.load_json(result_item_two['work']) if result_item_two }
+
+          it 'should schedule new items after this one' do
+            expect(result_work_two).not_to be_nil
+          end
         end
 
         it 'should schedule to run in the default queue' do
@@ -112,13 +129,13 @@ module Sidekiq
       end
 
       describe '#perform_after' do
-        before { scheduler.perform_after(worker_class, *args) }
+        before { scheduler.perform_after(worker_class, *args, &block) }
         it_behaves_like 'a method scheduling a worker'
       end
 
       describe '#perform_after_with_options' do
         let(:options) { {} }
-        before { scheduler.perform_after_with_options(options, worker_class, *args) }
+        before { scheduler.perform_after_with_options(options, worker_class, *args, &block) }
         it_behaves_like 'a method scheduling a worker'
 
         describe 'using the options' do
