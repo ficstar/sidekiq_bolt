@@ -4,7 +4,7 @@ module Sidekiq
 
       def create(resource)
         Bolt.redis do |redis|
-          redis.lpush("resources:persistant:#{name}", resource)
+          redis.zadd("resources:persistant:#{name}", '-INF', resource)
           resource
         end
       end

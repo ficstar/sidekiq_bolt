@@ -11,7 +11,7 @@ module Sidekiq
       describe '#create' do
         let(:resource) { SecureRandom.uuid }
         let!(:item) { subject.create(resource) }
-        let(:result_items) { global_redis.lrange("resources:persistant:#{name}", 0, -1) }
+        let(:result_items) { global_redis.zrangebyscore("resources:persistant:#{name}", '-INF', '-INF') }
 
         it 'should add an item to this resource' do
           expect(result_items).to include(resource)
