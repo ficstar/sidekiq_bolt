@@ -58,6 +58,10 @@ module Sidekiq
           scheduler.schedule!
         end
 
+        it 'should return the new job id' do
+          expect(result_jid).to eq(new_jid)
+        end
+
         it 'should schedule this work to run after the previous job' do
           expect(result_work).to eq(expected_work)
         end
@@ -129,13 +133,13 @@ module Sidekiq
       end
 
       describe '#perform_after' do
-        before { scheduler.perform_after(worker_class, *args, &block) }
+        let!(:result_jid) { scheduler.perform_after(worker_class, *args, &block) }
         it_behaves_like 'a method scheduling a worker'
       end
 
       describe '#perform_after_with_options' do
         let(:options) { {} }
-        before { scheduler.perform_after_with_options(options, worker_class, *args, &block) }
+        let!(:result_jid) { scheduler.perform_after_with_options(options, worker_class, *args, &block) }
         it_behaves_like 'a method scheduling a worker'
 
         describe 'using the options' do
