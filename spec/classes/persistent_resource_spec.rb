@@ -10,6 +10,8 @@ module Sidekiq
 
       subject { persistent_resource }
 
+      it { is_expected.to be_a_kind_of(Sidekiq::Util) }
+
       describe '#create' do
         let!(:item) { subject.create(resource) }
         let(:result_items) { global_redis.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
@@ -38,14 +40,26 @@ module Sidekiq
 
       describe '#allocate' do
         let(:score) { '-INF' }
+        let(:worker) { SecureRandom.uuid }
 
         subject { persistent_resource.allocate }
 
         before do
           global_redis.zadd("resources:persistent:#{name}", score, resource)
+          allow(persistent_resource).to receive(:identity).and_return(worker)
         end
 
         it { is_expected.to eq(resource) }
+
+        it 'should remove the item from persistence' do
+          subject
+          expect(global_redis.zrange("resources:persistent:#{name}", 0, -1)).to be_empty
+        end
+
+        it 'should back up the item into a list identified by the worker' do
+          subject
+          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(resource)
+        end
 
         context 'with an item having a better score' do
           let!(:score) { 51.3 }
@@ -57,6 +71,11 @@ module Sidekiq
           end
 
           it { is_expected.to eq(resource_two) }
+
+          it 'should remove only the best item from persistence' do
+            subject
+            expect(global_redis.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
+          end
         end
 
         context 'when the score of the only item is really high for some reason' do

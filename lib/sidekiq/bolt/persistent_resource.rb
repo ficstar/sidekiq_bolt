@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     class PersistentResource < Struct.new(:name)
+      include Sidekiq::Util
 
       NAMESPACE_KEY = [''].freeze
       ROOT = File.dirname(__FILE__)
@@ -17,7 +18,7 @@ module Sidekiq
 
       def allocate
         Bolt.redis do |redis|
-          redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name])
+          redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, identity])
         end
       end
 
