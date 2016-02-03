@@ -6,6 +6,8 @@ local resource_key = namespace .. 'resources:persistent:' .. resource_name
 
 local item = redis.call('zrangebyscore', resource_key, '-INF', 'INF', 'LIMIT', 0, 1)[1]
 redis.call('zrem', resource_key, item)
-redis.call('lpush', worker_backup_key, item)
+
+local backup_item = { resource = resource_name, item = item }
+redis.call('lpush', worker_backup_key, cjson.encode(backup_item))
 
 return item

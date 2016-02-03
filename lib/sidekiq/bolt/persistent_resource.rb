@@ -23,10 +23,11 @@ module Sidekiq
       end
 
       def free(resource, score)
+        backup_resource = JSON.dump(resource: name, item: resource)
         Bolt.redis do |redis|
           redis.pipelined do
             redis.zadd("resources:persistent:#{name}", score, resource)
-            redis.lrem("resources:persistent:backup:worker:#{identity}", 0, resource)
+            redis.lrem("resources:persistent:backup:worker:#{identity}", 0, backup_resource)
           end
         end
       end

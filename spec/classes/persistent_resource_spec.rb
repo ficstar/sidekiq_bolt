@@ -6,6 +6,7 @@ module Sidekiq
 
       let(:resource) { SecureRandom.uuid }
       let(:name) { SecureRandom.uuid }
+      let(:backup_resource) { JSON.dump(resource: name, item: resource) }
       let(:persistent_resource) { PersistentResource.new(name) }
       let(:worker) { SecureRandom.uuid }
 
@@ -59,7 +60,7 @@ module Sidekiq
 
         it 'should back up the item into a list identified by the worker' do
           subject
-          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(resource)
+          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(backup_resource)
         end
 
         context 'with an item having a better score' do
@@ -106,11 +107,12 @@ module Sidekiq
 
         it 'should remove the resource from the backup' do
           subject.free(resource, score)
-          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).not_to include(resource)
+          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).not_to include(backup_resource)
         end
 
         context 'with multiple allocated items' do
           let(:resource_two) { SecureRandom.uuid }
+          let(:backup_resource_two) { JSON.dump(resource: name, item: resource_two) }
 
           before do
             subject.create(resource_two)
@@ -119,7 +121,7 @@ module Sidekiq
 
           it 'should only remove the freed resource' do
             subject.free(resource, score)
-            expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(resource_two)
+            expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(backup_resource_two)
           end
         end
       end
