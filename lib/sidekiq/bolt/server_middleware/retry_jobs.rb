@@ -16,14 +16,15 @@ module Sidekiq
         def call(worker, job, _)
           yield
         rescue Exception => error
-          job['retry_count:total'] = job['retry_count:total'].to_i + 1
+          current_total_retries = job['retry_count:total'].to_i + 1
+          job['retry_count:total'] = current_total_retries
 
           retry_count_key = "retry_count:#{error}"
-          current_retries = job[retry_count_key].to_i
-          job[retry_count_key] = current_retries + 1
+          current_error_retries = job[retry_count_key].to_i + 1
+          job[retry_count_key] = current_error_retries
 
           resource = Resource.new(job['resource'])
-          job_retry = Retry.new(job, error, job[retry_count_key], job['retry_count:total'])
+          job_retry = Retry.new(job, error, current_error_retries, job['retry_count:total'])
 
           if worker.sidekiq_freeze_resource_after_retry_for_block
             unfreeze_in = worker.sidekiq_freeze_resource_after_retry_for_block.call(job_retry)
@@ -39,7 +40,8 @@ module Sidekiq
             end
           end
 
-          unless job['retry'] && (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job_retry))
+          unless job['retry'] && (job['retry'] == true || current_total_retries <= job['retry'].to_i) &&
+              (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job_retry))
             raise
           end
 

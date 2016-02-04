@@ -95,6 +95,22 @@ module Sidekiq
               it 'should raise the error' do
                 expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
               end
+
+              context 'when the retry count is a number' do
+                let(:retry_job) { 1 }
+
+                it 'should not raise the error' do
+                  expect { subject.call(worker, job, nil) { raise error } }.not_to raise_error
+                end
+
+                context 'when the number of retries has been exhausted' do
+                  let(:total_retries) { 1 }
+
+                  it 'should raise the error' do
+                    expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                  end
+                end
+              end
             end
 
             context 'when the worker specified a sidekiq_retry_in_block' do
