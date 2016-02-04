@@ -1,10 +1,9 @@
 local namespace = table.remove(KEYS, 1)
 local process = table.remove(ARGV, 1)
 local processes_set_key = namespace .. 'bolt:processes'
+
 local worker_backup_key = namespace .. 'resource:backup:worker:' .. process
-
 local processing_work = redis.call('lrange', worker_backup_key, 0, -1)
-
 for _, serialized_work in ipairs(processing_work) do
     local work = cjson.decode(serialized_work)
 
@@ -17,5 +16,15 @@ for _, serialized_work in ipairs(processing_work) do
     redis.call('decr', queue_busy_key)
 end
 redis.call('del', worker_backup_key)
+
+local worker_persistent_resource_key = namespace .. 'resources:persistent:backup:worker:' .. process
+local persistent_resources = redis.call('lrange', worker_persistent_resource_key, 0, -1)
+for _, serialized_item in ipairs(persistent_resources) do
+    local item = cjson.decode(serialized_item)
+    local resource_key = namespace .. 'resources:persistent:' .. item.resource
+
+    redis.call('zadd', resource_key, 'INF', item.item)
+end
+redis.call('del', worker_persistent_resource_key)
 
 redis.call('srem', processes_set_key, process)

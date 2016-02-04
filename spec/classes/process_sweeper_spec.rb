@@ -85,6 +85,52 @@ module Sidekiq
           subject.sweep
           expect(queue.busy).to eq(0)
         end
+
+        context 'when the worker has allocated persistent resources' do
+          let(:persistent_item) { SecureRandom.uuid }
+          let(:list_of_persistent_items) { [persistent_item] }
+          let(:persistent_resource_name) { SecureRandom.uuid }
+          let(:persistent_resource) { PersistentResource.new(persistent_resource_name) }
+
+          before do
+            allow(persistent_resource).to receive(:identity).and_return(process)
+            list_of_persistent_items.each do |item|
+              persistent_resource.create(item)
+              persistent_resource.allocate
+            end
+          end
+
+          it 'should add the item back into the pool with a really high score' do
+            subject.sweep
+            expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 'INF', 'INF')).to include(persistent_item)
+          end
+
+          it 'should clear the backup list' do
+            subject.sweep
+            expect(global_redis.lrange("resources:persistent:backup:worker:#{process}", 0, -1)).to be_empty
+          end
+
+          context 'with multiple items allocated' do
+            let(:persistent_item_two) { SecureRandom.uuid }
+            let(:list_of_persistent_items) { [persistent_item, persistent_item_two] }
+
+            it 'should add the first item' do
+              subject.sweep
+              expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 'INF', 'INF')).to include(persistent_item)
+            end
+
+            it 'should add the second item' do
+              subject.sweep
+              expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 'INF', 'INF')).to include(persistent_item_two)
+            end
+
+            it 'should clear the backup list' do
+              subject.sweep
+              expect(global_redis.lrange("resources:persistent:backup:worker:#{process}", 0, -1)).to be_empty
+            end
+          end
+
+        end
       end
 
     end
