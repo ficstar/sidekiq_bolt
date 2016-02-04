@@ -16,6 +16,13 @@ module Sidekiq
         end
       end
 
+      def destroy(resource)
+        Bolt.redis do |redis|
+          redis.zrem("resources:persistent:#{name}", resource)
+          resource
+        end
+      end
+
       def allocate
         Bolt.redis do |redis|
           redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, identity])

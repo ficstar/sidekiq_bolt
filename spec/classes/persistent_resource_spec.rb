@@ -42,6 +42,24 @@ module Sidekiq
         end
       end
 
+      describe '#destroy' do
+        let(:result_items) { global_redis.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
+        let(:item) { subject.destroy(resource) }
+
+        before do
+          subject.create(resource)
+          item
+        end
+
+        it 'should add an item to this resource' do
+          expect(result_items).not_to include(resource)
+        end
+
+        it 'should return the resource' do
+          expect(item).to eq(resource)
+        end
+      end
+
       describe '#allocate' do
         let(:score) { '-INF' }
 
