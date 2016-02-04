@@ -14,6 +14,8 @@ module Sidekiq
         def call(worker, job, _)
           yield
         rescue Exception => error
+          job['retry_count:total'] = job['retry_count:total'].to_i + 1
+
           retry_count_key = "retry_count:#{error}"
           current_retries = job[retry_count_key].to_i
           job[retry_count_key] = current_retries + 1

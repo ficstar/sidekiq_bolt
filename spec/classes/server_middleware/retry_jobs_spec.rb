@@ -61,6 +61,11 @@ module Sidekiq
               expect(error_job["retry_count:#{error}"]).to eq(1)
             end
 
+            it 'should increment the total error count for this job' do
+              subject.call(worker, job, nil) { raise error }
+              expect(error_job['retry_count:total']).to eq(1)
+            end
+
             describe 'error logging' do
               let(:log_message) do
                 "Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}"
