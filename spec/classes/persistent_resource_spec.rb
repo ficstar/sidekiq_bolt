@@ -48,15 +48,42 @@ module Sidekiq
 
         before do
           subject.create(resource)
-          item
         end
 
         it 'should add an item to this resource' do
+          subject.destroy(resource)
           expect(result_items).not_to include(resource)
         end
 
         it 'should return the resource' do
           expect(item).to eq(resource)
+        end
+
+        context 'when this resource is allocated' do
+          let(:result_items) { global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1) }
+          let(:serialized_resource) { JSON.dump(resource: name, item: resource) }
+
+          before { subject.allocate }
+
+          it 'should remove the item from our backup list' do
+            subject.destroy(resource)
+            expect(result_items).not_to include(serialized_resource)
+          end
+
+          context 'with multiple allocated resource' do
+            let(:resource_two) { SecureRandom.uuid }
+            let(:serialized_resource_two) { JSON.dump(resource: name, item: resource_two) }
+
+            before do
+              subject.create(resource_two)
+              subject.allocate
+            end
+
+            it 'should only remove the one resource' do
+              subject.destroy(resource)
+              expect(result_items).to include(serialized_resource_two)
+            end
+          end
         end
       end
 

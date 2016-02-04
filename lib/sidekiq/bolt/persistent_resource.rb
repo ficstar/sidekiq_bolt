@@ -17,8 +17,10 @@ module Sidekiq
       end
 
       def destroy(resource)
+        backup_resource = JSON.dump(resource: name, item: resource)
         Bolt.redis do |redis|
           redis.zrem("resources:persistent:#{name}", resource)
+          redis.lrem("resources:persistent:backup:worker:#{identity}", 0, backup_resource)
           resource
         end
       end
