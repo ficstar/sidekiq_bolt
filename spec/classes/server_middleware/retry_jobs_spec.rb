@@ -17,8 +17,20 @@ module Sidekiq
           let(:resource_name) { Faker::Lorem.word }
           let(:retry_job) { true }
           let(:job_id) { SecureRandom.uuid }
-          let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'retry' => retry_job, 'jid' => job_id} }
+          let(:total_retries) { nil }
+          let(:original_job) do
+            {
+                'queue' => queue_name,
+                'resource' => resource_name,
+                'retry' => retry_job,
+                'jid' => job_id
+            }
+          end
           let(:job) { original_job.dup }
+
+          before do
+            original_job['retry_count:total'] = total_retries if total_retries
+          end
 
           it 'should yield' do
             expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
@@ -90,8 +102,8 @@ module Sidekiq
               let(:worker_class) do
                 Class.new do
                   include Worker
-                  sidekiq_retry_in do |count, error|
-                    count * (error.is_a?(StandardError) ? 2 : 7)
+                  sidekiq_retry_in do |job_retry|
+                    (job_retry.error_retries * job_retry.total_retries) * (job_retry.error.is_a?(StandardError) ? 2 : 7)
                   end
                 end
               end
@@ -130,7 +142,7 @@ module Sidekiq
 
               context 'with a different error' do
                 let(:error) { Interrupt.new }
-                let(:expected_retry_score) { Time.now.to_f + 7 * retry_count }
+                let(:expected_retry_score) { Time.now.to_f + 7 * (retry_count + 1) }
 
                 it 'should retry the job in the time specified by the worker' do
                   expect(global_redis.zscore('bolt:retry', serialized_msg)).to be_within(2).of(expected_retry_score)
@@ -144,14 +156,14 @@ module Sidekiq
               let(:worker_class) do
                 Class.new do
                   include Worker
-                  sidekiq_freeze_resource_after_retry_for do |job, error, hit_count|
-                    if job['borked!'] == 'ice age'
+                  sidekiq_freeze_resource_after_retry_for do |job_retry|
+                    if job_retry.job['borked!'] == 'ice age'
                       :forever
-                    elsif error.is_a?(StandardError)
+                    elsif job_retry.error.is_a?(StandardError)
                       1
-                    elsif job['borked!']
+                    elsif job_retry.job['borked!']
                       7
-                    elsif hit_count.to_i > 10
+                    elsif job_retry.error_retries.to_i > 10
                       13
                     end
                   end
@@ -242,8 +254,8 @@ module Sidekiq
               let(:worker_class) do
                 Class.new do
                   include Worker
-                  sidekiq_should_retry? do |job, error, hit_count|
-                    !error.is_a?(StandardError) && !job['borked!'] && hit_count.to_i < 10
+                  sidekiq_should_retry? do |job_retry|
+                    !job_retry.error.is_a?(StandardError) && !job_retry.job['borked!'] && job_retry.error_retries.to_i < 10
                   end
                 end
               end
