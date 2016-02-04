@@ -9,6 +9,7 @@ module Sidekiq
       let(:backup_resource) { JSON.dump(resource: name, item: resource) }
       let(:persistent_resource) { PersistentResource.new(name) }
       let(:worker) { SecureRandom.uuid }
+      let(:redis_conn) { global_redis }
 
       subject { persistent_resource }
 
@@ -18,7 +19,7 @@ module Sidekiq
 
       describe '#create' do
         let!(:item) { subject.create(resource) }
-        let(:result_items) { global_redis.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
+        let(:result_items) { redis_conn.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
 
         it 'should add an item to this resource' do
           expect(result_items).to include(resource)
@@ -26,6 +27,16 @@ module Sidekiq
 
         it 'should return the resource' do
           expect(item).to eq(resource)
+        end
+
+        context 'when provided with a redis pool' do
+          let(:redis_conn) { alternate_redis }
+          let(:redis_pool) { ConnectionPool.new { alternate_redis } }
+          let(:persistent_resource) { PersistentResource.new(name, redis_pool) }
+
+          it 'should add the item on the provided connection' do
+            expect(result_items).to include(resource)
+          end
         end
 
         context 'when called multiple times' do
@@ -53,17 +64,25 @@ module Sidekiq
           let(:count) { 37 }
           its(:size) { is_expected.to eq(37) }
         end
+
+        context 'when provided with a redis pool' do
+          let(:redis_conn) { alternate_redis }
+          let(:redis_pool) { ConnectionPool.new { alternate_redis } }
+          let(:persistent_resource) { PersistentResource.new(name, redis_pool) }
+
+          its(:size) { is_expected.to eq(1) }
+        end
       end
 
       describe '#destroy' do
-        let(:result_items) { global_redis.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
+        let(:result_items) { redis_conn.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
         let(:item) { subject.destroy(resource) }
 
         before do
           subject.create(resource)
         end
 
-        it 'should add an item to this resource' do
+        it 'should remove the resource from the pool' do
           subject.destroy(resource)
           expect(result_items).not_to include(resource)
         end
@@ -72,8 +91,19 @@ module Sidekiq
           expect(item).to eq(resource)
         end
 
+        context 'when provided with a redis pool' do
+          let(:redis_conn) { alternate_redis }
+          let(:redis_pool) { ConnectionPool.new { alternate_redis } }
+          let(:persistent_resource) { PersistentResource.new(name, redis_pool) }
+
+          it 'should remove the resource from the pool on the provided connection' do
+            subject.destroy(resource)
+            expect(result_items).not_to include(resource)
+          end
+        end
+
         context 'when this resource is allocated' do
-          let(:result_items) { global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1) }
+          let(:result_items) { redis_conn.lrange("resources:persistent:backup:worker:#{worker}", 0, -1) }
           let(:serialized_resource) { JSON.dump(resource: name, item: resource) }
 
           before { subject.allocate }
@@ -106,19 +136,30 @@ module Sidekiq
         subject { persistent_resource.allocate }
 
         before do
-          global_redis.zadd("resources:persistent:#{name}", score, resource)
+          redis_conn.zadd("resources:persistent:#{name}", score, resource)
         end
 
         it { is_expected.to eq(resource) }
 
         it 'should remove the item from persistence' do
           subject
-          expect(global_redis.zrange("resources:persistent:#{name}", 0, -1)).to be_empty
+          expect(redis_conn.zrange("resources:persistent:#{name}", 0, -1)).to be_empty
+        end
+
+        context 'when provided with a redis pool' do
+          let(:redis_conn) { alternate_redis }
+          let(:redis_pool) { ConnectionPool.new { alternate_redis } }
+          let(:persistent_resource) { PersistentResource.new(name, redis_pool) }
+
+          it 'should remove the item from persistence on the specified connection' do
+            subject
+            expect(redis_conn.zrange("resources:persistent:#{name}", 0, -1)).to be_empty
+          end
         end
 
         it 'should back up the item into a list identified by the worker' do
           subject
-          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(backup_resource)
+          expect(redis_conn.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(backup_resource)
         end
 
         context 'with an item having a better score' do
@@ -127,14 +168,14 @@ module Sidekiq
           let(:resource_two) { SecureRandom.uuid }
 
           before do
-            global_redis.zadd("resources:persistent:#{name}", score_two, resource_two)
+            redis_conn.zadd("resources:persistent:#{name}", score_two, resource_two)
           end
 
           it { is_expected.to eq(resource_two) }
 
           it 'should remove only the best item from persistence' do
             subject
-            expect(global_redis.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
+            expect(redis_conn.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
           end
         end
 
@@ -155,17 +196,28 @@ module Sidekiq
 
         it 'should re-submit the resource to the pool' do
           subject.free(resource, score)
-          expect(global_redis.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
+          expect(redis_conn.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
         end
 
         it 'should add it using the specified score' do
           subject.free(resource, score)
-          expect(global_redis.zscore("resources:persistent:#{name}", resource)).to eq(score)
+          expect(redis_conn.zscore("resources:persistent:#{name}", resource)).to eq(score)
+        end
+
+        context 'when provided with a redis pool' do
+          let(:redis_conn) { alternate_redis }
+          let(:redis_pool) { ConnectionPool.new { alternate_redis } }
+          let(:persistent_resource) { PersistentResource.new(name, redis_pool) }
+
+          it 'should re-submit the resource to the pool on the right connection' do
+            subject.free(resource, score)
+            expect(redis_conn.zrange("resources:persistent:#{name}", 0, -1)).to include(resource)
+          end
         end
 
         it 'should remove the resource from the backup' do
           subject.free(resource, score)
-          expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).not_to include(backup_resource)
+          expect(redis_conn.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).not_to include(backup_resource)
         end
 
         context 'with multiple allocated items' do
@@ -179,7 +231,7 @@ module Sidekiq
 
           it 'should only remove the freed resource' do
             subject.free(resource, score)
-            expect(global_redis.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(backup_resource_two)
+            expect(redis_conn.lrange("resources:persistent:backup:worker:#{worker}", 0, -1)).to include(backup_resource_two)
           end
         end
       end
