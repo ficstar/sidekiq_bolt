@@ -80,12 +80,12 @@ module Sidekiq
 
             it 'should increment the total error count for this resource' do
               subject.call(worker, job, nil) { raise error }
-              expect(global_redis.get("resource:retries:#{resource_name}").to_i).to eq(1)
+              expect(global_redis.get("resource:retry_count:#{resource_name}").to_i).to eq(1)
             end
 
             it 'should increment the total error count for this queue' do
               subject.call(worker, job, nil) { raise error }
-              expect(global_redis.get("queue:retries:#{queue_name}").to_i).to eq(1)
+              expect(global_redis.get("queue:retry_count:#{queue_name}").to_i).to eq(1)
             end
 
             describe 'error logging' do
@@ -210,8 +210,8 @@ module Sidekiq
                 job['borked!'] = borked
                 job["retry_count:#{error}"] = retry_count
                 resource.frozen = resource_already_frozen
-                global_redis.set("resource:retries:#{resource_name}", resource_retry_count)
-                global_redis.set("queue:retries:#{queue_name}", queue_retry_count)
+                global_redis.set("resource:retry_count:#{resource_name}", resource_retry_count)
+                global_redis.set("queue:retry_count:#{queue_name}", queue_retry_count)
                 subject.call(worker, job, nil) { raise error }
               end
 

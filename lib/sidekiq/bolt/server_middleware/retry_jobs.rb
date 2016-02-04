@@ -50,8 +50,8 @@ module Sidekiq
         def job_retry(error, job)
           resource_retries, queue_retries = Bolt.redis do |redis|
             redis.multi do
-              redis.incr("resource:retries:#{job['resource']}")
-              redis.incr("queue:retries:#{job['queue']}")
+              redis.incr("resource:retry_count:#{job['resource']}")
+              redis.incr("queue:retry_count:#{job['queue']}")
             end
           end
 
