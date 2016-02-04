@@ -45,6 +45,38 @@ module Sidekiq
               end
             end
           end
+
+          context 'when the worker responsds to #context' do
+            let(:block) do
+              ->(_self, &block) do
+                _self.has_context = true
+                block.call
+                _self.has_context = false
+              end
+            end
+            let(:worker_class) do
+              Struct.new(:callback, :has_context) do
+                define_method(:context) do |&block|
+                  callback.call(self, &block)
+                end
+              end
+            end
+            let(:worker) { worker_class.new(block) }
+
+            it 'should yield within #context' do
+              subject.call(worker, job, nil) do
+                expect(worker.has_context).to eq(true)
+              end
+            end
+
+            context 'when #context does not yield' do
+              let(:block) { ->(_) {} }
+
+              it 'should raise an error' do
+                expect { subject.call(worker, job, nil) }.to raise_error("Expected worker '#{worker_class}' #context to yield, but it didn't!")
+              end
+            end
+          end
         end
 
       end
