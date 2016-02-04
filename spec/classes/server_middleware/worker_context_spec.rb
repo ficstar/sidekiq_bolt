@@ -44,6 +44,13 @@ module Sidekiq
                 expect(worker.is_down).not_to eq(true)
               end
             end
+
+            context 'when the block raises an error' do
+              it 'ensures that #teardown is still called' do
+                subject.call(worker, job, nil) { raise 'It broke!' } rescue nil
+                expect(worker.is_down).to eq(true)
+              end
+            end
           end
 
           context 'when the worker responsds to #context' do

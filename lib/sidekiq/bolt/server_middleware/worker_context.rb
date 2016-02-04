@@ -14,6 +14,7 @@ module Sidekiq
           else
             yield
           end
+        ensure
           worker.teardown if worker.respond_to?(:teardown)
         end
       end
