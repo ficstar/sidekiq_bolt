@@ -16,6 +16,10 @@ module Sidekiq
         end
       end
 
+      def size
+        Bolt.redis { |redis| redis.zcard("resources:persistent:#{name}") }
+      end
+
       def destroy(resource)
         backup_resource = JSON.dump(resource: name, item: resource)
         Bolt.redis do |redis|

@@ -42,6 +42,19 @@ module Sidekiq
         end
       end
 
+      describe '#size' do
+        let(:count) { 1 }
+
+        before { count.times { subject.create(SecureRandom.uuid) } }
+
+        its(:size) { is_expected.to eq(1) }
+
+        context 'with a different number of resources' do
+          let(:count) { 37 }
+          its(:size) { is_expected.to eq(37) }
+        end
+      end
+
       describe '#destroy' do
         let(:result_items) { global_redis.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
         let(:item) { subject.destroy(resource) }
