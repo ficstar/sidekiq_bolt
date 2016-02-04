@@ -14,19 +14,67 @@ module Sidekiq
           let(:job_id) { SecureRandom.uuid }
           let(:parent_job_id) { SecureRandom.uuid }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id} }
-          let(:original_message) { Sidekiq.load_json(subject.original_message) }
+          let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id} }
+          let(:job) { original_job.dup }
+          let(:original_message) { Sidekiq.dump_json(original_job) }
 
           it 'should yield' do
             expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
           end
 
           context 'when the worker responds to #setup' do
-            let(:worker_class) { Struct.new(:is_setup) { define_method(:setup) { self.is_setup = true } } }
+            let(:block_result) { true }
+            let(:block) do
+              result = block_result
+              ->(_self) { _self.is_setup = true; result }
+            end
+            let(:worker_class) do
+              Struct.new(:callback, :is_setup) do
+                define_method(:setup) { callback.call(self) }
+              end
+            end
+            let(:worker) { worker_class.new(block) }
+            let(:resource) { Resource.new(resource_name) }
+            let(:result_allocation) { resource.allocate(1) }
 
             it 'should call #setup before yielding' do
               subject.call(worker, job, nil) do
                 expect(worker.is_setup).to eq(true)
+              end
+            end
+
+            it 'should not re-submit the work' do
+              subject.call(worker, job, nil) {}
+              expect(result_allocation).to be_empty
+            end
+
+            it 'should leave the job id alone' do
+              subject.call(worker, job, nil) {}
+              expect(job['jid']).to eq(job_id)
+            end
+
+            context 'when #setup returns false' do
+              let(:block_result) { false }
+              let(:result_queue) { result_allocation[0] }
+              let(:result_work) { result_allocation[1] }
+
+              it 'should not yield' do
+                expect { |block| subject.call(worker, job, nil, &block) }.not_to yield_control
+              end
+
+              it 'should re-submit the work' do
+                subject.call(worker, job, nil) {}
+                expect(result_work).to eq(original_message)
+              end
+
+              it 'should re-submit the work to the right queue' do
+                subject.call(worker, job, nil) {}
+                expect(result_queue).to eq(queue_name)
+              end
+
+              it 'should remove the job id so JobSuccession does not kick in' do
+                subject.call(worker, job, nil) {}
+                expect(job['jid']).to be_nil
               end
             end
           end
