@@ -78,6 +78,16 @@ module Sidekiq
               expect(error_job['retry_count:total']).to eq(1)
             end
 
+            it 'should increment the total error count for this resource' do
+              subject.call(worker, job, nil) { raise error }
+              expect(global_redis.get("resource:retries:#{resource_name}").to_i).to eq(1)
+            end
+
+            it 'should increment the total error count for this queue' do
+              subject.call(worker, job, nil) { raise error }
+              expect(global_redis.get("queue:retries:#{queue_name}").to_i).to eq(1)
+            end
+
             describe 'error logging' do
               let(:log_message) do
                 "Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}"
@@ -179,7 +189,9 @@ module Sidekiq
                       1
                     elsif job_retry.job['borked!']
                       7
-                    elsif job_retry.error_retries.to_i > 10
+                    elsif job_retry.error_retries.to_i > 10 ||
+                        job_retry.resource_retries > 10 ||
+                        job_retry.queue_retries > 10
                       13
                     end
                   end
@@ -189,6 +201,8 @@ module Sidekiq
               let(:expected_defrost_time) { Time.now.to_f + 1 }
               let(:now) { Time.at(7777111111) }
               let(:resource_already_frozen) { false }
+              let(:resource_retry_count) { 0 }
+              let(:queue_retry_count) { 0 }
 
               around { |example| Timecop.freeze(now) { example.run } }
 
@@ -196,6 +210,8 @@ module Sidekiq
                 job['borked!'] = borked
                 job["retry_count:#{error}"] = retry_count
                 resource.frozen = resource_already_frozen
+                global_redis.set("resource:retries:#{resource_name}", resource_retry_count)
+                global_redis.set("queue:retries:#{queue_name}", queue_retry_count)
                 subject.call(worker, job, nil) { raise error }
               end
 
@@ -219,7 +235,7 @@ module Sidekiq
                 expect(global_redis.zscore('bolt:frozen_resource', frozen_resource)).to eq(expected_defrost_time)
               end
 
-              context 'when the block returns nil' do
+              context 'with a different type of error' do
                 let(:error) { Interrupt }
 
                 it 'should not freeze the resource' do
@@ -239,8 +255,8 @@ module Sidekiq
                   end
                 end
 
-                context 'when retried too many times' do
-                  let(:retry_count) { 10 }
+                shared_examples_for 'handling heavy retries' do |retry_key|
+                  let(retry_key) { 10 }
                   let(:expected_defrost_time) { Time.now.to_f + 13 }
 
                   it 'should freeze the resource' do
@@ -250,6 +266,18 @@ module Sidekiq
                   it 'should schedule the resource to be unfrozen at an interval specified by the worker' do
                     expect(global_redis.zscore('bolt:frozen_resource', frozen_resource)).to eq(expected_defrost_time)
                   end
+                end
+
+                context 'when retried too many times' do
+                  it_behaves_like 'handling heavy retries', :retry_count
+                end
+
+                context 'when the resource retried too many times' do
+                  it_behaves_like 'handling heavy retries', :resource_retry_count
+                end
+
+                context 'when the queue retried too many times' do
+                  it_behaves_like 'handling heavy retries', :queue_retry_count
                 end
 
                 context 'when the resource is not to be unfrozen' do

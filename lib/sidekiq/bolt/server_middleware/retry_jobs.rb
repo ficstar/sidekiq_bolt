@@ -3,7 +3,7 @@ module Sidekiq
     module ServerMiddleware
       class RetryJobs
 
-        Retry = Struct.new(:job, :error, :error_retries, :total_retries)
+        Retry = Struct.new(:job, :error, :error_retries, :total_retries, :resource_retries, :queue_retries)
 
         ROOT = File.dirname(__FILE__)
         SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
@@ -23,8 +23,15 @@ module Sidekiq
           current_error_retries = job[retry_count_key].to_i + 1
           job[retry_count_key] = current_error_retries
 
+          resource_retries, queue_retries = Bolt.redis do |redis|
+            redis.multi do
+              redis.incr("resource:retries:#{job['resource']}")
+              redis.incr("queue:retries:#{job['queue']}")
+            end
+          end
+
           resource = Resource.new(job['resource'])
-          job_retry = Retry.new(job, error, current_error_retries, job['retry_count:total'])
+          job_retry = Retry.new(job, error, current_error_retries, job['retry_count:total'], resource_retries, queue_retries)
 
           if worker.sidekiq_freeze_resource_after_retry_for_block
             unfreeze_in = worker.sidekiq_freeze_resource_after_retry_for_block.call(job_retry)
