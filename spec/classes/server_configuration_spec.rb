@@ -35,6 +35,10 @@ module Sidekiq
           expect(Sidekiq.server_middleware).to exist(ServerMiddleware::RetryJobs)
         end
 
+        it 'should add the Sidekiq::Bolt::ServerMiddleware::WorkerContext server middleware' do
+          expect(Sidekiq.server_middleware).to exist(ServerMiddleware::WorkerContext)
+        end
+
         it 'should add the Sidekiq::Bolt::ServerMiddleware::MetaDataMiddleware as the first server middleware' do
           expect(Sidekiq.server_middleware.first.klass).to eq(ServerMiddleware::JobMetaData)
         end
