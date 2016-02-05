@@ -3,7 +3,17 @@ module Sidekiq
     module ServerMiddleware
       class RetryJobs
 
-        Retry = Struct.new(:job, :error, :error_retries, :total_retries, :resource_retries, :queue_retries)
+        RETRY_PROPERTIES = [
+            :job,
+            :error,
+            :error_retries,
+            :total_retries,
+            :resource_retries,
+            :resource_error_retries,
+            :queue_retries,
+            :queue_error_retries
+        ]
+        Retry = Struct.new(*RETRY_PROPERTIES)
 
         ROOT = File.dirname(__FILE__)
         SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
@@ -49,7 +59,7 @@ module Sidekiq
         end
 
         def job_retry(error, job)
-          resource_retries, _, queue_retries, _ = Bolt.redis do |redis|
+          resource_retries, resource_error_retries, queue_retries, queue_error_retries = Bolt.redis do |redis|
             redis.multi do
               redis.hincrby("resource:retry_count:#{job['resource']}", 'total', 1)
               redis.hincrby("resource:retry_count:#{job['resource']}", error.to_s, 1)
@@ -59,7 +69,7 @@ module Sidekiq
           end
 
           retry_counts = job['retry_count']
-          Retry.new(job, error, retry_counts[error.to_s], retry_counts['total'], resource_retries, queue_retries)
+          Retry.new(job, error, retry_counts[error.to_s], retry_counts['total'], resource_retries, resource_error_retries, queue_retries, queue_error_retries)
         end
 
         def retry_job!(job, job_retry, resource, serialized_job, worker)

@@ -216,6 +216,9 @@ module Sidekiq
                       1
                     elsif job_retry.job['borked!']
                       7
+                    elsif job_retry.resource_error_retries > 3 ||
+                        job_retry.queue_error_retries > 3
+                      9
                     elsif job_retry.error_retries.to_i > 10 ||
                         job_retry.resource_retries > 10 ||
                         job_retry.queue_retries > 10
@@ -229,7 +232,9 @@ module Sidekiq
               let(:now) { Time.at(7777111111) }
               let(:resource_already_frozen) { false }
               let(:resource_retry_count) { 0 }
+              let(:resource_error_retry_count) { 0 }
               let(:queue_retry_count) { 0 }
+              let(:queue_error_retry_count) { 0 }
 
               around { |example| Timecop.freeze(now) { example.run } }
 
@@ -239,7 +244,9 @@ module Sidekiq
                 job['retry_count'][error.to_s] = retry_count
                 resource.frozen = resource_already_frozen
                 global_redis.hset("resource:retry_count:#{resource_name}", 'total', resource_retry_count)
+                global_redis.hset("resource:retry_count:#{resource_name}", error.to_s, resource_error_retry_count)
                 global_redis.hset("queue:retry_count:#{queue_name}", 'total', queue_retry_count)
+                global_redis.hset("queue:retry_count:#{queue_name}", error.to_s, queue_error_retry_count)
                 subject.call(worker, job, nil) { raise error }
               end
 
@@ -283,9 +290,9 @@ module Sidekiq
                   end
                 end
 
-                shared_examples_for 'handling heavy retries' do |retry_key|
+                shared_examples_for 'handling heavy retries' do |retry_key, amount|
                   let(retry_key) { 10 }
-                  let(:expected_defrost_time) { Time.now.to_f + 13 }
+                  let(:expected_defrost_time) { Time.now.to_f + amount }
 
                   it 'should freeze the resource' do
                     expect(resource.frozen).to eq(true)
@@ -297,15 +304,23 @@ module Sidekiq
                 end
 
                 context 'when retried too many times' do
-                  it_behaves_like 'handling heavy retries', :retry_count
+                  it_behaves_like 'handling heavy retries', :retry_count, 13
                 end
 
                 context 'when the resource retried too many times' do
-                  it_behaves_like 'handling heavy retries', :resource_retry_count
+                  it_behaves_like 'handling heavy retries', :resource_retry_count, 13
                 end
 
                 context 'when the queue retried too many times' do
-                  it_behaves_like 'handling heavy retries', :queue_retry_count
+                  it_behaves_like 'handling heavy retries', :queue_retry_count, 13
+                end
+
+                context 'when the resource retried too many times' do
+                  it_behaves_like 'handling heavy retries', :resource_error_retry_count, 9
+                end
+
+                context 'when the queue retried too many times' do
+                  it_behaves_like 'handling heavy retries', :queue_error_retry_count, 9
                 end
 
                 context 'when the resource is not to be unfrozen' do
