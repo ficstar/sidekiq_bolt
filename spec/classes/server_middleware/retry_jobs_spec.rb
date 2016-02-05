@@ -81,15 +81,28 @@ module Sidekiq
               expect(error_job['retry_count']['total']).to eq(1)
             end
 
-            it 'should increment the total error count for this resource' do
-              subject.call(worker, job, nil) { raise error }
-              expect(global_redis.hget("resource:retry_count:#{resource_name}", 'total').to_i).to eq(1)
+            shared_examples_for 'incrementing a retry count on a redis hash' do |prefix, name, key|
+              it 'should increment the retry count' do
+                subject.call(worker, job, nil) { raise error }
+                expect(global_redis.hget("#{prefix}:#{public_send(name)}", key).to_i).to eq(1)
+              end
+
+              context 'with a previous count' do
+                before { global_redis.hset("#{prefix}:#{public_send(name)}", key, 15) }
+
+                it 'should increment the retry count' do
+                  subject.call(worker, job, nil) { raise error }
+                  expect(global_redis.hget("#{prefix}:#{public_send(name)}", key).to_i).to eq(16)
+                end
+              end
             end
 
-            it 'should increment the total error count for this queue' do
-              subject.call(worker, job, nil) { raise error }
-              expect(global_redis.hget("queue:retry_count:#{queue_name}", 'total').to_i).to eq(1)
+            shared_examples_for 'incrementing retry counts for the queue and resource' do |key|
+              it_behaves_like 'incrementing a retry count on a redis hash', 'resource:retry_count', :resource_name, key
+              it_behaves_like 'incrementing a retry count on a redis hash', 'queue:retry_count', :queue_name, key
             end
+
+            it_behaves_like 'incrementing retry counts for the queue and resource', 'total'
 
             describe 'error logging' do
               let(:log_message) do
