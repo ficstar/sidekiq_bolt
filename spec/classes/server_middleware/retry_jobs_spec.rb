@@ -29,7 +29,10 @@ module Sidekiq
           let(:job) { original_job.dup }
 
           before do
-            original_job['retry_count:total'] = total_retries if total_retries
+            if total_retries
+              original_job['retry_count'] = {}
+              original_job['retry_count']['total'] = total_retries
+            end
           end
 
           it 'should yield' do
@@ -70,22 +73,22 @@ module Sidekiq
 
             it 'should increment the number of times this error has been hit' do
               subject.call(worker, job, nil) { raise error }
-              expect(error_job["retry_count:#{error}"]).to eq(1)
+              expect(error_job['retry_count'][error.to_s]).to eq(1)
             end
 
             it 'should increment the total error count for this job' do
               subject.call(worker, job, nil) { raise error }
-              expect(error_job['retry_count:total']).to eq(1)
+              expect(error_job['retry_count']['total']).to eq(1)
             end
 
             it 'should increment the total error count for this resource' do
               subject.call(worker, job, nil) { raise error }
-              expect(global_redis.get("resource:retry_count:#{resource_name}").to_i).to eq(1)
+              expect(global_redis.hget("resource:retry_count:#{resource_name}", 'total').to_i).to eq(1)
             end
 
             it 'should increment the total error count for this queue' do
               subject.call(worker, job, nil) { raise error }
-              expect(global_redis.get("queue:retry_count:#{queue_name}").to_i).to eq(1)
+              expect(global_redis.hget("queue:retry_count:#{queue_name}", 'total').to_i).to eq(1)
             end
 
             describe 'error logging' do
@@ -142,7 +145,8 @@ module Sidekiq
               around { |example| Timecop.freeze(now) { example.run } }
 
               before do
-                job["retry_count:#{error}"] = retry_count
+                job['retry_count'] ||= {}
+                job['retry_count'][error.to_s] = retry_count
                 subject.call(worker, job, nil) { raise error }
               end
 
@@ -208,10 +212,11 @@ module Sidekiq
 
               before do
                 job['borked!'] = borked
-                job["retry_count:#{error}"] = retry_count
+                job['retry_count'] ||= {}
+                job['retry_count'][error.to_s] = retry_count
                 resource.frozen = resource_already_frozen
-                global_redis.set("resource:retry_count:#{resource_name}", resource_retry_count)
-                global_redis.set("queue:retry_count:#{queue_name}", queue_retry_count)
+                global_redis.hset("resource:retry_count:#{resource_name}", 'total', resource_retry_count)
+                global_redis.hset("queue:retry_count:#{queue_name}", 'total', queue_retry_count)
                 subject.call(worker, job, nil) { raise error }
               end
 
@@ -327,7 +332,10 @@ module Sidekiq
               context 'when the error count is used to determine whether or not to retry' do
                 let(:error) { Interrupt.new }
 
-                before { job["retry_count:#{error}"] = 9 }
+                before do
+                  job['retry_count'] ||= {}
+                  job['retry_count'][error.to_s] = 9
+                end
 
                 it 'should not retry' do
                   expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)

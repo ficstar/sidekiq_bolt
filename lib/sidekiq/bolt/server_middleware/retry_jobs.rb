@@ -41,21 +41,23 @@ module Sidekiq
         end
 
         def increment_retry_counts(error, job)
-          job['retry_count:total'] = job['retry_count:total'].to_i + 1
+          retry_counts = (job['retry_count'] ||= {})
+          retry_counts['total'] = retry_counts['total'].to_i + 1
 
-          retry_count_key = "retry_count:#{error}"
-          job[retry_count_key] = job[retry_count_key].to_i + 1
+          retry_count_key = error.to_s
+          retry_counts[retry_count_key] = retry_counts[retry_count_key].to_i + 1
         end
 
         def job_retry(error, job)
           resource_retries, queue_retries = Bolt.redis do |redis|
             redis.multi do
-              redis.incr("resource:retry_count:#{job['resource']}")
-              redis.incr("queue:retry_count:#{job['queue']}")
+              redis.hincrby("resource:retry_count:#{job['resource']}", 'total', 1)
+              redis.hincrby("queue:retry_count:#{job['queue']}", 'total', 1)
             end
           end
 
-          Retry.new(job, error, job["retry_count:#{error}"], job['retry_count:total'], resource_retries, queue_retries)
+          retry_counts = job['retry_count']
+          Retry.new(job, error, retry_counts[error.to_s], retry_counts['total'], resource_retries, queue_retries)
         end
 
         def retry_job!(job, job_retry, resource, serialized_job, worker)
@@ -83,7 +85,7 @@ module Sidekiq
         end
 
         def can_retry?(job, job_retry, worker)
-          job['retry'] && (job['retry'] == true || job['retry_count:total'] <= job['retry'].to_i) &&
+          job['retry'] && (job['retry'] == true || job['retry_count']['total'].to_i <= job['retry'].to_i) &&
               (!worker.sidekiq_should_retry_block || worker.sidekiq_should_retry_block.call(job_retry))
         end
 
