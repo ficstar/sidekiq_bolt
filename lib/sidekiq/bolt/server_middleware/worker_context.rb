@@ -2,8 +2,8 @@ module Sidekiq
   module Bolt
     module ServerMiddleware
       class WorkerContext
-        def call(worker, job, _)
 
+        def call(worker, job, _)
           successfully_setup = worker.respond_to?(:setup) ? worker.setup : true
 
           if successfully_setup
@@ -28,6 +28,7 @@ module Sidekiq
         ensure
           worker.teardown if worker.respond_to?(:teardown)
         end
+
       end
     end
   end
