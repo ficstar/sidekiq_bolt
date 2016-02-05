@@ -104,6 +104,16 @@ module Sidekiq
 
             it_behaves_like 'incrementing retry counts for the queue and resource', 'total'
 
+            describe 'saving the counts for the specific error' do
+              let(:error) { StandardError.new('It broke!') }
+              it_behaves_like 'incrementing retry counts for the queue and resource', 'It broke!'
+
+              context 'with a different error' do
+                let(:error) { StandardError.new('It blew up!') }
+                it_behaves_like 'incrementing retry counts for the queue and resource', 'It blew up!'
+              end
+            end
+
             describe 'error logging' do
               let(:log_message) do
                 "Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}"

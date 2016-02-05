@@ -49,10 +49,12 @@ module Sidekiq
         end
 
         def job_retry(error, job)
-          resource_retries, queue_retries = Bolt.redis do |redis|
+          resource_retries, _, queue_retries, _ = Bolt.redis do |redis|
             redis.multi do
               redis.hincrby("resource:retry_count:#{job['resource']}", 'total', 1)
+              redis.hincrby("resource:retry_count:#{job['resource']}", error.to_s, 1)
               redis.hincrby("queue:retry_count:#{job['queue']}", 'total', 1)
+              redis.hincrby("queue:retry_count:#{job['queue']}", error.to_s, 1)
             end
           end
 
