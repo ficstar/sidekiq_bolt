@@ -14,6 +14,12 @@ module Sidekiq
         end.map { |name| new(name) }
       end
 
+      def self.enqueue(list_of_items)
+        list_of_items.each do |item|
+          new(item[:queue]).enqueue(item[:resource], item[:work])
+        end
+      end
+
       def resources
         Bolt.redis do |conn|
           conn.smembers("queue:resources:#{name}")

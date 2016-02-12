@@ -29,6 +29,46 @@ module Sidekiq
         end
       end
 
+      describe '.enqueue' do
+        let(:queue) { SecureRandom.uuid }
+        let(:resource) { SecureRandom.uuid }
+        let(:work) { SecureRandom.uuid }
+        let(:item) { {queue: queue, resource: resource, work: work} }
+        let(:items) { [item] }
+        let(:result_allocation) { Resource.new(resource).allocate(1) }
+        let(:result_queue) { result_allocation[0] }
+        let(:result_work) { result_allocation[1] }
+
+        before { Queue.enqueue(items) }
+
+        it 'should enqueue the work' do
+          expect(result_work).to eq(work)
+        end
+
+        it 'should enqueue the work to the specified queue' do
+          expect(result_queue).to eq(queue)
+        end
+
+        context 'with multiple items' do
+          let(:queue_two) { SecureRandom.uuid }
+          let(:resource_two) { SecureRandom.uuid }
+          let(:work_two) { SecureRandom.uuid }
+          let(:item_two) { {queue: queue_two, resource: resource_two, work: work_two} }
+          let(:items) { [item, item_two] }
+          let(:result_allocation_two) { Resource.new(resource_two).allocate(1) }
+          let(:result_queue_two) { result_allocation_two[0] }
+          let(:result_work_two) { result_allocation_two[1] }
+
+          it 'should enqueue the work' do
+            expect(result_work_two).to eq(work_two)
+          end
+
+          it 'should enqueue the work to the specified queue' do
+            expect(result_queue_two).to eq(queue_two)
+          end
+        end
+      end
+
       describe '#name' do
         its(:name) { is_expected.to eq(name) }
       end
