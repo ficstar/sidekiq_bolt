@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     class Queue < Struct.new(:name)
+      include Scripts
 
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
@@ -15,11 +16,11 @@ module Sidekiq
       end
 
       def self.enqueue(list_of_items)
-        Bolt.redis do |redis|
+        run_script(:resource_add_work, Resource::ADD_WORK_SCRIPT) do |redis, script_sha|
           redis.pipelined do
             list_of_items.each do |item|
               argv = [item[:queue], item[:resource], item[:work]]
-              redis.eval(Resource::ADD_WORK_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
+              redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: argv)
             end
           end
         end
@@ -64,8 +65,8 @@ module Sidekiq
       end
 
       def retrying
-        Bolt.redis do |redis|
-          redis.eval(RETRYING_SCRIPT, keys: NAMESPACE_KEY, argv: [name, ''])
+        run_script(:queue_retrying, RETRYING_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, ''])
         end
       end
 
