@@ -10,14 +10,13 @@ module Sidekiq
       BACKUP_WORK_DEPENDENCY_SCRIPT = File.read(BACKUP_WORK_SCRIPT_PATH)
 
       def skeleton_push(item)
-        work = Sidekiq.dump_json(item)
         if item['resource'] == Resource::ASYNC_LOCAL_RESOURCE
-          backup_work(item, work)
+          backup_work(item)
           run_work_now(item)
         end
 
-        unless allocate_worker(item) { schedule_local_work(item, work) }
-          enqueue_item(item, work)
+        unless allocate_worker(item) { schedule_local_work(item) }
+          enqueue_item(item)
         end
       end
 
@@ -25,8 +24,8 @@ module Sidekiq
         Fetch.processor_allocator.allocate(1, item['resource'], &block).nonzero?
       end
 
-      def schedule_local_work(item, work)
-        backup_work(item, work).tap do |success|
+      def schedule_local_work(item)
+        backup_work(item) do |success, work|
           Fetch.local_queue << Fetch::UnitOfWork.new(item['queue'], item['resource'], work) if success
         end
       end
@@ -54,7 +53,14 @@ module Sidekiq
         end
       end
 
-      def backup_work(item, work)
+      def backup_work(item)
+        work = work(item)
+        do_backup_work(item, work).tap do |success|
+          yield success, work if block_given?
+        end
+      end
+
+      def do_backup_work(item, work)
         argv = [item['queue'], item['resource'], work, identity]
         Bolt.redis do |redis|
           redis.eval(BACKUP_WORK_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
@@ -68,11 +74,14 @@ module Sidekiq
         end
       end
 
-      def enqueue_item(item, work)
+      def enqueue_item(item)
         queue = Queue.new(item['queue'])
-        queue.enqueue(item['resource'], work, !!item['error'])
+        queue.enqueue(item['resource'], work(item), !!item['error'])
       end
 
+      def work(item)
+        Sidekiq.dump_json(item)
+      end
     end
   end
 
