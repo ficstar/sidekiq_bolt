@@ -2,6 +2,7 @@ require 'sidekiq/scheduled'
 
 require 'sidekiq/bolt/serializer'
 require 'sidekiq/bolt/redis_helpers'
+require 'sidekiq/bolt/scripts'
 require 'sidekiq/bolt/property_list'
 require 'sidekiq/bolt/resource'
 require 'sidekiq/bolt/persistent_resource'
