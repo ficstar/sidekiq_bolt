@@ -15,8 +15,13 @@ module Sidekiq
       end
 
       def self.enqueue(list_of_items)
-        list_of_items.each do |item|
-          new(item[:queue]).enqueue(item[:resource], item[:work])
+        Bolt.redis do |redis|
+          redis.pipelined do
+            list_of_items.each do |item|
+              argv = [item[:queue], item[:resource], item[:work]]
+              redis.eval(Resource::ADD_WORK_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
+            end
+          end
         end
       end
 
