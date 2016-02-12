@@ -2,6 +2,7 @@ module Sidekiq
   module Bolt
     class Resource < Struct.new(:name)
       include Util
+      include Scripts
       extend PropertyList
 
       ASYNC_LOCAL_RESOURCE = '$async_local'
@@ -30,8 +31,8 @@ module Sidekiq
       end
 
       def self.having_types(types)
-        Bolt.redis do |redis|
-          redis.eval(TYPE_FILTER_SCRIPT, keys: NAMESPACE_KEY, argv: types)
+        run_script(:resource_filter, TYPE_FILTER_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: types)
         end.map { |resource_name| new(resource_name) }
       end
 
@@ -62,32 +63,32 @@ module Sidekiq
       end
 
       def size
-        Bolt.redis do |redis|
-          redis.eval(SIZE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, ''])
+        run_script(:resource_size, SIZE_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, ''])
         end
       end
 
       def retrying
-        Bolt.redis do |redis|
-          redis.eval(RETRYING_SCRIPT, keys: NAMESPACE_KEY, argv: [name, ''])
+        run_script(:resource_retrying, RETRYING_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, ''])
         end
       end
 
       def add_work(queue, work, retrying = false)
-        Bolt.redis do |redis|
-          redis.eval(ADD_WORK_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work, retrying])
+        run_script(:resource_add_work, ADD_WORK_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [queue, name, work, retrying])
         end
       end
 
       def allocate(amount)
-        Bolt.redis do |redis|
-          redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, amount, identity, *queues.shuffle])
+        run_script(:resource_allocate, ALLOCATE_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, amount, identity, *queues.shuffle])
         end
       end
 
       def free(queue, work)
-        Bolt.redis do |redis|
-          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [queue, name, work, identity])
+        run_script(:resource_free, FREE_SCRIPT) do |redis, script_sha|
+          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [queue, name, work, identity])
         end
       end
 
