@@ -17,7 +17,8 @@ guard :rspec, cmd: 'bundle exec rspec' do
   watch(%r{^lib/sidekiq/bolt/(.+)/.+\.lua}) { |m| "spec/classes/#{m[1]}_spec.rb" }
   watch(%r{^lib/sidekiq/bolt/(.+)/(.+)\.rb}) { |m| "spec/classes/#{m[1]}/#{m[2]}_spec.rb" }
   watch('spec/spec_helper.rb') { "spec" }
-  watch(%r{^spec/shared_examples/(.+)\.rb}) { "spec" }
+  watch(%r{^spec/shared_examples/scheduler\.rb}) { 'spec/classes/scheduler_spec.rb' }
+  watch(%r{^spec/shared_examples/scheduler\.rb}) { 'spec/classes/child_scheduler_spec.rb' }
   watch(%r{^spec/helpers/(.+)\.rb}) { "spec" }
   watch(%r{^spec/support/(.+)\.rb}) { "spec" }
 
