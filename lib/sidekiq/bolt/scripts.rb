@@ -4,17 +4,20 @@ module Sidekiq
       class << self
         MUTEX = Mutex.new
 
-        def run_script(name, script)
-          Bolt.redis do |redis|
-            yield redis, load_script(name, script)
-          end
-        end
-
         def included(base)
           base.extend(self)
         end
 
-        private
+        def run_script(redis, name, script, keys, argv)
+          redis.evalsha(load_script(name, script), keys: keys, argv: argv)
+        rescue Redis::CommandError => error
+          if error.message =~ /NOSCRIPT/
+            dump_script(name)
+            retry
+          else
+            raise
+          end
+        end
 
         def load_script(name, script)
           return scripts[name] if scripts[name]
@@ -23,6 +26,12 @@ module Sidekiq
               redis.script(:load, script)
             end
           end
+        end
+
+        private
+
+        def dump_script(name)
+          synchronize { scripts.delete(name) }
         end
 
         def scripts
@@ -35,8 +44,14 @@ module Sidekiq
         end
       end
 
-      def run_script(name, script, &block)
-        Scripts.run_script(name, script, &block)
+      def run_script(name, script, keys, argv)
+        Bolt.redis { |redis| internal_run_script(redis, name, script, keys, argv) }
+      end
+
+      private
+
+      def internal_run_script(redis, name, script, keys, argv)
+        Scripts.run_script(redis, name, script, keys, argv)
       end
     end
   end

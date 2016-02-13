@@ -16,7 +16,8 @@ module Sidekiq
       end
 
       def self.enqueue(list_of_items)
-        run_script(:resource_add_work, Resource::ADD_WORK_SCRIPT) do |redis, script_sha|
+        script_sha = Scripts.load_script(:resource_add_work, Resource::ADD_WORK_SCRIPT)
+        Bolt.redis do |redis|
           redis.pipelined do
             list_of_items.each do |item|
               argv = [item[:queue], item[:resource], item[:work]]
@@ -65,9 +66,7 @@ module Sidekiq
       end
 
       def retrying
-        run_script(:queue_retrying, RETRYING_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, ''])
-        end
+        run_script(:queue_retrying, RETRYING_SCRIPT, NAMESPACE_KEY, [name, ''])
       end
 
       def busy

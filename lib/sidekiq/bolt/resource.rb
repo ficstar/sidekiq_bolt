@@ -31,9 +31,9 @@ module Sidekiq
       end
 
       def self.having_types(types)
-        run_script(:resource_filter, TYPE_FILTER_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: types)
-        end.map { |resource_name| new(resource_name) }
+        run_script(:resource_filter, TYPE_FILTER_SCRIPT, NAMESPACE_KEY, types).map do |name|
+          new(name)
+        end
       end
 
       def frozen=(value)
@@ -63,33 +63,23 @@ module Sidekiq
       end
 
       def size
-        run_script(:resource_size, SIZE_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, ''])
-        end
+        run_script(:resource_size, SIZE_SCRIPT, NAMESPACE_KEY, [name, ''])
       end
 
       def retrying
-        run_script(:resource_retrying, RETRYING_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, ''])
-        end
+        run_script(:resource_retrying, RETRYING_SCRIPT, NAMESPACE_KEY, [name, ''])
       end
 
       def add_work(queue, work, retrying = false)
-        run_script(:resource_add_work, ADD_WORK_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [queue, name, work, retrying])
-        end
+        run_script(:resource_add_work, ADD_WORK_SCRIPT, NAMESPACE_KEY, [queue, name, work, retrying])
       end
 
       def allocate(amount)
-        run_script(:resource_allocate, ALLOCATE_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [name, amount, identity, *queues.shuffle])
-        end
+        run_script(:resource_allocate, ALLOCATE_SCRIPT, NAMESPACE_KEY, [name, amount, identity, *queues.shuffle])
       end
 
       def free(queue, work)
-        run_script(:resource_free, FREE_SCRIPT) do |redis, script_sha|
-          redis.evalsha(script_sha, keys: NAMESPACE_KEY, argv: [queue, name, work, identity])
-        end
+        run_script(:resource_free, FREE_SCRIPT, NAMESPACE_KEY, [queue, name, work, identity])
       end
 
       private
