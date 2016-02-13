@@ -29,17 +29,41 @@ module Sidekiq
       it_behaves_like 'a job scheduler'
 
       describe '#perform_after_with_options' do
+        let(:options) { {} }
+
+        before { scheduler.perform_after_with_options(options, worker_class_base) }
+
         describe 'custom parent job id' do
           let(:custom_jid) { SecureRandom.uuid }
           let(:options) { {parent_job_id: custom_jid} }
 
-          before do
-            scheduler.perform_after_with_options(options, worker_class_base)
-            scheduler.schedule!
-          end
+          before { scheduler.schedule! }
 
           it 'should use the scheduler job id' do
             expect(result_work['pjid']).to eq(job_id)
+          end
+        end
+
+        context 'when the number of scheduled items exceeds a configured buffer size' do
+          let(:buffer_size) { 1 }
+          let(:sidekiq_options) { {child_scheduler_buffer_size: buffer_size} }
+
+          it 'should immediately schedule the work' do
+            expect(result_work).not_to be_nil
+          end
+
+          it 'should not schedule the same work twice' do
+            resource.allocate(1)
+            scheduler.schedule!
+            expect(resource.allocate(1)).to be_empty
+          end
+
+          context 'when there is some space left' do
+            let(:buffer_size) { 3 }
+
+            it 'should not schedule the work' do
+              expect(result_work).to be_nil
+            end
           end
         end
       end
