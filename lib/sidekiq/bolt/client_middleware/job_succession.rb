@@ -2,6 +2,8 @@ module Sidekiq
   module Bolt
     module ClientMiddleware
       class JobSuccession
+        include Scripts
+
         class DuplicateJobError < StandardError
           def initialize(job_id, parent_job_id)
             super("Attempted to enqueue duplicate job '#{job_id}' with parent '#{parent_job_id}'")
@@ -16,9 +18,7 @@ module Sidekiq
 
         def call(_, msg, _, _ = nil)
           unless msg['error']
-            parent_set = Bolt.redis do |redis|
-              redis.eval(ADD_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: [msg['pjid'], msg['jid']])
-            end
+            parent_set = run_script(:job_succession_add_dependency, ADD_DEPENDENCY_SCRIPT, NAMESPACE_KEY, [msg['pjid'], msg['jid']])
             raise DuplicateJobError.new(msg['jid'], msg['pjid']) unless parent_set
           end
           yield

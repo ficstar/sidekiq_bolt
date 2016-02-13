@@ -2,6 +2,7 @@ module Sidekiq
   module Bolt
     module ServerMiddleware
       class Statistics
+        include Scripts
 
         ROOT = File.dirname(__FILE__)
         SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
@@ -11,13 +12,9 @@ module Sidekiq
 
         def call(_, job, _)
           yield
-          Bolt.redis do |redis|
-            redis.eval(COUNT_STATS_SCRIPT, keys: NAMESPACE_KEY, argv: [job['resource'], job['queue']])
-          end
+          run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue']])
         rescue
-          Bolt.redis do |redis|
-            redis.eval(COUNT_STATS_SCRIPT, keys: NAMESPACE_KEY, argv: [job['resource'], job['queue'], true])
-          end
+          run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue'], true])
           raise
         end
 

@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     class Scheduler
+      include Scripts
 
       NAMESPACE_KEY = [''].freeze
       ROOT = File.dirname(__FILE__)
@@ -54,9 +55,7 @@ module Sidekiq
       end
 
       def schedule!
-        Bolt.redis do |redis|
-          redis.eval(SCHEDULE_SCRIPT, keys: NAMESPACE_KEY, argv: [prev_job_id, *items])
-        end
+        run_script(:scheduler_schedule, SCHEDULE_SCRIPT, NAMESPACE_KEY, [prev_job_id, *items])
       end
 
       private

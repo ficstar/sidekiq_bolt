@@ -2,6 +2,7 @@ module Sidekiq
   module Bolt
     module ServerMiddleware
       class RetryJobs
+        include Scripts
 
         RETRY_PROPERTIES = [
             :job,
@@ -86,9 +87,7 @@ module Sidekiq
 
         def schedule_retry(job, job_retry, serialized_job, worker)
           retry_at = retry_job_at(job_retry, worker)
-          Bolt.redis do |redis|
-            redis.eval(ADD_RETRY_SCRIPT, keys: NAMESPACE_KEY, argv: [job['queue'], job['resource'], serialized_job, retry_at])
-          end
+          run_script(:retry_jobs_add_retry, ADD_RETRY_SCRIPT, NAMESPACE_KEY, [job['queue'], job['resource'], serialized_job, retry_at])
         end
 
         def retry_job_at(job_retry, worker)
@@ -118,9 +117,7 @@ module Sidekiq
 
         def schedule_resource_defrost!(job, unfreeze_in)
           desfrost_at = Time.now.to_f + unfreeze_in
-          Bolt.redis do |redis|
-            redis.eval(FREEZE_RESOURCE_SCRIPT, keys: NAMESPACE_KEY, argv: [job['resource'], desfrost_at])
-          end
+          run_script(:retry_jobs_freeze_resource, FREEZE_RESOURCE_SCRIPT, NAMESPACE_KEY, [job['resource'], desfrost_at])
         end
 
       end

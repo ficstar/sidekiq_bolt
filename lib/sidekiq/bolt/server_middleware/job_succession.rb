@@ -2,6 +2,7 @@ module Sidekiq
   module Bolt
     module ServerMiddleware
       class JobSuccession
+        include Scripts
 
         NAMESPACE_KEY = [''].freeze
         ROOT = File.dirname(__FILE__)
@@ -20,9 +21,7 @@ module Sidekiq
             if job['jid'] && (failed || job['resource'] != Resource::ASYNC_LOCAL_RESOURCE)
               argv = [job['pjid'], job['jid'], job['resource']]
               argv << 'failed' if failed
-              Bolt.redis do |redis|
-                redis.eval(REMOVE_DEPENDENCY_SCRIPT, keys: NAMESPACE_KEY, argv: argv)
-              end
+              run_script(:job_succession_remove_dependency, REMOVE_DEPENDENCY_SCRIPT, NAMESPACE_KEY, argv)
             end
           end
         end

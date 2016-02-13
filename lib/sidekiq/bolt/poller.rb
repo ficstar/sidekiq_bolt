@@ -16,11 +16,15 @@ module Sidekiq
 
       def enqueue_jobs
         @enqs.map(&:enqueue_jobs)
-        {retry: 'retrying:', scheduled: ''}.each do |set, prefix|
-          Bolt.redis do |redis|
-            now = Time.now.to_f
-            redis.eval(DEFROST_SCRIPT, keys: NAMESPACE_KEY, argv: [now])
-            redis.eval(POLL_SCRIPT, keys: NAMESPACE_KEY, argv: ["bolt:#{set}", prefix, now])
+        now = Time.now.to_f
+        defrost_script_sha = Scripts.load_script(:poller_defrost_resource, DEFROST_SCRIPT)
+        poll_script_sha = Scripts.load_script(:poller_poll, POLL_SCRIPT)
+        Bolt.redis do |redis|
+          redis.pipelined do
+            {retry: 'retrying:', scheduled: ''}.each do |set, prefix|
+              redis.evalsha(defrost_script_sha, keys: NAMESPACE_KEY, argv: [now])
+              redis.evalsha(poll_script_sha, keys: NAMESPACE_KEY, argv: ["bolt:#{set}", prefix, now])
+            end
           end
         end
       end

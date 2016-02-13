@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     class ProcessSweeper
+      include Scripts
 
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
@@ -13,9 +14,7 @@ module Sidekiq
       end
 
       def sweep
-        Bolt.redis do |redis|
-          redis.eval(SWEEP_SCRIPT, keys: NAMESPACE_KEY, argv: [process])
-        end
+        run_script(:sweeper_sweep, SWEEP_SCRIPT, NAMESPACE_KEY, [process])
       end
 
       private

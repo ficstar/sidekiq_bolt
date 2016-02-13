@@ -17,6 +17,8 @@ module Sidekiq
       end
 
       module ClassMethods
+        include Scripts
+
         def perform_async(*args, &block)
           #noinspection RubyStringKeysInHashInspection
           client_push({'class' => self, 'args' => args}, &block)
@@ -26,9 +28,7 @@ module Sidekiq
           schedule_at = Time.now.to_f + interval
           job = get_sidekiq_options.merge('class' => self.to_s, 'args' => args)
           serialized_job = Sidekiq.dump_json(job)
-          Bolt.redis do |redis|
-            redis.eval(ADD_SCHEDULED_SCRIPT, keys: NAMESPACE_KEY, argv: [job['queue'], job['resource'], serialized_job, schedule_at])
-          end
+          run_script(:worker_schedule, ADD_SCHEDULED_SCRIPT, NAMESPACE_KEY, [job['queue'], job['resource'], serialized_job, schedule_at])
         end
 
         def perform_async_with_options(options, *args, &block)
