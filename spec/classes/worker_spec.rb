@@ -71,6 +71,12 @@ module Sidekiq
         its(:parent_job_id) { is_expected.to eq(jid) }
       end
 
+      describe '#child_scheduler' do
+        let(:child_scheduler) { ChildScheduler.new('jid' => SecureRandom.uuid) }
+        before { subject.child_scheduler = child_scheduler }
+        its(:child_scheduler) { is_expected.to eq(child_scheduler) }
+      end
+
       describe '.sidekiq_should_retry?' do
         let(:some_value) { Faker::Lorem.word }
         let(:retry_block) { ->() { some_value } }

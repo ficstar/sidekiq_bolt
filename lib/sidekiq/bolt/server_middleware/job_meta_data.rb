@@ -9,7 +9,9 @@ module Sidekiq
           worker.jid = job['jid']
           worker.parent_job_id = job['pjid']
           worker.original_message = Sidekiq.dump_json(job)
+          worker.child_scheduler = ChildScheduler.new(job)
           yield
+          worker.child_scheduler.schedule!
         end
 
       end
