@@ -2,9 +2,9 @@ require 'rspec'
 
 module Sidekiq
   module Bolt
-    describe Scheduler do
+    describe ChildScheduler do
 
-      let(:klass) { Scheduler }
+      let(:klass) { ChildScheduler }
       let(:worker_class_base) do
         Class.new do
           include Worker
@@ -14,21 +14,21 @@ module Sidekiq
           end
         end
       end
-      let(:serialized_work) { global_redis.lrange("successive_work:#{job_id}", 0, -1).first }
-      let(:result_item) { JSON.load(serialized_work) }
-      let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
+      let(:job_id) { SecureRandom.uuid }
+      let(:scheduler) { ChildScheduler.new('jid' => job_id) }
+      let(:resource_name) { 'default' }
+      let(:resource) { Resource.new(resource_name) }
+      let(:result_allocation) { resource.allocate(1) }
+      let(:serialized_work) { result_allocation[1] }
       let(:serialized_work_two) { global_redis.lrange("successive_work:#{new_jid}", 0, -1).first }
+      let(:result_item) { Sidekiq.load_json(serialized_work) if serialized_work }
+      let(:result_queue) { result_item['queue'] }
+      let(:result_resource) { result_item['resource'] }
+      let(:result_work) { result_item }
 
       it_behaves_like 'a job scheduler'
 
       describe '#perform_after_with_options' do
-        let(:job_id) { SecureRandom.uuid }
-        let(:scheduler) { Scheduler.new('jid' => job_id) }
-        let(:result_item) { JSON.load(serialized_work) }
-        let(:result_queue) { result_item['queue'] }
-        let(:result_resource) { result_item['resource'] }
-        let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
-
         describe 'custom parent job id' do
           let(:custom_jid) { SecureRandom.uuid }
           let(:options) { {parent_job_id: custom_jid} }
@@ -38,8 +38,8 @@ module Sidekiq
             scheduler.schedule!
           end
 
-          it 'should use that job id' do
-            expect(result_work['pjid']).to eq(custom_jid)
+          it 'should use the scheduler job id' do
+            expect(result_work['pjid']).to eq(job_id)
           end
         end
       end

@@ -58,7 +58,7 @@ module Sidekiq
         run_script(:scheduler_schedule, SCHEDULE_SCRIPT, NAMESPACE_KEY, [prev_job_id, *items])
       end
 
-      private
+      protected
 
       attr_reader :prev_job_id, :items
 
