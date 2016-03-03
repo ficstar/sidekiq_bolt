@@ -43,6 +43,10 @@ module Sidekiq
           expect(Sidekiq.server_middleware.first.klass).to eq(ServerMiddleware::JobMetaData)
         end
 
+        it 'should add the Sidekiq::Bolt::ServerMiddleware::DeferWork as the last server middleware' do
+          expect(Sidekiq.server_middleware.entries.last.klass).to eq(ServerMiddleware::DeferWork)
+        end
+
         it 'should include the JobRecoveryEnq among the additional_scheduled_enqs' do
           expect(Sidekiq.options[:additional_scheduled_enqs]).to include(JobRecoveryEnq)
         end
