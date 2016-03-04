@@ -9,7 +9,7 @@ module Sidekiq
           let(:error) { nil }
           let(:valid_future) { double(:future) }
           let(:perform_future) { valid_future }
-          let(:worker) { double(:worker, acknowledge_work: nil) }
+          let(:worker) { double(:worker, jid: SecureRandom.uuid, acknowledge_work: nil) }
           let(:defer) { false }
           let(:args) { Faker::Lorem.sentences }
           let(:job) { {'defer' => defer, 'args' => args} }

@@ -7,8 +7,11 @@ module Sidekiq
           if job['defer']
             future = perform_work(worker, job['args'])
             raise 'Expected worker to return a future!' unless future.respond_to?(:on_complete)
+
+            Sidekiq::Logging.with_context("#{self.class} JID-#{worker.jid}") { Sidekiq.logger.debug('deferred work started') }
             future.on_complete do |_, error|
               worker.acknowledge_work(error)
+              Sidekiq::Logging.with_context("#{self.class} JID-#{worker.jid}") { Sidekiq.logger.debug('deferred work completed') }
             end
           else
             yield
