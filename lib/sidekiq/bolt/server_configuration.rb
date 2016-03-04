@@ -13,7 +13,6 @@ module Sidekiq
         chain.remove Middleware::Server::RetryJobs
         chain.add ServerMiddleware::RetryJobs
         chain.add ServerMiddleware::WorkerContext
-        chain.add ServerMiddleware::DeferWork
       end
       configure_client(config)
     end
