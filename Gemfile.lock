@@ -1,3 +1,11 @@
+GIT
+  remote: git://github.com/thomasrogers03/thomas_utils.git
+  revision: acc623dd3d756d7e15d4841c265286fd2e7f11b8
+  specs:
+    thomas_utils (0.2.0)
+      concurrent-ruby (~> 1.0.0)
+      workers (~> 0.3)
+
 PATH
   remote: .
   specs:
@@ -24,6 +32,8 @@ GEM
     celluloid-supervision (0.20.5)
       timers (>= 4.1.1)
     coderay (1.1.0)
+    concurrent-ruby (1.0.1)
+    concurrent-ruby (1.0.1-java)
     connection_pool (2.2.0)
     diff-lcs (1.2.5)
     docile (1.1.5)
@@ -115,6 +125,7 @@ GEM
     timecop (0.8.0)
     timers (4.1.1)
       hitimes
+    workers (0.6.0)
 
 PLATFORMS
   java
@@ -135,6 +146,7 @@ DEPENDENCIES
   sidekiq (~> 3.3.3)
   sidekiq_bolt!
   simplecov
+  thomas_utils!
   timecop
 
 BUNDLED WITH

@@ -7,6 +7,7 @@ group :development do
   gem 'redis-namespace'
   gem 'connection_pool'
   gem 'sidekiq', '~> 3.3.3'
+  gem 'thomas_utils', github: 'thomasrogers03/thomas_utils'
 end
 
 group :test do
