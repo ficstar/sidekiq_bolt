@@ -1,8 +1,8 @@
 GIT
   remote: git://github.com/thomasrogers03/thomas_utils.git
-  revision: acc623dd3d756d7e15d4841c265286fd2e7f11b8
+  revision: 1db03be5a749827939ff2c53d1448af1fc34b0c5
   specs:
-    thomas_utils (0.2.0)
+    thomas_utils (0.2.1)
       concurrent-ruby (~> 1.0.0)
       workers (~> 0.3)
 
