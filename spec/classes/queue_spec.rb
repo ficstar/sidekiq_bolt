@@ -231,7 +231,7 @@ module Sidekiq
 
         context 'with multiple queues sharing the same resource' do
           let(:resource) { Resource.new(Faker::Lorem.word) }
-          let(:name_two) { Faker::Lorem.word }
+          let(:name_two) { Faker::Lorem.sentence }
           let(:queue_two) { Queue.new(name_two) }
 
           before do
