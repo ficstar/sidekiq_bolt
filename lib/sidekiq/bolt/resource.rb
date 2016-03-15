@@ -39,7 +39,12 @@ module Sidekiq
       def self.workers_required
         Hash.new(0).tap do |workers_required|
           Resource.all.each do |resource|
-            workers_required[resource.type] += resource.limit
+            limit = resource.limit.nonzero?
+            if limit
+              workers_required[resource.type] += limit
+            else
+              workers_required[resource.type] = 1/0.0
+            end
           end
         end
       end

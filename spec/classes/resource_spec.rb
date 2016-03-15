@@ -66,11 +66,12 @@ module Sidekiq
 
       describe '.workers_required' do
         let(:resource_name) { Faker::Lorem.word }
+        let(:resource_limit) { 15 }
         let(:resource_type) { Faker::Lorem.word }
         let!(:resource) do
           Resource.new(resource_name).tap do |resource|
             resource.type = resource_type
-            resource.limit = 15
+            resource.limit = resource_limit
             resource.add_work(Faker::Lorem.word, Faker::Lorem.word)
           end
         end
@@ -78,6 +79,11 @@ module Sidekiq
         subject { Resource.workers_required }
 
         it { is_expected.to eq(resource_type => 15) }
+
+        context 'with unlimited bandwidth' do
+          let(:resource_limit) { nil }
+          it { is_expected.to eq(resource_type => 1/0.0) }
+        end
 
         context 'with another resource' do
           let(:resource_name_two) { Faker::Lorem.sentence }
