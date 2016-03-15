@@ -3,5 +3,8 @@ module Setup
 
   let(:sidekiq_options) { {concurrency: 0} }
 
-  before { Sidekiq.options = sidekiq_options }
+  before do
+    Sidekiq.logger.level = Logger::WARN
+    Sidekiq.options = sidekiq_options
+  end
 end

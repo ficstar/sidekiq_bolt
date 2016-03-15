@@ -46,7 +46,7 @@ module Sidekiq
 
         context 'when the number of scheduled items exceeds a configured buffer size' do
           let(:buffer_size) { 1 }
-          let(:sidekiq_options) { {child_scheduler_buffer_size: buffer_size} }
+          let(:sidekiq_options) { {concurrency: 0, child_scheduler_buffer_size: buffer_size} }
 
           it 'should immediately schedule the work' do
             expect(result_work).not_to be_nil

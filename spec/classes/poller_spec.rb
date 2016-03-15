@@ -29,7 +29,7 @@ module Sidekiq
 
         context 'when extra enqs have been configured' do
           let(:custom_enq) { Class.new { define_method(:enqueue_jobs) {} } }
-          let(:sidekiq_options) { {additional_scheduled_enqs: [custom_enq]} }
+          let(:sidekiq_options) { {concurrency: 0, additional_scheduled_enqs: [custom_enq]} }
 
           it 'should run those Enqs' do
             expect_any_instance_of(custom_enq).to receive(:enqueue_jobs)
