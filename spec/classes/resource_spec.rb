@@ -64,6 +64,42 @@ module Sidekiq
         end
       end
 
+      describe '.workers_required' do
+        let(:resource_name) { Faker::Lorem.word }
+        let(:resource_type) { Faker::Lorem.word }
+        let!(:resource) do
+          Resource.new(resource_name).tap do |resource|
+            resource.type = resource_type
+            resource.limit = 15
+            resource.add_work(Faker::Lorem.word, Faker::Lorem.word)
+          end
+        end
+
+        subject { Resource.workers_required }
+
+        it { is_expected.to eq(resource_type => 15) }
+
+        context 'with another resource' do
+          let(:resource_name_two) { Faker::Lorem.sentence }
+          let(:resource_type_two) { Faker::Lorem.word }
+          let!(:resource_two) do
+            Resource.new(resource_name_two).tap do |resource|
+              resource.type = resource_type_two
+              resource.limit = 77
+              resource.add_work(Faker::Lorem.word, Faker::Lorem.word)
+            end
+          end
+
+          it { is_expected.to eq(resource_type => 15, resource_type_two => 77) }
+
+          context 'when they share the same type' do
+            let(:resource_type_two) { resource_type }
+
+            it { is_expected.to eq(resource_type => 92) }
+          end
+        end
+      end
+
       describe '#type' do
         let(:type) { 'zippers' }
 
@@ -352,7 +388,7 @@ module Sidekiq
           its(:retrying) { is_expected.to eq(1) }
 
           context 'with multiple retrying items' do
-            let(:queue_name_two) { Faker::Lorem.word }
+            let(:queue_name_two) { Faker::Lorem.sentence }
             let(:serialized_msg_two) do
               JSON.dump('queue' => queue_name_two, 'resource' => name)
             end

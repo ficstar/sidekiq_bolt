@@ -36,6 +36,14 @@ module Sidekiq
         end
       end
 
+      def self.workers_required
+        Hash.new(0).tap do |workers_required|
+          Resource.all.each do |resource|
+            workers_required[resource.type] += resource.limit
+          end
+        end
+      end
+
       def frozen=(value)
         Bolt.redis do |redis|
           if value
