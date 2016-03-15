@@ -27,10 +27,11 @@ if Sidekiq.server?
 
   require 'sidekiq/bolt/exceptions/invalid_resource'
 
-  require 'sidekiq/bolt/server_middleware/retry_jobs'
   require 'sidekiq/bolt/server_middleware/job_meta_data'
   require 'sidekiq/bolt/server_middleware/type_safety'
   require 'sidekiq/bolt/server_middleware/job_succession'
+  require 'sidekiq/bolt/server_middleware/retry_jobs'
+  require 'sidekiq/bolt/server_middleware/resource_invalidator'
   require 'sidekiq/bolt/server_middleware/worker_context'
   require 'sidekiq/bolt/server_middleware/statistics'
   require 'sidekiq/bolt/poller'

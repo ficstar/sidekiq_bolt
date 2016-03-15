@@ -35,6 +35,10 @@ module Sidekiq
           expect(Sidekiq.server_middleware).to exist(ServerMiddleware::RetryJobs)
         end
 
+        it 'should add the Sidekiq::Bolt::ServerMiddleware::ResourceInvalidator server middleware' do
+          expect(Sidekiq.server_middleware).to exist(ServerMiddleware::ResourceInvalidator)
+        end
+
         it 'should add the Sidekiq::Bolt::ServerMiddleware::WorkerContext server middleware' do
           expect(Sidekiq.server_middleware).to exist(ServerMiddleware::WorkerContext)
         end
