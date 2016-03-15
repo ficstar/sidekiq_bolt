@@ -21,7 +21,7 @@ module Sidekiq
             Sidekiq.logger.debug 'Worker skipped due to #setup returning false'
 
             serialized_job = Sidekiq.dump_json(job)
-            Resource.new(job['resource']).add_work(job['queue'], serialized_job)
+            worker.resource.add_work(job['queue'], serialized_job)
             job.delete('jid')
           end
 

@@ -5,12 +5,13 @@ module Sidekiq
     module ServerMiddleware
       describe WorkerContext do
 
-        let(:worker_class) { Class.new {} }
+        let(:worker_class) { Struct.new(:resource) }
 
         describe '#call' do
-          let(:worker) { worker_class.new }
+          let(:worker) { worker_class.new(resource) }
           let(:queue_name) { Faker::Lorem.word }
           let(:resource_name) { Faker::Lorem.word }
+          let(:resource) { Resource.new(resource_name) }
           let(:job_id) { SecureRandom.uuid }
           let(:parent_job_id) { SecureRandom.uuid }
           #noinspection RubyStringKeysInHashInspection
@@ -29,12 +30,11 @@ module Sidekiq
               ->(_self) { _self.is_setup = true; result }
             end
             let(:worker_class) do
-              Struct.new(:callback, :is_setup) do
+              Struct.new(:resource, :callback, :is_setup) do
                 define_method(:setup) { callback.call(self) }
               end
             end
-            let(:worker) { worker_class.new(block) }
-            let(:resource) { Resource.new(resource_name) }
+            let(:worker) { worker_class.new(resource, block) }
             let(:result_allocation) { resource.allocate(1) }
 
             it 'should call #setup before yielding' do
@@ -80,7 +80,7 @@ module Sidekiq
           end
 
           context 'when the worker responds to #teardown' do
-            let(:worker_class) { Struct.new(:is_down) { define_method(:teardown) { self.is_down = true } } }
+            let(:worker_class) { Struct.new(:resource, :is_down) { define_method(:teardown) { self.is_down = true } } }
 
             it 'should call #teardown' do
               subject.call(worker, job, nil) {}
@@ -110,13 +110,13 @@ module Sidekiq
               end
             end
             let(:worker_class) do
-              Struct.new(:callback, :has_context) do
+              Struct.new(:resource, :callback, :has_context) do
                 define_method(:context) do |&block|
                   callback.call(self, &block)
                 end
               end
             end
-            let(:worker) { worker_class.new(block) }
+            let(:worker) { worker_class.new(resource, block) }
 
             it 'should yield within #context' do
               subject.call(worker, job, nil) do
