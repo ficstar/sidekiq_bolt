@@ -2,12 +2,12 @@ module Sidekiq
   module Bolt
     module Exceptions
       class InvalidResource < StandardError
-        attr_reader :type, :resource
+        attr_reader :allocator, :resource
 
-        def initialize(type, resource)
-          @type = type
+        def initialize(allocator, resource)
+          @allocator = allocator
           @resource = resource
-          super(%Q{Resource "#{resource}" of type "#{type}" has been invalidated!})
+          super(%Q{Resource "#{@resource}" of type "#{@allocator.name}" has been invalidated!})
         end
       end
     end
