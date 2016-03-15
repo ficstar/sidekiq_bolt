@@ -6,15 +6,16 @@ module Sidekiq
       describe RetryJobs do
 
         let(:worker_class) do
-          Class.new do
+          Struct.new(:resource) do
             include Worker
           end
         end
-        let(:worker) { worker_class.new }
+        let(:worker) { worker_class.new(resource) }
+        let(:resource_name) { Faker::Lorem.word }
+        let(:resource) { Resource.new(resource_name) }
 
         describe '#call' do
           let(:queue_name) { Faker::Lorem.word }
-          let(:resource_name) { Faker::Lorem.word }
           let(:retry_job) { true }
           let(:job_id) { SecureRandom.uuid }
           let(:total_retries) { nil }
@@ -152,7 +153,7 @@ module Sidekiq
             context 'when the worker specified a sidekiq_retry_in_block' do
               let(:retry_count) { rand(1..10) }
               let(:worker_class) do
-                Class.new do
+                Struct.new(:resource) do
                   include Worker
                   sidekiq_retry_in do |job_retry|
                     (job_retry.error_retries * job_retry.total_retries) * (job_retry.error.is_a?(StandardError) ? 2 : 7)
@@ -207,7 +208,7 @@ module Sidekiq
               let(:borked) { false }
               let(:retry_count) { nil }
               let(:worker_class) do
-                Class.new do
+                Struct.new(:resource) do
                   include Worker
                   sidekiq_freeze_resource_after_retry_for do |job_retry|
                     if job_retry.job['borked!'] == 'ice age'
@@ -339,7 +340,7 @@ module Sidekiq
 
             context 'when the worker specifies a sidekiq_should_retry_block' do
               let(:worker_class) do
-                Class.new do
+                Struct.new(:resource) do
                   include Worker
                   sidekiq_should_retry? do |job_retry|
                     !job_retry.error.is_a?(StandardError) && !job_retry.job['borked!'] && job_retry.error_retries.to_i < 10

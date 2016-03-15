@@ -36,7 +36,7 @@ module Sidekiq
         def handle_retry(error, job, worker)
           increment_retry_counts(error, job)
 
-          resource = Resource.new(job['resource'])
+          resource = worker.resource
           job_retry = job_retry(error, job)
 
           freeze_resource_if_necessary!(job, job_retry, resource, worker)
