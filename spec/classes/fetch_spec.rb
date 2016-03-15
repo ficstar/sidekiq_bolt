@@ -92,7 +92,7 @@ module Sidekiq
           let(:queue_name) { Faker::Lorem.word }
           let(:resource_type) { Faker::Lorem.word }
           let(:resource) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type } }
-          let(:resource_type_two) { Faker::Lorem.word }
+          let(:resource_type_two) { Faker::Lorem.sentence }
           let(:resource_two) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type_two } }
           let(:concurrency_pool) { {resource_type => 100, resource_type_two => 100, nil => 100} }
           let(:sidekiq_options) { {concurrency: concurrency, resource_types: [resource_type], concurrency_pool: concurrency_pool} }
