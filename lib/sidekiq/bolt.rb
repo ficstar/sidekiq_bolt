@@ -1,3 +1,5 @@
+require 'sidekiq/util'
+
 require 'sidekiq/bolt/serializer'
 require 'sidekiq/bolt/redis_helpers'
 require 'sidekiq/bolt/scripts'
