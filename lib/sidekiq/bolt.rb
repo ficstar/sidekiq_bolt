@@ -25,6 +25,8 @@ if Sidekiq.server?
   require 'sidekiq/bolt/fetch/unit_of_work'
   require 'sidekiq/bolt/fetch'
 
+  require 'sidekiq/bolt/exceptions/invalid_resource'
+
   require 'sidekiq/bolt/server_middleware/retry_jobs'
   require 'sidekiq/bolt/server_middleware/job_meta_data'
   require 'sidekiq/bolt/server_middleware/type_safety'
