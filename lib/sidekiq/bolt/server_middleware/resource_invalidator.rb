@@ -4,7 +4,7 @@ module Sidekiq
       class ResourceInvalidator
         include Util
 
-        def call(_, job, _)
+        def call(_, _, _)
           yield
         rescue Exceptions::InvalidResource => invalid_resource
           invalid_resource.allocator.destroy(invalid_resource.resource)
