@@ -36,6 +36,6 @@ if Sidekiq.server?
   require 'sidekiq/bolt/server_middleware/statistics'
   require 'sidekiq/bolt/poller'
   require 'sidekiq/bolt/job_recovery_enq'
-  require 'sidekiq/bolt/manager'
+  require 'sidekiq/bolt/manager' unless Sidekiq.const_defined?('DisableBoltManager')
   require 'sidekiq/bolt/process_sweeper'
 end
