@@ -136,10 +136,15 @@ module Sidekiq
         subject { persistent_resource.allocate }
 
         before do
-          redis_conn.zadd("resources:persistent:#{name}", score, resource)
+          redis_conn.zadd("resources:persistent:#{name}", score, resource) if resource
         end
 
         it { is_expected.to eq([resource, score]) }
+
+        context 'with no resources available' do
+          let(:resource) { nil }
+          it { is_expected.to be_nil }
+        end
 
         it 'should remove the item from persistence' do
           subject

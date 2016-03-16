@@ -38,8 +38,10 @@ module Sidekiq
         result = redis do |redis|
           redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, identity])
         end
-        result[1] = result[1].to_f unless result[1].include?('inf')
-        result
+        if result.any?
+          result[1] = result[1].to_f unless result[1].include?('inf')
+          result
+        end
       end
 
       def free(resource, score)
