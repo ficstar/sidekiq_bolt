@@ -23,7 +23,7 @@ for _, serialized_item in ipairs(persistent_resources) do
     local item = cjson.decode(serialized_item)
     local resource_key = namespace .. 'resources:persistent:' .. item.resource
 
-    redis.call('zadd', resource_key, 'INF', item.item)
+    redis.call('zadd', resource_key, 0.0, item.item)
 end
 redis.call('del', worker_persistent_resource_key)
 

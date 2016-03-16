@@ -102,7 +102,7 @@ module Sidekiq
 
           it 'should add the item back into the pool with a really high score' do
             subject.sweep
-            expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 'INF', 'INF')).to include(persistent_item)
+            expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 0.0, 0.0)).to include(persistent_item)
           end
 
           it 'should clear the backup list' do
@@ -116,12 +116,12 @@ module Sidekiq
 
             it 'should add the first item' do
               subject.sweep
-              expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 'INF', 'INF')).to include(persistent_item)
+              expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 0.0, 0.0)).to include(persistent_item)
             end
 
             it 'should add the second item' do
               subject.sweep
-              expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 'INF', 'INF')).to include(persistent_item_two)
+              expect(global_redis.zrangebyscore("resources:persistent:#{persistent_resource_name}", 0.0, 0.0)).to include(persistent_item_two)
             end
 
             it 'should clear the backup list' do

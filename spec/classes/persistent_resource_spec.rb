@@ -19,7 +19,7 @@ module Sidekiq
 
       describe '#create' do
         let!(:item) { subject.create(resource) }
-        let(:result_items) { redis_conn.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
+        let(:result_items) { redis_conn.zrangebyscore("resources:persistent:#{name}", '-inf', '-inf') }
 
         it 'should add an item to this resource' do
           expect(result_items).to include(resource)
@@ -75,7 +75,7 @@ module Sidekiq
       end
 
       describe '#destroy' do
-        let(:result_items) { redis_conn.zrangebyscore("resources:persistent:#{name}", '-INF', '-INF') }
+        let(:result_items) { redis_conn.zrangebyscore("resources:persistent:#{name}", '-inf', '-inf') }
         let(:item) { subject.destroy(resource) }
 
         before do
@@ -131,7 +131,7 @@ module Sidekiq
       end
 
       describe '#allocate' do
-        let(:score) { '-INF' }
+        let(:score) { '-inf' }
 
         subject { persistent_resource.allocate }
 
@@ -139,7 +139,7 @@ module Sidekiq
           redis_conn.zadd("resources:persistent:#{name}", score, resource)
         end
 
-        it { is_expected.to eq(resource) }
+        it { is_expected.to eq([resource, score]) }
 
         it 'should remove the item from persistence' do
           subject
@@ -171,7 +171,7 @@ module Sidekiq
             redis_conn.zadd("resources:persistent:#{name}", score_two, resource_two)
           end
 
-          it { is_expected.to eq(resource_two) }
+          it { is_expected.to eq([resource_two, score_two]) }
 
           it 'should remove only the best item from persistence' do
             subject
@@ -180,9 +180,9 @@ module Sidekiq
         end
 
         context 'when the score of the only item is really high for some reason' do
-          let(:score) { 'INF' }
+          let(:score) { 'inf' }
 
-          it { is_expected.to eq(resource) }
+          it { is_expected.to eq([resource, score]) }
         end
       end
 

@@ -35,9 +35,11 @@ module Sidekiq
       end
 
       def allocate
-        redis do |redis|
+        result = redis do |redis|
           redis.eval(ALLOCATE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, identity])
         end
+        result[1] = result[1].to_f unless result[1].include?('inf')
+        result
       end
 
       def free(resource, score)
