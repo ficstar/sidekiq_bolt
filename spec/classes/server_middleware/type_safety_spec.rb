@@ -11,14 +11,9 @@ module Sidekiq
           let(:args) { Faker::Lorem.paragraphs }
           let(:job) { {'queue' => queue_name, 'args' => args.dup} }
           let(:yield_result) { Faker::Lorem.word }
+          let(:worker) { nil }
 
-          it 'should yield' do
-            expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
-          end
-
-          it 'should return the value of the block' do
-            expect(subject.call(nil, job, nil) { yield_result }).to eq(yield_result)
-          end
+          it_behaves_like 'a server middleware'
 
           it 'should leave the args alone' do
             subject.call(nil, job, nil) {}

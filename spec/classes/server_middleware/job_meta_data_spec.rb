@@ -18,9 +18,7 @@ module Sidekiq
 
           before { allow(ChildScheduler).to receive(:new).with(job).and_return(child_scheduler) }
 
-          it 'should yield' do
-            expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
-          end
+          it_behaves_like 'a server middleware'
 
           it 'should schedule any child jobs after the work is done' do
             subject.call(worker, job, nil) do
