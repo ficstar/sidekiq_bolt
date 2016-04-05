@@ -21,6 +21,7 @@ module Sidekiq
 
     before do
       allow(Sidekiq.server_middleware).to receive(:invoke).with(a_kind_of(MockProcessorWorker), job, queue).and_yield
+      allow_any_instance_of(Processor).to receive(:handle_exception)
     end
 
     describe '#process' do
@@ -39,6 +40,10 @@ module Sidekiq
         processor.process(work)
       end
 
+      it 'should return an Observation' do
+        expect(processor.process(work)).to be_a_kind_of(ThomasUtils::Observation)
+      end
+
       context 'when the server middleware does not yield' do
         it 'should not execute the worker' do
           allow(Sidekiq.server_middleware).to receive(:invoke).with(a_kind_of(MockProcessorWorker), job, queue)
@@ -53,12 +58,33 @@ module Sidekiq
         end
       end
 
+      context 'when the block raises an error' do
+        let(:error) { Interrupt.new }
+
+        before { allow_any_instance_of(MockProcessorWorker).to receive(:perform).and_raise(error) }
+
+        it 'should still acknowledge the work' do
+          expect(work).to receive(:acknowledge)
+          processor.process(work)
+        end
+
+        it 'should execute the error handler for Sidekiq' do
+          expect_any_instance_of(Processor).to receive(:handle_exception).with(error, job)
+          processor.process(work)
+        end
+
+        it 'should raise the error on resolution' do
+          expect { processor.process(work).get }.to raise_error(error)
+        end
+      end
+
       describe 'work dispatch' do
         describe 'performing the work asynchronously' do
+          let(:mock_future) { ThomasUtils::Future.none }
 
           context 'when the work is not yet complete' do
             it 'should not acknowledge incomplete work' do
-              allow(ThomasUtils::Future).to receive(:immediate)
+              allow(ThomasUtils::Future).to receive(:immediate).and_return(mock_future)
               expect(work).not_to receive(:acknowledge)
               processor.process(work)
             end

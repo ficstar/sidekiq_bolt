@@ -6,13 +6,20 @@ module Sidekiq
       msg = Sidekiq.load_json(work.message)
       worker_klass = msg['class'].constantize
       worker = worker_klass.new
-      ThomasUtils::Future.immediate do
+      ack = false
+      future = ThomasUtils::Future.immediate do
         Sidekiq.server_middleware.invoke(worker, msg, work.queue_name) do
+          ack = true
           execute_job(worker, cloned(msg['args']))
-          work.acknowledge
         end
+      end.fallback do |error|
+        handle_exception(error, msg)
+        ThomasUtils::Future.error(error)
+      end.ensure do
+        work.acknowledge if ack
       end
       @boss.async.processor_done(current_actor)
+      future
     end
 
   end
