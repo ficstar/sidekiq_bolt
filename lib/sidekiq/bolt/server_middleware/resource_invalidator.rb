@@ -5,10 +5,14 @@ module Sidekiq
         include Util
 
         def call(_, _, _)
-          yield
-        rescue Exceptions::InvalidResource => invalid_resource
-          invalid_resource.allocator.destroy(invalid_resource.resource)
-          raise invalid_resource
+          ThomasUtils::Future.immediate do
+            yield
+          end.fallback do |invalid_resource|
+            if invalid_resource.is_a?(Exceptions::InvalidResource)
+              invalid_resource.allocator.destroy(invalid_resource.resource)
+            end
+            ThomasUtils::Future.error(invalid_resource)
+          end
         end
 
       end

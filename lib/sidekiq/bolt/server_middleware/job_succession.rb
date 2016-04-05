@@ -11,16 +11,12 @@ module Sidekiq
         REMOVE_DEPENDENCY_SCRIPT = File.read(REMOVE_DEPENDENCY_SCRIPT_PATH)
 
         def call(_, job, _)
-          failed = false
-          begin
+          ThomasUtils::Future.value(false).then do
             yield
-          rescue
-            failed = true
-            raise
-          ensure
-            if job['jid'] && (failed || job['resource'] != Resource::ASYNC_LOCAL_RESOURCE)
+          end.ensure do |_, error|
+            if job['jid'] && (error || job['resource'] != Resource::ASYNC_LOCAL_RESOURCE)
               argv = [job['pjid'], job['jid'], job['resource']]
-              argv << 'failed' if failed
+              argv << 'failed' if error
               run_script(:job_succession_remove_dependency, REMOVE_DEPENDENCY_SCRIPT, NAMESPACE_KEY, argv)
             end
           end

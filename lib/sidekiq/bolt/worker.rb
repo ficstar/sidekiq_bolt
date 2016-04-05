@@ -78,7 +78,7 @@ module Sidekiq
           job = error ? Sidekiq.load_json(original_message) : {'jid' => jid, 'pjid' => parent_job_id}
           ServerMiddleware::JobSuccession.new.call(self, job, nil) do
             ServerMiddleware::RetryJobs.new.call(self, job, nil) { raise error } if error
-          end
+          end.get
         end
       rescue => error
         Sidekiq.logger.error("Local async job failed: #{error}\n#{error.backtrace * "\n"}")

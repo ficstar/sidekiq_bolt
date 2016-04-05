@@ -37,7 +37,7 @@ module Sidekiq
             let(:error) { StandardError.new(Faker::Lorem.sentence) }
 
             it 'should re-raise the error' do
-              expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+              expect { subject.call(worker, job, nil) { raise error }.get }.to raise_error(error)
             end
           end
 

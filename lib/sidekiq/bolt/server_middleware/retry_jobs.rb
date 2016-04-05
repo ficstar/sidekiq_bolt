@@ -25,10 +25,10 @@ module Sidekiq
         NAMESPACE_KEY = [''].freeze
 
         def call(worker, job, _)
-          yield
-        rescue Exception => error
-          handle_retry(error, job, worker)
-          job.delete('jid')
+          ThomasUtils::Future.immediate { yield }.fallback do |error|
+            handle_retry(error, job, worker)
+            job.delete('jid')
+          end
         end
 
         private
@@ -41,7 +41,7 @@ module Sidekiq
 
           freeze_resource_if_necessary!(job, job_retry, resource, worker)
 
-          raise unless can_retry?(job, job_retry, worker)
+          raise error unless can_retry?(job, job_retry, worker)
 
           Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}")
 

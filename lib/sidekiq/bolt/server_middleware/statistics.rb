@@ -11,12 +11,14 @@ module Sidekiq
         NAMESPACE_KEY = [''].freeze
 
         def call(_, job, _)
-          result = yield
-          run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue']])
-          result
-        rescue
-          run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue'], true])
-          raise
+          ThomasUtils::Future.immediate do
+            yield
+          end.on_success_ensure do
+            run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue']])
+          end.fallback do |error|
+            run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue'], true])
+            ThomasUtils::Future.error(error)
+          end
         end
 
       end

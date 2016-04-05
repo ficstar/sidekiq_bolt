@@ -126,7 +126,7 @@ module Sidekiq
               let(:block) { ->(_) {} }
 
               it 'should raise an error' do
-                expect { subject.call(worker, job, nil) }.to raise_error("Expected worker '#{worker_class}' #context to yield, but it didn't!")
+                expect { subject.call(worker, job, nil).get }.to raise_error("Expected worker '#{worker_class}' #context to yield, but it didn't!")
               end
             end
           end

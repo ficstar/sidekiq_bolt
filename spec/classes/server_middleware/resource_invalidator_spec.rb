@@ -36,7 +36,7 @@ module Sidekiq
             end
 
             it 'should re-raise the error' do
-              expect { subject.call(nil, job, nil) { raise error } }.to raise_error(error)
+              expect { subject.call(nil, job, nil) { raise error }.get }.to raise_error(error)
             end
           end
 

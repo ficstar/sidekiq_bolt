@@ -25,7 +25,7 @@ module Sidekiq
           it_behaves_like 'a server middleware'
 
           it 'should not raise any script errors' do
-            expect { subject.call(nil, job, nil) {} }.not_to raise_error
+            expect { subject.call(nil, job, nil) {}.get }.not_to raise_error
           end
 
           it 'should increment the resource completed count' do
@@ -234,7 +234,7 @@ module Sidekiq
             it_behaves_like 'removing job dependencies'
 
             it 'should re-raise the error' do
-              expect { subject.call(nil, job, nil, &block) }.to raise_error
+              expect { subject.call(nil, job, nil, &block).get }.to raise_error
             end
 
             it 'should mark this job as failed' do

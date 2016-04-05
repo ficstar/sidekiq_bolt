@@ -4,16 +4,17 @@ module Sidekiq
       class WorkerContext
 
         def call(worker, job, _, &block)
-          successfully_setup = worker.respond_to?(:setup) ? worker.setup : true
-
-          if successfully_setup
-            handle_successful_setup(worker, &block)
-          else
-            handle_erroneous_setup(job, worker)
+          ThomasUtils::Future.immediate do
+            worker.respond_to?(:setup) ? worker.setup : true
+          end.then do |successfully_setup|
+            if successfully_setup
+              handle_successful_setup(worker, &block)
+            else
+              handle_erroneous_setup(job, worker)
+            end
+          end.ensure do
+            worker.teardown if worker.respond_to?(:teardown)
           end
-
-        ensure
-          worker.teardown if worker.respond_to?(:teardown)
         end
 
         private

@@ -128,21 +128,21 @@ module Sidekiq
               let(:retry_job) { false }
 
               it 'should raise the error' do
-                expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                expect { subject.call(worker, job, nil) { raise error }.get }.to raise_error(error)
               end
 
               context 'when the retry count is a number' do
                 let(:retry_job) { 1 }
 
                 it 'should not raise the error' do
-                  expect { subject.call(worker, job, nil) { raise error } }.not_to raise_error
+                  expect { subject.call(worker, job, nil) { raise error }.get }.not_to raise_error
                 end
 
                 context 'when the number of retries has been exhausted' do
                   let(:total_retries) { 1 }
 
                   it 'should raise the error' do
-                    expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                    expect { subject.call(worker, job, nil) { raise error }.get }.to raise_error(error)
                   end
                 end
               end
@@ -347,14 +347,14 @@ module Sidekiq
               end
 
               it 'should use that block to determine whether or not to retry' do
-                expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                expect { subject.call(worker, job, nil) { raise error }.get }.to raise_error(error)
               end
 
               context 'with a different error' do
                 let(:error) { Interrupt.new }
 
                 it 'should use that block to determine whether or not to retry' do
-                  expect { subject.call(worker, job, nil) { raise error } }.not_to raise_error
+                  expect { subject.call(worker, job, nil) { raise error }.get }.not_to raise_error
                 end
               end
 
@@ -362,7 +362,7 @@ module Sidekiq
                 before { job['borked!'] = true }
 
                 it 'should not retry' do
-                  expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                  expect { subject.call(worker, job, nil) { raise error }.get }.to raise_error(error)
                 end
               end
 
@@ -375,7 +375,7 @@ module Sidekiq
                 end
 
                 it 'should not retry' do
-                  expect { subject.call(worker, job, nil) { raise error } }.to raise_error(error)
+                  expect { subject.call(worker, job, nil) { raise error }.get }.to raise_error(error)
                 end
               end
             end
