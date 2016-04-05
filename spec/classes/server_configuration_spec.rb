@@ -23,6 +23,10 @@ module Sidekiq
           expect(Sidekiq.server_middleware).not_to exist(Middleware::Server::RetryJobs)
         end
 
+        it 'should remove the Sidekiq::Middleware::Server::Logging server middleware' do
+          expect(Sidekiq.server_middleware).not_to exist(Middleware::Server::Logging)
+        end
+
         it 'should add the Sidekiq::Bolt::ServerMiddleware::TypeSafety middleware' do
           expect(Sidekiq.server_middleware).to exist(ServerMiddleware::TypeSafety)
         end
