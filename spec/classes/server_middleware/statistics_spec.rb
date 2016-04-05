@@ -31,9 +31,7 @@ module Sidekiq
             global_redis.hmset("queue:stats:#{queue_name}", *prev_queue_statistics.to_a) unless prev_queue_statistics.empty?
           end
 
-          it 'should yield' do
-            expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
-          end
+          it_behaves_like 'a server middleware'
 
           context 'when an error happens' do
             let(:error) { StandardError.new(Faker::Lorem.sentence) }

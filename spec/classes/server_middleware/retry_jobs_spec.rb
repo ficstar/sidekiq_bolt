@@ -36,9 +36,7 @@ module Sidekiq
             end
           end
 
-          it 'should yield' do
-            expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
-          end
+          it_behaves_like 'a server middleware'
 
           context 'when the block raises an error' do
             let(:error) { StandardError.new(Faker::Lorem.sentence).tap { |err| err.set_backtrace(Faker::Lorem.paragraph) } }

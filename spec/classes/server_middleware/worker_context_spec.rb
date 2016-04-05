@@ -19,9 +19,7 @@ module Sidekiq
           let(:job) { original_job.dup }
           let(:original_message) { Sidekiq.dump_json(original_job) }
 
-          it 'should yield' do
-            expect { |block| subject.call(worker, job, nil, &block) }.to yield_control
-          end
+          it_behaves_like 'a server middleware'
 
           context 'when the worker responds to #setup' do
             let(:block_result) { true }

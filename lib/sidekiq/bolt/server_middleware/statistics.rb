@@ -11,8 +11,9 @@ module Sidekiq
         NAMESPACE_KEY = [''].freeze
 
         def call(_, job, _)
-          yield
+          result = yield
           run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue']])
+          result
         rescue
           run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue'], true])
           raise

@@ -11,10 +11,9 @@ module Sidekiq
           let(:args) { Faker::Lorem.paragraphs }
           let(:job) { {'queue' => queue_name, 'args' => args.dup} }
           let(:yield_result) { Faker::Lorem.word }
+          let(:worker) { nil }
 
-          it 'should yield' do
-            expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
-          end
+          it_behaves_like 'a server middleware'
 
           context 'when the block raises an exception' do
             let(:resource_type) { Faker::Lorem.word }

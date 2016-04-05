@@ -13,6 +13,7 @@ module Sidekiq
           let(:job) { {'pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name} }
           let(:next_job) { {} }
           let(:block) { -> {} }
+          let(:worker) { nil }
           let(:dependencies) { [job_id, SecureRandom.uuid] }
 
           before do
@@ -21,9 +22,7 @@ module Sidekiq
             global_redis.set("parent:#{job_id}", parent_job_id)
           end
 
-          it 'should yield' do
-            expect { |block| subject.call(nil, job, nil, &block) }.to yield_control
-          end
+          it_behaves_like 'a server middleware'
 
           it 'should not raise any script errors' do
             expect { subject.call(nil, job, nil) {} }.not_to raise_error
