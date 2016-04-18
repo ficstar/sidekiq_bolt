@@ -65,9 +65,9 @@ module Sidekiq
               expect(error_queue).to eq(queue_name)
             end
 
-            it 'should include the error information in the retrying job' do
+            it 'should include serializable error information in the retrying job' do
               subject.call(worker, job, nil) { raise error }
-              expect(error_job['error']).to eq(error)
+              expect(error_job['error']).to eq(SerializableError.new(error))
             end
 
             it 'should increment the number of times this error has been hit' do

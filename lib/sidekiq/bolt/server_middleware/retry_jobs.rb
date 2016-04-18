@@ -51,7 +51,7 @@ module Sidekiq
               Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}")
             end
 
-            job['error'] = error
+            job['error'] = SerializableError.new(error)
             serialized_job = Sidekiq.dump_json(job)
 
             retry_job!(job, job_retry, resource, serialized_job, worker)
