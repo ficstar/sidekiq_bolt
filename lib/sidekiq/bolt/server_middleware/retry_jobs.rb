@@ -26,8 +26,11 @@ module Sidekiq
 
         def call(worker, job, _)
           ThomasUtils::Future.immediate { yield }.fallback do |error|
-            handle_retry(error, job, worker)
-            job.delete('jid')
+            ThomasUtils::Future.immediate do
+              handle_retry(error, job, worker)
+            end.then do
+              job.delete('jid')
+            end
           end
         end
 
@@ -41,18 +44,20 @@ module Sidekiq
 
           freeze_resource_if_necessary!(job, job_retry, resource, worker)
 
-          raise error unless can_retry?(job, job_retry, worker)
+          if can_retry?(job, job_retry, worker)
+            if error.backtrace
+              Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}")
+            else
+              Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}")
+            end
 
-          if error.backtrace
-            Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}")
+            job['error'] = error
+            serialized_job = Sidekiq.dump_json(job)
+
+            retry_job!(job, job_retry, resource, serialized_job, worker)
           else
-            Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}")
+            ThomasUtils::Future.error(error)
           end
-
-          job['error'] = error
-          serialized_job = Sidekiq.dump_json(job)
-
-          retry_job!(job, job_retry, resource, serialized_job, worker)
         end
 
         def increment_retry_counts(error, job)
