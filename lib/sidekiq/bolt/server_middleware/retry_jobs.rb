@@ -43,7 +43,11 @@ module Sidekiq
 
           raise error unless can_retry?(job, job_retry, worker)
 
-          Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}")
+          if error.backtrace
+            Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}\n#{error.backtrace * "\n"}")
+          else
+            Sidekiq.logger.warn("Retrying job '#{job['jid']}': #{error}")
+          end
 
           job['error'] = error
           serialized_job = Sidekiq.dump_json(job)

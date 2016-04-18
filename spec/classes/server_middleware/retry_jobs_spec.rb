@@ -122,6 +122,18 @@ module Sidekiq
                 expect(Sidekiq.logger).to receive(:warn).with(log_message)
                 subject.call(worker, job, nil) { raise error }
               end
+
+              context 'with no backtrace' do
+                let(:error) { StandardError.new(Faker::Lorem.sentence) }
+                let(:log_message) do
+                  "Retrying job '#{job['jid']}': #{error}"
+                end
+
+                it 'should log the error to sidekiq' do
+                  expect(Sidekiq.logger).to receive(:warn).with(log_message)
+                  subject.call(worker, job, nil) { ThomasUtils::Future.error(error) }.get
+                end
+              end
             end
 
             context 'when this work cannot retry' do
