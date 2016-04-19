@@ -242,6 +242,22 @@ module Sidekiq
             expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
           end
 
+          describe 'persisting results to redis' do
+            let(:options) { {persist_result: true} }
+
+            it 'should indicate that this result will be persisted so that it may be picked up later' do
+              expect(result_item['persist']).to eq(true)
+            end
+
+            context 'when not to be persisted' do
+              let(:options) { {} }
+
+              it 'should not include that key' do
+                expect(result_item).not_to include('persist')
+              end
+            end
+          end
+
           context 'when a block is provided' do
             let(:result_scheduler) { scheduler_class.new }
             let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }

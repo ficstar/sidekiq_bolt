@@ -41,6 +41,7 @@ module Sidekiq
               'jid' => options[:job_id],
               'pjid' => options[:parent_job_id],
           }
+          item['persist'] = true if options[:persist_result]
           client_push(item, &block)
         end
 
