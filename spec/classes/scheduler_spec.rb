@@ -41,6 +41,22 @@ module Sidekiq
           it 'should use that job id' do
             expect(result_work['pjid']).to eq(custom_jid)
           end
+
+          describe 'persisting results to redis' do
+            let(:options) { {persist_result: true} }
+
+            it 'should indicate that this result will be persisted so that it may be picked up later' do
+              expect(result_work['persist']).to eq(true)
+            end
+
+            context 'when not to be persisted' do
+              let(:options) { {} }
+
+              it 'should not include that key' do
+                expect(result_work).not_to include('persist')
+              end
+            end
+          end
         end
       end
 

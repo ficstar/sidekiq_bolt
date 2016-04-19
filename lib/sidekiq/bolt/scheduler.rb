@@ -38,6 +38,7 @@ module Sidekiq
         new_job['resource'] = options[:resource] if options[:resource]
         new_job['jid'] = options[:job_id] if options[:job_id]
         new_job['pjid'] = options[:parent_job_id] if options[:parent_job_id]
+        new_job['persist'] = true if options[:persist_result]
 
         if block_given?
           scheduler = Scheduler.new(new_job)
