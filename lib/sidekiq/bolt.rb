@@ -35,6 +35,7 @@ if Sidekiq.server?
   require 'sidekiq/bolt/server_middleware/resource_invalidator'
   require 'sidekiq/bolt/server_middleware/worker_context'
   require 'sidekiq/bolt/server_middleware/statistics'
+  require 'sidekiq/bolt/server_middleware/persistence'
   require 'sidekiq/bolt/poller'
   require 'sidekiq/bolt/job_recovery_enq'
   unless Sidekiq.const_defined?('DisableBoltManager')
