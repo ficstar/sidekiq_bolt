@@ -11,6 +11,7 @@ module Sidekiq
 
       def enqueue_jobs
         pending_jobs = WAITING.keys
+        Sidekiq.logger.debug "WorkFuturePoller is pending jobs: #{pending_jobs.inspect}"
         serialized_results(pending_jobs).each.with_index do |serialized_result, index|
           job_id = pending_jobs[index]
           resolve_future(job_id, serialized_result)
