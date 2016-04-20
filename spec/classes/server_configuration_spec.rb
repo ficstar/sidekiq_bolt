@@ -6,7 +6,7 @@ module Sidekiq
 
       describe '.configure_server' do
         before do
-          Sidekiq.options[:additional_scheduled_enqs] = ['SomeEnq']
+          Sidekiq.options[:additional_scheduled_enqs] = %w(SomeEnq)
           Bolt.configure_server(Sidekiq)
         end
         after { Sidekiq.options[:additional_scheduled_enqs] = nil }
