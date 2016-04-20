@@ -24,6 +24,8 @@ module Sidekiq
 
         def serialized_work_result(error, value)
           Sidekiq.dump_json(work_result(error, value))
+        rescue Exception => serialize_error
+          Sidekiq.dump_json(SerializableError.new(serialize_error))
         end
 
         def work_result(error, value)

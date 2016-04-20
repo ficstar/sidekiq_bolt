@@ -47,6 +47,20 @@ module Sidekiq
             end
           end
 
+          context 'when the result cannot be serialized' do
+            let(:expected_result) { Mutex.new }
+
+            describe 'the resulting error' do
+              subject { result }
+
+              before { Persistence.new.call(nil, job, nil, &block).get rescue nil }
+
+              it { is_expected.to be_a_kind_of(SerializableError) }
+              its(:error_class) { is_expected.to eq(TypeError) }
+              its(:message) { is_expected.to eq('no _dump_data is defined for class Mutex') }
+            end
+          end
+
           context 'with an error' do
             let(:error) { StandardError.new(Faker::Lorem.sentence) }
             let(:block_result) { ThomasUtils::Future.error(error) }
