@@ -23,7 +23,11 @@ module Sidekiq
         if serialized_result
           result = Sidekiq.load_json(serialized_result)
           observable = WAITING[job_id]
-          observable.set(result)
+          if result.is_a?(SerializableError)
+            observable.fail(result)
+          else
+            observable.set(result)
+          end
           WAITING.delete(job_id)
         end
       end

@@ -27,6 +27,14 @@ module Sidekiq
             it { is_expected.to be_a_kind_of(ThomasUtils::Observation) }
             its(:get) { is_expected.to eq(result) }
 
+            context 'with an error' do
+              let(:error_message) { Faker::Lorem.sentence }
+              let(:error) { StandardError.new(error_message) }
+              let(:result) { SerializableError.new(error) }
+
+              it { expect { subject.get }.to raise_error(SerializableError, error_message) }
+            end
+
             context 'when #enqueue_jobs is called multiple time' do
               before { poller.enqueue_jobs }
 
