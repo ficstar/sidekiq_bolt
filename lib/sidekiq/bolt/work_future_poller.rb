@@ -10,13 +10,14 @@ module Sidekiq
       end
 
       def enqueue_jobs
-        job_id = WAITING.keys.first
-        serialized_result = Bolt.redis { |redis| redis.get("worker:results:#{job_id}") }
-        if serialized_result
-          result = Sidekiq.load_json(serialized_result)
-          observable = WAITING[job_id]
-          observable.set(result)
-          WAITING.delete(job_id)
+        WAITING.keys.each do |job_id|
+          serialized_result = Bolt.redis { |redis| redis.get("worker:results:#{job_id}") }
+          if serialized_result
+            result = Sidekiq.load_json(serialized_result)
+            observable = WAITING[job_id]
+            observable.set(result)
+            WAITING.delete(job_id)
+          end
         end
       end
 
