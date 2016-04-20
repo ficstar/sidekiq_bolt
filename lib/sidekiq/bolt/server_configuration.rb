@@ -6,6 +6,7 @@ module Sidekiq
       config.options[:scheduled_enq] = Poller
       config.options[:additional_scheduled_enqs] ||= []
       config.options[:additional_scheduled_enqs] << JobRecoveryEnq
+      config.options[:additional_scheduled_enqs] << WorkFuturePoller
       config.server_middleware do |chain|
         chain.prepend ServerMiddleware::JobMetaData
         chain.add ServerMiddleware::TypeSafety

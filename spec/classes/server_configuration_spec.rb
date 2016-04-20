@@ -59,6 +59,10 @@ module Sidekiq
           expect(Sidekiq.options[:additional_scheduled_enqs]).to include(JobRecoveryEnq)
         end
 
+        it 'should include the WorkFuturePoller among the additional_scheduled_enqs' do
+          expect(Sidekiq.options[:additional_scheduled_enqs]).to include(WorkFuturePoller)
+        end
+
         it 'should include previously defined additional_scheduled_enqs' do
           expect(Sidekiq.options[:additional_scheduled_enqs]).to include('SomeEnq')
         end
