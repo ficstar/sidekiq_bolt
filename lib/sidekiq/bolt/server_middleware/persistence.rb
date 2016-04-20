@@ -4,22 +4,33 @@ module Sidekiq
       class Persistence
 
         def call(_, job, _)
-          future = ThomasUtils::Future.immediate do
-            yield
+          future = ThomasUtils::Future.immediate { yield }
+
+          job['persist'] ? persist_result(future, job) : future
+        end
+
+        private
+
+        def persist_result(future, job)
+          future.on_complete do |value, error|
+            serialized_value = serialized_work_result(error, value)
+            Bolt.redis { |redis| redis.set(worker_result_key(job), serialized_value) }
           end
-          if job['persist']
-            future.on_complete do |value, error|
-              result = if error
-                         SerializableError.new(error)
-                       else
-                         value
-                       end
-              serialized_value = Sidekiq.dump_json(result)
-              key = "worker:results:#{job['jid']}"
-              Bolt.redis { |redis| redis.set(key, serialized_value) }
-            end
+        end
+
+        def worker_result_key(job)
+          "worker:results:#{job['jid']}"
+        end
+
+        def serialized_work_result(error, value)
+          Sidekiq.dump_json(work_result(error, value))
+        end
+
+        def work_result(error, value)
+          if error
+            SerializableError.new(error)
           else
-            future
+            value
           end
         end
 
