@@ -15,6 +15,7 @@ module Sidekiq
         chain.add ServerMiddleware::RetryJobs
         chain.add ServerMiddleware::ResourceInvalidator
         chain.add ServerMiddleware::WorkerContext
+        chain.add ServerMiddleware::Persistence
       end
       configure_client(config)
     end
