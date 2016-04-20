@@ -6,7 +6,7 @@ module Sidekiq
       def self.await(job_id)
         observable = Concurrent::IVar.new
         WAITING[job_id] = observable
-        ThomasUtils::Observation.new(ThomasUtils::Future::IMMEDIATE_EXECUTOR, observable)
+        ThomasUtils::Observation.new(ThomasUtils::Future::DEFAULT_EXECUTOR, observable)
       end
 
       def enqueue_jobs
