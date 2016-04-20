@@ -6,7 +6,7 @@ module Sidekiq
         def call(_, job, _)
           future = ThomasUtils::Future.immediate { yield }
 
-          job['persist'] ? persist_result(future, job) : future
+          (job['persist'] && job['jid']) ? persist_result(future, job) : future
         end
 
         private

@@ -22,7 +22,7 @@ module Sidekiq
 
           it_behaves_like 'a server middleware'
 
-          it 'should save the result to redis when complete' do
+          it 'should save the result to redis' do
             subject.call(nil, job, nil, &block).get
             expect(result).to eq(expected_result)
           end
@@ -31,6 +31,17 @@ module Sidekiq
             let(:persist_result) { nil }
 
             it 'should not save the result to redis when complete' do
+              subject.call(nil, job, nil, &block).get
+              expect(result).to be_nil
+            end
+          end
+
+          context 'when the job id has been removed' do
+            let(:serialized_result) { global_redis.get('worker:results:') }
+
+            before { job.delete('jid') }
+
+            it 'should not save the result to redis' do
               subject.call(nil, job, nil, &block).get
               expect(result).to be_nil
             end
