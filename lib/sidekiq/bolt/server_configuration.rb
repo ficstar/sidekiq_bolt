@@ -11,12 +11,12 @@ module Sidekiq
         chain.prepend ServerMiddleware::JobMetaData
         chain.add ServerMiddleware::TypeSafety
         chain.add ServerMiddleware::JobSuccession
+        chain.add ServerMiddleware::Persistence
         chain.remove Middleware::Server::RetryJobs
         chain.remove Middleware::Server::Logging
         chain.add ServerMiddleware::RetryJobs
         chain.add ServerMiddleware::ResourceInvalidator
         chain.add ServerMiddleware::WorkerContext
-        chain.add ServerMiddleware::Persistence
       end
       configure_client(config)
     end
