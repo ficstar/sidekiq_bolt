@@ -10,6 +10,8 @@ module Sidekiq
       ALLOCATE_SCRIPT = File.read(ALLOCATE_SCRIPT_PATH)
       FREE_SCRIPT_PATH = "#{SCRIPT_ROOT}/free.lua"
       FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
+      DESTROY_SCRIPT_PATH = "#{SCRIPT_ROOT}/destroy.lua"
+      DESTROY_SCRIPT = File.read(DESTROY_SCRIPT_PATH)
 
       def initialize(name, redis_pool = nil)
         @redis_pool = redis_pool
@@ -28,10 +30,8 @@ module Sidekiq
       end
 
       def destroy(resource)
-        backup_resource = JSON.dump(resource: name, item: resource)
         redis do |redis|
-          redis.zrem("resources:persistent:#{name}", resource)
-          redis.lrem("resources:persistent:backup:worker:#{identity}", 0, backup_resource)
+          redis.eval(DESTROY_SCRIPT, keys: NAMESPACE_KEY, argv: [name, resource, identity])
           resource
         end
       end
