@@ -8,6 +8,8 @@ module Sidekiq
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
       ALLOCATE_SCRIPT_PATH = "#{SCRIPT_ROOT}/alloc.lua"
       ALLOCATE_SCRIPT = File.read(ALLOCATE_SCRIPT_PATH)
+      FREE_SCRIPT_PATH = "#{SCRIPT_ROOT}/free.lua"
+      FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
 
       def initialize(name, redis_pool = nil)
         @redis_pool = redis_pool
@@ -45,12 +47,8 @@ module Sidekiq
       end
 
       def free(resource, score)
-        backup_resource = JSON.dump(resource: name, item: resource)
         redis do |redis|
-          redis.pipelined do
-            redis.zadd("resources:persistent:#{name}", score, resource)
-            redis.lrem("resources:persistent:backup:worker:#{identity}", 0, backup_resource)
-          end
+          redis.eval(FREE_SCRIPT, keys: NAMESPACE_KEY, argv: [name, resource, score, identity])
         end
       end
 
