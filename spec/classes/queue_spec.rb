@@ -252,12 +252,13 @@ module Sidekiq
 
       describe '#enqueue' do
         let(:resource_name) { Faker::Lorem.word }
+        let(:resource_param) { resource_name }
         let(:workload) { SecureRandom.uuid }
         let(:resource) { Resource.new(resource_name) }
         let(:allocated_work) { resource.allocate(1) }
 
         context 'when the work is not retrying' do
-          before { subject.enqueue(resource_name, workload) }
+          before { subject.enqueue(resource_param, workload) }
 
           it 'should add work to the specified resource' do
             expect(allocated_work).to eq([name, workload])
@@ -265,6 +266,15 @@ module Sidekiq
 
           it 'should not add this work to the retrying queue' do
             expect(resource.retrying).to eq(0)
+          end
+
+          context 'when the resource is an object, rather than a name' do
+            let(:resource_param) { resource }
+            let(:resource) { Resource.new(resource_name) }
+
+            it 'should add work to the specified resource' do
+              expect(allocated_work).to eq([name, workload])
+            end
           end
         end
 

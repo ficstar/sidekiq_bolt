@@ -73,8 +73,9 @@ module Sidekiq
         Bolt.redis { |redis| redis.get("queue:busy:#{name}").to_i }
       end
 
-      def enqueue(resource_name, workload, retrying = false)
-        Resource.new(resource_name).add_work(name, workload, retrying)
+      def enqueue(resource, workload, retrying = false)
+        resource = Resource.new(resource) unless resource.is_a?(Resource)
+        resource.add_work(name, workload, retrying)
       end
 
     end
