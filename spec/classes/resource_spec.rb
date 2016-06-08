@@ -252,6 +252,16 @@ module Sidekiq
           expect(global_redis.rpop('resource:queue:workload:resourceful')).to eq('piece_of_work')
         end
 
+        context 'when the queue name is actually a queue object' do
+          let(:queue_name) { Faker::Lorem.word }
+          let(:queue) { Queue.new(queue_name) }
+
+          it 'should use the name of the queue' do
+            subject.add_work(queue, work)
+            expect(global_redis.rpop("resource:queue:#{queue_name}:resourceful")).to eq('piece_of_work')
+          end
+        end
+
         context 'when the work is consider retrying' do
           let(:work) { SecureRandom.uuid }
           let(:name) { Faker::Lorem.word }
