@@ -1,8 +1,8 @@
 GIT
   remote: git://github.com/thomasrogers03/thomas_utils.git
-  revision: 1beca661890cb9aee88177167493b1dabb30e021
+  revision: b3d50368ce9958ed9c8f8c83cfe8fe3f166ae223
   specs:
-    thomas_utils (0.2.2)
+    thomas_utils (0.2.3)
       concurrent-ruby (~> 1.0.0)
       workers (~> 0.3)
 
@@ -32,8 +32,8 @@ GEM
     celluloid-supervision (0.20.5)
       timers (>= 4.1.1)
     coderay (1.1.0)
-    concurrent-ruby (1.0.1)
-    concurrent-ruby (1.0.1-java)
+    concurrent-ruby (1.0.2)
+    concurrent-ruby (1.0.2-java)
     connection_pool (2.2.0)
     diff-lcs (1.2.5)
     docile (1.1.5)
