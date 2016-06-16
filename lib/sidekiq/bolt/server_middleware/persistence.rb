@@ -4,7 +4,7 @@ module Sidekiq
       class Persistence
 
         def call(_, job, _)
-          future = ThomasUtils::Future.immediate { yield }
+          future = ThomasUtils::Future.none.then { yield }
 
           (job['persist'] && job['jid']) ? persist_result(future, job) : future
         end

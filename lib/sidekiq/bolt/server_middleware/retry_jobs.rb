@@ -25,8 +25,8 @@ module Sidekiq
         NAMESPACE_KEY = [''].freeze
 
         def call(worker, job, _)
-          ThomasUtils::Future.immediate { yield }.fallback do |error|
-            ThomasUtils::Future.immediate do
+          ThomasUtils::Future.none.then { yield }.fallback do |error|
+            ThomasUtils::Future.none.then do
               handle_retry(error, job, worker)
             end.then do
               job.delete('jid')
