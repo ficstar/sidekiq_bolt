@@ -15,9 +15,8 @@ module Sidekiq
             yield
           end.on_success_ensure do
             run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue']])
-          end.fallback do |error|
+          end.on_failure_ensure do
             run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue'], true])
-            ThomasUtils::Future.error(error)
           end
         end
 
