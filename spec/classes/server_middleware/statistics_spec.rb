@@ -100,7 +100,8 @@ module Sidekiq
             end
 
             it { is_expected.to include(method: :call) }
-            it { is_expected.to include(name: worker_class_name) }
+            it { is_expected.to include(name: :bolt_statistics) }
+            it { is_expected.to include(worker_class: worker_class_name) }
             it { is_expected.to include(queue: queue_name) }
             it { is_expected.to include(resource: resource_name) }
             it { is_expected.to include(started_at: time_one) }

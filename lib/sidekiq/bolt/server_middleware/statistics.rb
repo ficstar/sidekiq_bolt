@@ -17,7 +17,7 @@ module Sidekiq
           end.on_failure_ensure do
             run_script(:stats_count, COUNT_STATS_SCRIPT, NAMESPACE_KEY, [job['resource'], job['queue'], true])
           end
-          monitor_performance(__method__, {name: job['class'], queue: job['queue'], resource: job['resource']}, future)
+          monitor_performance(__method__, {name: :bolt_statistics, worker_class: job['class'], queue: job['queue'], resource: job['resource']}, future)
         end
 
       end
