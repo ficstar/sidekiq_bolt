@@ -92,8 +92,9 @@ module Sidekiq
             subject { performance_logger.log.first }
 
             before do
-              allow_any_instance_of(ThomasUtils::Observation).to receive(:on_timed) do |&block|
+              allow_any_instance_of(ThomasUtils::Observation).to receive(:on_timed) do |observation, &block|
                 block[time_one, time_two, duration, nil, nil]
+                observation
               end
               middleware.call(worker, job, nil) {}
             end
