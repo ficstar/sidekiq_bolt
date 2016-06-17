@@ -14,8 +14,9 @@ module Sidekiq
           let(:resource_name) { Faker::Lorem.word }
           let(:job_id) { SecureRandom.uuid }
           let(:parent_job_id) { SecureRandom.uuid }
+          let(:worker_class_name) { Faker::Lorem.word }
           #noinspection RubyStringKeysInHashInspection
-          let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id} }
+          let(:original_job) { {'class' => worker_class_name, 'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id} }
           let(:job) { original_job.dup }
           let(:prev_resource_statistics) { {} }
           let(:prev_queue_statistics) { {} }
@@ -81,6 +82,29 @@ module Sidekiq
               it_behaves_like 'incrementing a statistic', :resource_statistics, 'error'
               it_behaves_like 'incrementing a statistic', :queue_statistics, 'error'
             end
+          end
+
+          describe 'logging performance metrics' do
+            let(:time_one) { Time.now }
+            let(:duration) { rand * 60 }
+            let(:time_two) { time_one + duration }
+
+            subject { performance_logger.log.first }
+
+            before do
+              allow_any_instance_of(ThomasUtils::Observation).to receive(:on_timed) do |&block|
+                block[time_one, time_two, duration, nil, nil]
+              end
+              middleware.call(worker, job, nil) {}
+            end
+
+            it { is_expected.to include(method: :call) }
+            it { is_expected.to include(name: worker_class_name) }
+            it { is_expected.to include(queue: queue_name) }
+            it { is_expected.to include(resource: resource_name) }
+            it { is_expected.to include(started_at: time_one) }
+            it { is_expected.to include(completed_at: time_two) }
+            it { is_expected.to include(duration: duration) }
           end
 
         end
