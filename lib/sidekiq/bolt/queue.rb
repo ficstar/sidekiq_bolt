@@ -35,7 +35,7 @@ module Sidekiq
 
       def job
         job_name = Bolt.redis { |redis| redis.get("queue:job:#{name}") }
-        Job.new(job_name)
+        Job.new(job_name) if job_name
       end
 
       def paused=(value)

@@ -97,12 +97,16 @@ module Sidekiq
       end
 
       describe '#job' do
-        let(:job_name) { Faker::Lorem.sentence }
-        let(:job) { Job.new(job_name) }
+        its(:job) { is_expected.to be_nil }
 
-        before { job.add_queue(name) }
+        context 'with an associated job' do
+          let(:job_name) { Faker::Lorem.sentence }
+          let(:job) { Job.new(job_name) }
 
-        its(:job) { is_expected.to eq(job) }
+          before { job.add_queue(name) }
+
+          its(:job) { is_expected.to eq(job) }
+        end
       end
 
       shared_examples_for 'a queue attribute preventing operation on the queue' do |attribute|
