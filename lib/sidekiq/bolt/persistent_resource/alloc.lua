@@ -5,7 +5,9 @@ local worker_backup_key = namespace .. 'resources:persistent:backup:worker:' .. 
 local resource_key = namespace .. 'resources:persistent:' .. resource_name
 
 local item = redis.call('zrangebyscore', resource_key, '-INF', 'INF', 'LIMIT', 0, 1, 'WITHSCORES')
-redis.call('zrem', resource_key, item[1])
+if item[1] then
+    redis.call('zrem', resource_key, item[1])
+end
 
 local backup_item = { resource = resource_name, item = item[1] }
 redis.call('lpush', worker_backup_key, cjson.encode(backup_item))
