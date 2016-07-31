@@ -21,7 +21,7 @@ module Sidekiq
 
         def perform_async(*args, &block)
           #noinspection RubyStringKeysInHashInspection
-          client_push({'class' => self, 'args' => args}, &block)
+          perform_async_with_options({}, *args, &block)
         end
 
         def perform_in(interval, *args)
