@@ -40,6 +40,7 @@ module Sidekiq
               'resource' => options[:resource],
               'jid' => options[:job_id],
               'pjid' => options[:parent_job_id],
+              'job' => options[:job]
           }
           item['persist'] = true if options[:persist_result]
           client_push(item, &block)
@@ -63,6 +64,10 @@ module Sidekiq
         def client_push(item, &block)
           item['jid'] ||= SecureRandom.base64(16)
           item['pjid'] ||= get_sidekiq_options['queue']
+
+          queue = get_sidekiq_options['queue']
+          item['job'] ||= get_sidekiq_options['job']
+          Job.new(item['job']).add_queue(queue) if item['job']
 
           if block
             sheduler = Scheduler.new(item)

@@ -20,6 +20,12 @@ module Sidekiq
         sidekiq_options queue: QUEUE_NAME
       end
 
+      class MockWorkerFour
+        include Worker
+        JOB_NAME = Faker::Lorem.word
+        sidekiq_options job: JOB_NAME
+      end
+
       let(:args) { Faker::Lorem.paragraphs }
       let(:queue_name) { 'default' }
       let(:resource_name) { 'default' }
@@ -110,8 +116,10 @@ module Sidekiq
       end
 
       describe '.perform_async' do
+        let(:queue) { Queue.new(queue_name) }
         let(:result_jid) { result_item['jid'] }
         let(:result_parent_job_id) { result_item['pjid'] }
+        let(:result_queue_job) { queue.job }
         let(:expected_jid) { SecureRandom.base64(16) }
         let(:expected_parent_job_id) { result_item['queue'] }
         let(:block) { nil }
@@ -141,6 +149,19 @@ module Sidekiq
 
             it 'should set parent job id to the queue' do
               expect(result_parent_job_id).to eq(expected_parent_job_id)
+            end
+          end
+
+          it 'does not associate the job with the queue' do
+            expect(result_queue_job).to be_nil
+          end
+
+          context 'with a job name provided' do
+            let(:klass) { MockWorkerFour }
+            let(:job_name) { MockWorkerFour::JOB_NAME }
+
+            it 'associates the job with the queue' do
+              expect(result_queue_job).to eq(Job.new(job_name))
             end
           end
 
@@ -290,6 +311,16 @@ module Sidekiq
 
             it 'should use the new queue' do
               expect(result_item['queue']).to eq(new_queue)
+            end
+          end
+
+          context 'with an overridden job' do
+            let(:new_job) { Faker::Lorem.word }
+            let(:options) { {job: new_job} }
+            let(:queue) { Queue.new(queue_name) }
+
+            it 'should use the new queue' do
+              expect(queue.job).to eq(Job.new(new_job))
             end
           end
 
