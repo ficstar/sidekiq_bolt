@@ -1,8 +1,8 @@
 GIT
   remote: git://github.com/thomasrogers03/thomas_utils.git
-  revision: fb1b7a73d3a0ac1c145ba8ab4ed7a10f2a32fdbc
+  revision: 5dfc9abf0f2470ac28e102367cf9b335cbba9f91
   specs:
-    thomas_utils (0.2.5)
+    thomas_utils (0.2.7)
       concurrent-ruby (~> 1.0.0)
       workers (~> 0.3)
 
@@ -150,4 +150,4 @@ DEPENDENCIES
   timecop
 
 BUNDLED WITH
-   1.10.6
+   1.12.5

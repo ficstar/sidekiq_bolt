@@ -45,7 +45,9 @@ for _, queue in ipairs(queue_names) do
                     end
                     amount = amount + to_return
 
-                    redis.call('incrby', allocated_key, to_return)
+                    if to_return < 0 then
+                        redis.call('incrby', allocated_key, to_return)
+                    end
                 end
             end
 
