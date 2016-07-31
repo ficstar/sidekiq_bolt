@@ -33,6 +33,11 @@ module Sidekiq
         end.map { |name| Resource.new(name) }
       end
 
+      def job
+        job_name = Bolt.redis { |redis| redis.get("queue:job:#{name}") }
+        Job.new(job_name)
+      end
+
       def paused=(value)
         Bolt.redis do |redis|
           if value

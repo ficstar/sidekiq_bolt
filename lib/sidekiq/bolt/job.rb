@@ -4,7 +4,10 @@ module Sidekiq
 
       def add_queue(queue_name)
         Bolt.redis do |redis|
-          redis.sadd("job:queues:#{name}", queue_name)
+          redis.pipelined do
+            redis.sadd("job:queues:#{name}", queue_name)
+            redis.set("queue:job:#{queue_name}", name)
+          end
         end
       end
 

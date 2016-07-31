@@ -19,6 +19,11 @@ module Sidekiq
           subject.add_queue(queue_name)
           expect(global_redis.smembers("job:queues:#{name}")).to include(queue_name)
         end
+
+        it 'creates a reference from the queue to the job' do
+          subject.add_queue(queue_name)
+          expect(global_redis.get("queue:job:#{queue_name}")).to eq(name)
+        end
       end
 
       describe '#queues' do
