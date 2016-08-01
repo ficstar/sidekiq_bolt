@@ -16,7 +16,7 @@ module Sidekiq
           run_work_now(item)
         end
 
-        unless allocate_worker(item) { schedule_local_work(item) }
+        unless Sidekiq.server? && allocate_worker(item) { schedule_local_work(item) }
           enqueue_item(item)
         end
       end

@@ -90,6 +90,16 @@ module Sidekiq
               end
               subject.skeleton_push(item)
             end
+
+            context 'when a Sidekiq client' do
+              before { allow(Sidekiq).to receive(:server?).and_return(false) }
+
+              it 'should push the item on to the queue' do
+                subject.skeleton_push(item)
+                global_redis.set("resource:allocated:#{resource_name}", 0)
+                expect(result_item).not_to be_nil
+              end
+            end
           end
         end
 
