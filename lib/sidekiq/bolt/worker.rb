@@ -65,7 +65,7 @@ module Sidekiq
           item['jid'] ||= SecureRandom.base64(16)
           item['pjid'] ||= get_sidekiq_options['queue']
 
-          queue = get_sidekiq_options['queue']
+          queue = item['queue'] || get_sidekiq_options['queue']
           item['job'] ||= get_sidekiq_options['job']
           Job.new(item['job']).add_queue(queue) if item['job']
 

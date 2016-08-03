@@ -312,6 +312,16 @@ module Sidekiq
             it 'should use the new queue' do
               expect(result_item['queue']).to eq(new_queue)
             end
+
+            context 'with an overridden job' do
+              let(:new_job) { Faker::Lorem.word }
+              let(:options) { {job: new_job, queue: new_queue} }
+              let(:queue) { Queue.new(new_queue) }
+
+              it 'should use the new queue' do
+                expect(queue.job).to eq(Job.new(new_job))
+              end
+            end
           end
 
           context 'with an overridden job' do
