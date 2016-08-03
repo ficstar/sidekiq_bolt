@@ -8,6 +8,17 @@ module Sidekiq
 
       subject { Job.new(name) }
 
+      describe '.all' do
+        let(:job_names) { Faker::Lorem.words }
+        let(:expected_jobs) { job_names.map { |name| Job.new(name) } }
+
+        subject { Job.all }
+
+        before { expected_jobs.each { |job| job.add_queue(SecureRandom.uuid) } }
+
+        it { is_expected.to match_array(expected_jobs) }
+      end
+
       describe '#name' do
         its(:name) { is_expected.to eq(name) }
       end

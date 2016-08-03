@@ -2,6 +2,12 @@ module Sidekiq
   module Bolt
     class Job < Struct.new(:name)
 
+      def self.all
+        Bolt.redis { |redis| redis.smembers('jobs') }.map do |job_name|
+          new(job_name)
+        end
+      end
+
       def add_queue(queue_name)
         Bolt.redis do |redis|
           redis.pipelined do
