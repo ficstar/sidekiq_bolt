@@ -434,6 +434,13 @@ module Sidekiq
       describe '#allocate' do
         let(:retrying) { false }
 
+        shared_examples_for 'incrementing the busy count on a queue' do |expected_busy|
+          it 'should increment the busy count on the queue' do
+            subject.allocate(amount)
+            expect(global_redis.get('queue:busy:queue')).to eq(expected_busy)
+          end
+        end
+
         shared_examples_for 'allocating work from the resource' do
           let(:amount) { 5 }
           let(:limit) { nil }
@@ -469,10 +476,7 @@ module Sidekiq
             expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
           end
 
-          it 'should increment the busy count on the queue' do
-            subject.allocate(amount)
-            expect(global_redis.get('queue:busy:queue')).to eq('5')
-          end
+          it_behaves_like 'incrementing the busy count on a queue', '5'
 
           context 'when the resource is frozen' do
             before { subject.frozen = true }
@@ -513,10 +517,7 @@ module Sidekiq
               expect(subject.allocated).to eq(17)
             end
 
-            it 'should increment the busy count on the queue' do
-              subject.allocate(amount)
-              expect(global_redis.get('queue:busy:queue')).to eq('17')
-            end
+            it_behaves_like 'incrementing the busy count on a queue', '17'
           end
 
           context 'when the queue does not contain enough work' do
@@ -527,10 +528,7 @@ module Sidekiq
               expect(subject.allocated).to eq(2)
             end
 
-            it 'should increment the busy count on the queue by the amount of actual work' do
-              subject.allocate(amount)
-              expect(global_redis.get('queue:busy:queue')).to eq('2')
-            end
+            it_behaves_like 'incrementing the busy count on a queue', '2'
           end
 
           context 'when allocated multiple times' do
@@ -562,10 +560,7 @@ module Sidekiq
                 expect(subject.allocate(amount)).to match_array(allocated_work)
               end
 
-              it 'should increment the busy count on the queue by the amount of actual work' do
-                subject.allocate(amount)
-                expect(global_redis.get('queue:busy:queue')).to eq('5')
-              end
+              it_behaves_like 'incrementing the busy count on a queue', '5'
 
               context 'with multiple queues having work' do
                 let(:queue_two) { 'queue][' }
