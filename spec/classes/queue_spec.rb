@@ -147,7 +147,7 @@ module Sidekiq
 
         context 'with resources' do
           let(:work_count) { rand(1..10) }
-          let(:resource) { Resource.new(Faker::Lorem.word) }
+          let(:resource) { Resource.new(Faker::Lorem.sentence) }
           let(:resource_attribute_count) { work_count }
 
           before do
@@ -158,7 +158,7 @@ module Sidekiq
 
           context 'with multiple resources' do
             let(:work_count_two) { rand(1..10) }
-            let(:resource_two) { Resource.new(Faker::Lorem.word) }
+            let(:resource_two) { Resource.new(Faker::Lorem.sentence) }
             let(:resource_attribute_count_two) { work_count_two }
 
             before do
@@ -166,6 +166,17 @@ module Sidekiq
             end
 
             its(method) { is_expected.to eq(resource_attribute_count + resource_attribute_count_two) }
+          end
+
+          context 'with multiple queues sharing the resource' do
+            let(:queue_two) { Faker::Lorem.sentence }
+            let(:work_count_two) { rand(1..10) }
+
+            before do
+              work_count_two.times { resource.add_work(queue_two, SecureRandom.uuid) }
+            end
+
+            its(method) { is_expected.to eq(resource_attribute_count) }
           end
         end
       end

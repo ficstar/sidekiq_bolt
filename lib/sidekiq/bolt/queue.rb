@@ -67,7 +67,7 @@ module Sidekiq
       end
 
       def size
-        resources.map(&:size).reduce(&:+) || 0
+        resources.map { |resource| resource.size_for_queue(name) }.reduce(&:+) || 0
       end
 
       def retrying
