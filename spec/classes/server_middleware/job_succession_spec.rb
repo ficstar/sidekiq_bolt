@@ -15,6 +15,7 @@ module Sidekiq
           let(:block) { -> {} }
           let(:worker) { nil }
           let(:dependencies) { [job_id, SecureRandom.uuid] }
+          let(:one_week) { 60 * 60 * 24 * 7 }
 
           before do
             dependencies.each { |jid| global_redis.sadd("dependencies:#{parent_job_id}", jid) }
@@ -283,6 +284,11 @@ module Sidekiq
                 it 'should mark the parent job as failed' do
                   subject.call(nil, job, nil, &block) rescue nil
                   expect(global_redis.get("job_failed:#{parent_job_id}")).to eq('true')
+                end
+
+                it 'should set an expiry for the job failure key' do
+                  subject.call(nil, job, nil, &block) rescue nil
+                  expect(global_redis.ttl("job_failed:#{parent_job_id}")).to be_within(1).of(one_week)
                 end
 
                 it 'should still clear the schedule succession queue' do
