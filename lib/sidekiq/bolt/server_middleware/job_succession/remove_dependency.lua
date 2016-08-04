@@ -29,6 +29,7 @@ while job_id do
 
     local dependency_count = redis.call('scard', dependencies_key)
     local scheduled_work_key = namespace .. 'successive_work:' .. job_id
+    local parent_failure_count_key
 
     parent_failure_count = 0
     if job_failed then
@@ -37,7 +38,7 @@ while job_id do
         redis.call('expire', job_failed_key, one_week)
 
         if parent_job_id then
-            local parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
+            parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
             parent_failure_count = redis.call('incr', parent_failure_count_key)
             redis.call('expire', parent_failure_count_key, one_week)
         end
@@ -71,6 +72,8 @@ while job_id do
 
                 if parent_failure_count < parent_failure_limit then
                     job_failed = false
+                else
+                    redis.call('del', parent_failure_count_key)
                 end
             end
         else

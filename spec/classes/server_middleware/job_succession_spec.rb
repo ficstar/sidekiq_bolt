@@ -318,6 +318,10 @@ module Sidekiq
                       expect(result_work).to eq(work)
                     end
 
+                    it 'sets an expiry for the failure count key' do
+                      expect(global_redis.ttl("job_failured_count:#{parent_job_id}")).to be_within(1).of(one_week)
+                    end
+
                     context 'when the parent has too many child failures' do
                       let(:failure_count) { 1 }
 
@@ -325,8 +329,8 @@ module Sidekiq
                         expect(result_work).to be_nil
                       end
 
-                      it 'sets an expiry for the failure count key' do
-                        expect(global_redis.ttl("job_failured_count:#{parent_job_id}")).to be_within(1).of(one_week)
+                      it 'remove the failure count key entirely' do
+                        expect(global_redis.get("job_failured_count:#{parent_job_id}")).to be_nil
                       end
                     end
                   end
