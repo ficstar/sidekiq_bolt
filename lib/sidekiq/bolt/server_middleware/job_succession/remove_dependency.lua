@@ -39,6 +39,7 @@ while job_id do
         if parent_job_id then
             local parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
             parent_failure_count = redis.call('incr', parent_failure_count_key)
+            redis.call('expire', parent_failure_count_key, one_week)
         end
         redis.call('del', scheduled_work_key)
     end

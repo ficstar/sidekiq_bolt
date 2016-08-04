@@ -324,6 +324,10 @@ module Sidekiq
                       it 'should not enqueue the scheduled work' do
                         expect(result_work).to be_nil
                       end
+
+                      it 'sets an expiry for the failure count key' do
+                        expect(global_redis.ttl("job_failured_count:#{parent_job_id}")).to be_within(1).of(one_week)
+                      end
                     end
                   end
                 end
