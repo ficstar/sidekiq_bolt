@@ -75,6 +75,11 @@ module Sidekiq
         Bolt.redis { |redis| redis.smembers("resource:queues:#{name}") }
       end
 
+      def size_for_queue(queue)
+        queue = queue.name if queue.is_a?(Queue)
+        Bolt.redis { |redis| redis.llen("resource:queue:#{queue}:#{name}") }.to_i
+      end
+
       def size
         run_script(:resource_size, SIZE_SCRIPT, NAMESPACE_KEY, [name, ''])
       end

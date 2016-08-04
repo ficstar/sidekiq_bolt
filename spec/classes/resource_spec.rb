@@ -354,6 +354,40 @@ module Sidekiq
         end
       end
 
+      describe '#size_for_queue' do
+        let(:queue) { SecureRandom.base64 }
+        let(:counted_queue) { queue }
+        let(:work) { Faker::Lorem.words(4) }
+        let(:resource) { Resource.new(name) }
+
+        subject { resource.size_for_queue(counted_queue) }
+
+        before { work.each { |item| resource.add_work(queue, item) } }
+
+        it { is_expected.to eq(4) }
+
+        context 'with multiple queues' do
+          let(:queue_two) { SecureRandom.base64 }
+          let(:work_two) { Faker::Lorem.words(7) }
+
+          before { work_two.each { |item| resource.add_work(queue_two, item) } }
+
+          it { is_expected.to eq(4) }
+
+          context 'with the other queue' do
+            let(:counted_queue) { queue_two }
+
+            it { is_expected.to eq(7) }
+          end
+        end
+
+        context 'when the request queue is a Queue object' do
+          let(:counted_queue) { Queue.new(queue) }
+
+          it { is_expected.to eq(4) }
+        end
+      end
+
       shared_examples_for 'counting work in queues' do |method, retrying|
         let(:queues) { %w(queue1 queue2) }
         let(:work) { 2 }
