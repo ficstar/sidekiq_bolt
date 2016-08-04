@@ -313,6 +313,10 @@ module Sidekiq
               expect(result_item['queue']).to eq(new_queue)
             end
 
+            it 'should use the new queue as the parent job id' do
+              expect(result_item['pjid']).to eq(new_queue)
+            end
+
             context 'with an overridden job' do
               let(:new_job) { Faker::Lorem.word }
               let(:options) { {job: new_job, queue: new_queue} }
@@ -329,7 +333,7 @@ module Sidekiq
             let(:options) { {job: new_job} }
             let(:queue) { Queue.new(queue_name) }
 
-            it 'should use the new queue' do
+            it 'should use the new job' do
               expect(queue.job).to eq(Job.new(new_job))
             end
           end
@@ -357,7 +361,7 @@ module Sidekiq
             let(:new_jid) { Digest::MD5.base64digest(Faker::Lorem.word) }
             let(:options) { {parent_job_id: new_jid} }
 
-            it 'should use the new queue' do
+            it 'should use the set parent job id' do
               expect(result_item['pjid']).to eq(new_jid)
             end
           end

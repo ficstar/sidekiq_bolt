@@ -63,7 +63,7 @@ module Sidekiq
 
         def client_push(item, &block)
           item['jid'] ||= SecureRandom.base64(16)
-          item['pjid'] ||= get_sidekiq_options['queue']
+          item['pjid'] ||= (item['queue'] || get_sidekiq_options['queue'])
 
           queue = item['queue'] || get_sidekiq_options['queue']
           item['job'] ||= get_sidekiq_options['job']
