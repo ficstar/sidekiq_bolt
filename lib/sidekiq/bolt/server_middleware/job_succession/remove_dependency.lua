@@ -57,8 +57,6 @@ while job_id do
 
             next_parent_link_key = namespace .. 'parent:' .. parent_job_id
             next_parent_job_id = redis.call('get', next_parent_link_key)
-        else
-            next_parent_job_id = nil
         end
 
         if job_failed then
@@ -70,8 +68,6 @@ while job_id do
 
                 if parent_failure_count < parent_failure_limit then
                     job_failed = false
-                else
-                    job_failed = true
                 end
             end
         else
