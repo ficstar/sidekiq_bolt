@@ -80,6 +80,7 @@ while job_id do
                 if parent_failure_count < parent_failure_limit then
                     job_failed = false
                 else
+                    job_running = false
                     redis.call('del', parent_failure_count_key)
                 end
             end
