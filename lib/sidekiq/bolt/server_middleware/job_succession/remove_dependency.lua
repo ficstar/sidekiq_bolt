@@ -16,6 +16,9 @@ local parent_failure_count
 local resource_completed_count_key = namespace .. 'resource:completed:' .. resource_name
 redis.call('incr', resource_completed_count_key)
 
+local running_key = namespace .. 'job_running:' .. job_id
+redis.call('del', running_key)
+
 if job_failed then
     local resource_failed_count_key = namespace .. 'resource:failed:' .. resource_name
     redis.call('incr', resource_failed_count_key)

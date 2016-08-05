@@ -21,6 +21,7 @@ module Sidekiq
             dependencies.each { |jid| global_redis.sadd("dependencies:#{parent_job_id}", jid) }
             global_redis.sadd("dependencies:#{job_id}", job_id)
             global_redis.set("parent:#{job_id}", parent_job_id)
+            global_redis.set("job_running:#{job_id}", 'true')
           end
 
           it_behaves_like 'a server middleware'
@@ -32,6 +33,11 @@ module Sidekiq
           it 'should increment the resource completed count' do
             subject.call(nil, job, nil) {}
             expect(global_redis.get("resource:completed:#{resource_name}").to_i).to eq(1)
+          end
+
+          it 'should no longer consider this job as running' do
+            subject.call(nil, job, nil) {}
+            expect(global_redis.get("job_running:#{job_id}")).to be_nil
           end
 
           context 'when the job id is missing' do
