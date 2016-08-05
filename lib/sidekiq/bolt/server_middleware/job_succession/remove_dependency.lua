@@ -42,7 +42,7 @@ while job_id do
         redis.call('set', job_failed_key, 'true')
         redis.call('expire', job_failed_key, one_week)
 
-        if parent_job_id then
+        if parent_job_id and not job_running then
             parent_failure_count_key = namespace .. 'job_failured_count:' .. parent_job_id
             parent_failure_count = redis.call('incr', parent_failure_count_key)
             redis.call('expire', parent_failure_count_key, one_week)

@@ -259,6 +259,22 @@ module Sidekiq
           shared_examples_for 'a failed job' do
             it_behaves_like 'removing job dependencies'
 
+            context 'when the parent job is still running' do
+              let(:dependencies) { [job_id] }
+              let(:grandparent_job_id) { SecureRandom.uuid }
+              let(:parent_running) { true }
+
+              before do
+                global_redis.sadd("dependencies:#{grandparent_job_id}", parent_job_id)
+                global_redis.set("parent:#{parent_job_id}", grandparent_job_id)
+              end
+
+              it 'should not increment the grandparent failure count' do
+                subject.call(nil, job, nil, &block) rescue nil
+                expect(global_redis.get("job_failured_count:#{grandparent_job_id}").to_i).to eq(0)
+              end
+            end
+
             it 'should mark this job as failed' do
               subject.call(nil, job, nil, &block) rescue nil
               expect(global_redis.get("job_failed:#{job_id}")).to eq('true')
