@@ -6,6 +6,7 @@ module Sidekiq
       describe JobSuccession do
 
         describe '#call' do
+          let(:parent_running) { false }
           let(:parent_job_id) { SecureRandom.uuid }
           let(:job_id) { SecureRandom.uuid }
           let(:resource_name) { Faker::Lorem.word }
@@ -22,6 +23,7 @@ module Sidekiq
             global_redis.sadd("dependencies:#{job_id}", job_id)
             global_redis.set("parent:#{job_id}", parent_job_id)
             global_redis.set("job_running:#{job_id}", 'true')
+            global_redis.set("job_running:#{parent_job_id}", 'true') if parent_running
           end
 
           it_behaves_like 'a server middleware'
@@ -97,9 +99,7 @@ module Sidekiq
             context 'when this job has child dependencies' do
               let(:child_job_id) { SecureRandom.uuid }
 
-              before do
-                global_redis.sadd("dependencies:#{job_id}", child_job_id)
-              end
+              before { global_redis.sadd("dependencies:#{job_id}", child_job_id) }
 
               it 'should not remove the parent job dependency' do
                 subject.call(nil, job, nil, &block) rescue nil
@@ -112,15 +112,19 @@ module Sidekiq
               end
             end
 
-            it 'should not remove the grand-parent job dependency' do
-              subject.call(nil, job, nil, &block) rescue nil
-              expect(global_redis.smembers("dependencies:#{grandparent_job_id}")).to include(parent_job_id)
+            shared_examples_for 'a parent job not ready' do
+              it 'should not remove the grand-parent job dependency' do
+                subject.call(nil, job, nil, &block) rescue nil
+                expect(global_redis.smembers("dependencies:#{grandparent_job_id}")).to include(parent_job_id)
+              end
+
+              it 'should not delete the grand-parent key' do
+                subject.call(nil, job, nil, &block) rescue nil
+                expect(global_redis.get("parent:#{parent_job_id}")).to eq(grandparent_job_id)
+              end
             end
 
-            it 'should not delete the grand-parent key' do
-              subject.call(nil, job, nil, &block) rescue nil
-              expect(global_redis.get("parent:#{parent_job_id}")).to eq(grandparent_job_id)
-            end
+            it_behaves_like 'a parent job not ready'
 
             context 'when the parent job no longer has any dependencies' do
               let(:dependencies) { [job_id] }
@@ -133,6 +137,12 @@ module Sidekiq
               it 'should delete the grand-parent key' do
                 subject.call(nil, job, nil, &block) rescue nil
                 expect(global_redis.get("parent:#{parent_job_id}")).to be_nil
+              end
+
+              context 'when the parent job is still running' do
+                let(:parent_running) { true }
+
+                it_behaves_like 'a parent job not ready'
               end
             end
           end

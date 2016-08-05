@@ -17,6 +17,7 @@ local resource_completed_count_key = namespace .. 'resource:completed:' .. resou
 redis.call('incr', resource_completed_count_key)
 
 local running_key = namespace .. 'job_running:' .. job_id
+local job_running = false
 redis.call('del', running_key)
 
 if job_failed then
@@ -48,7 +49,7 @@ while job_id do
         redis.call('del', scheduled_work_key)
     end
 
-    if dependency_count > 0 then
+    if job_running or dependency_count > 0 then
         job_id = nil
         parent_job_id = nil
     else
@@ -61,6 +62,9 @@ while job_id do
 
             redis.call('srem', parent_dependencies_key, job_id)
             redis.call('del', parent_link_key)
+
+            running_key = namespace .. 'job_running:' .. parent_job_id
+            job_running = redis.call('get', running_key) == 'true'
 
             next_parent_link_key = namespace .. 'parent:' .. parent_job_id
             next_parent_job_id = redis.call('get', next_parent_link_key)
