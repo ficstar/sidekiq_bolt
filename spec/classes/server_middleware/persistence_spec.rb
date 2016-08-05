@@ -48,7 +48,8 @@ module Sidekiq
           end
 
           context 'when the result cannot be serialized' do
-            let(:expected_result) { Mutex.new }
+            let(:undumpable_klass) { Mutex }
+            let(:expected_result) { undumpable_klass.new }
 
             describe 'the resulting error' do
               subject { result }
@@ -57,7 +58,8 @@ module Sidekiq
 
               it { is_expected.to be_a_kind_of(SerializableError) }
               its(:error_class) { is_expected.to eq(TypeError) }
-              its(:message) { is_expected.to eq('no _dump_data is defined for class Mutex') }
+
+              its(:message) { is_expected.to eq("no _dump_data is defined for class #{undumpable_klass}") }
             end
           end
 
