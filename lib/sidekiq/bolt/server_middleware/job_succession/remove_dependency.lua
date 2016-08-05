@@ -2,7 +2,8 @@ local namespace = table.remove(KEYS, 1)
 local parent_job_id = table.remove(ARGV, 1)
 local job_id = table.remove(ARGV, 1)
 local resource_name = table.remove(ARGV, 1)
-local job_failed = table.remove(ARGV, 1)
+local job_failed_key = namespace .. 'job_failed:' .. job_id
+local job_failed = table.remove(ARGV, 1) or redis.call('get', job_failed_key)
 local one_week = 60 * 60 * 24 * 7
 
 local dependencies_key = namespace .. 'dependencies:' .. job_id
@@ -37,7 +38,7 @@ while job_id do
 
     parent_failure_count = 0
     if job_failed then
-        local job_failed_key = namespace .. 'job_failed:' .. job_id
+        job_failed_key = namespace .. 'job_failed:' .. job_id
         redis.call('set', job_failed_key, 'true')
         redis.call('expire', job_failed_key, one_week)
 
@@ -64,7 +65,7 @@ while job_id do
             redis.call('del', parent_link_key)
 
             running_key = namespace .. 'job_running:' .. parent_job_id
-            job_running = redis.call('get', running_key) == 'true'
+            job_running = redis.call('get', running_key)
 
             next_parent_link_key = namespace .. 'parent:' .. parent_job_id
             next_parent_job_id = redis.call('get', next_parent_link_key)

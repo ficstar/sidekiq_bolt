@@ -256,9 +256,7 @@ module Sidekiq
             end
           end
 
-          context 'when the provided block raises an error' do
-            let(:block) { ->() { raise 'It broke!' } }
-
+          shared_examples_for 'a failed job' do
             it_behaves_like 'removing job dependencies'
 
             context 'when the parent job is still running' do
@@ -272,9 +270,6 @@ module Sidekiq
               end
 
               it_behaves_like 'a parent job ready'
-            end
-            it 'should re-raise the error' do
-              expect { subject.call(nil, job, nil, &block).get }.to raise_error
             end
 
             it 'should mark this job as failed' do
@@ -376,6 +371,22 @@ module Sidekiq
                 end
               end
             end
+          end
+
+          context 'when the provided block raises an error' do
+            let(:block) { ->() { raise 'It broke!' } }
+
+            it 'should re-raise the error' do
+              expect { subject.call(nil, job, nil, &block).get }.to raise_error
+            end
+
+            it_behaves_like 'a failed job'
+          end
+
+          context 'when the job has already been considered failed by a dependency/child job' do
+            before { global_redis.set("job_failed:#{job_id}", 'true') }
+
+            it_behaves_like 'a failed job'
           end
 
         end
