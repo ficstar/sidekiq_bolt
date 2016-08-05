@@ -13,6 +13,9 @@ local parent_completed_key = namespace .. 'job_completed:' .. parent_job_id
 redis.call('del', completed_key)
 redis.call('del', parent_completed_key)
 
+local running_key = namespace .. 'job_running:' .. job_id
+redis.call('set', running_key, 'true')
+
 local prev_parent = redis.call('get', parent_link_key)
 
 if not prev_parent then

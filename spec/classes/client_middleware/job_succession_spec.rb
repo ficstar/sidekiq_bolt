@@ -46,6 +46,11 @@ module Sidekiq
             expect(global_redis.get("job_completed:#{parent_job_id}")).to be_nil
           end
 
+          it 'should consider this job as running' do
+            subject.call(nil, job, nil) {}
+            expect(global_redis.get("job_running:#{job_id}")).to eq('true')
+          end
+
           it 'should ensure that this job is not considered complete' do
             global_redis.set("job_completed:#{job_id}", 'true')
             subject.call(nil, job, nil) {}
