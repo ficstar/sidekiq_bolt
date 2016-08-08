@@ -11,7 +11,8 @@ module Sidekiq
               redis.get("job_failed:#{msg['pjid']}")
             end
           end
-          return false if queue_blocked || parent_complete || parent_failed
+          raise 'Cannot add job dependency to an already completed job!' if parent_complete
+          return false if queue_blocked || parent_failed
           yield
         end
 

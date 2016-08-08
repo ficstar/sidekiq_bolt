@@ -41,7 +41,14 @@ module Sidekiq
 
           context 'when a parent job has completed' do
             before { global_redis.set("job_completed:#{parent_job_id}", 'true') }
-            it_behaves_like 'preventing a job from running'
+
+            it 'should not yield' do
+              expect { |block| subject.call(nil, job, nil, &block) rescue nil }.not_to yield_control
+            end
+
+            it 'should raise an error indicating that this is an invalid state' do
+              expect { subject.call(nil, job, nil, nil) { yield_result } }.to raise_error('Cannot add job dependency to an already completed job!')
+            end
           end
 
           context 'when a parent job has failed' do
