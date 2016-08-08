@@ -7,7 +7,7 @@ module Sidekiq
       worker_klass = msg['class'].constantize
       worker = worker_klass.new
       ack = false
-      future = ThomasUtils::Future.immediate do
+      future = ThomasUtils::Future.value(nil).then do
         Sidekiq.server_middleware.invoke(worker, msg, work.queue_name) do
           ack = true
           execute_job(worker, cloned(msg['args']))
