@@ -9,7 +9,8 @@ module Sidekiq
           let(:queue_name) { Faker::Lorem.word }
           let(:queue) { Queue.new(queue_name) }
           let(:parent_job_id) { SecureRandom.base64 }
-          let(:job) { {'queue' => queue_name, 'pjid' => parent_job_id} }
+          let(:job_id) { SecureRandom.base64 }
+          let(:job) { {'queue' => queue_name, 'jid' => job_id, 'pjid' => parent_job_id} }
           let(:yield_result) { Faker::Lorem.word }
 
           it 'should yield' do
@@ -34,14 +35,7 @@ module Sidekiq
             end
           end
 
-          context 'when the queue is blocked' do
-            before { queue.blocked = true }
-            it_behaves_like 'preventing a job from running'
-          end
-
-          context 'when a parent job has completed' do
-            before { global_redis.set("job_completed:#{parent_job_id}", 'true') }
-
+          shared_examples_for 'preventing a job from running in an invalid state' do
             it 'should not yield' do
               expect { |block| subject.call(nil, job, nil, &block) rescue nil }.not_to yield_control
             end
@@ -49,6 +43,26 @@ module Sidekiq
             it 'should raise an error indicating that this is an invalid state' do
               expect { subject.call(nil, job, nil, nil) { yield_result } }.to raise_error('Cannot add job dependency to an already completed job!')
             end
+          end
+
+          context 'when the queue is blocked' do
+            before { queue.blocked = true }
+            it_behaves_like 'preventing a job from running'
+          end
+
+          context 'when a parent job has completed' do
+            before { global_redis.set("job_completed:#{parent_job_id}", 'true') }
+            it_behaves_like 'preventing a job from running in an invalid state'
+          end
+
+          context 'when the current job has already completed' do
+            before { global_redis.set("job_completed:#{job_id}", 'true') }
+            it_behaves_like 'preventing a job from running in an invalid state'
+          end
+
+          context 'when the current job has already failed' do
+            before { global_redis.set("job_failed:#{job_id}", 'true') }
+            it_behaves_like 'preventing a job from running in an invalid state'
           end
 
           context 'when a parent job has failed' do
