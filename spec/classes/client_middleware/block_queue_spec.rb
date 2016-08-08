@@ -8,7 +8,8 @@ module Sidekiq
         describe '#call' do
           let(:queue_name) { Faker::Lorem.word }
           let(:queue) { Queue.new(queue_name) }
-          let(:job) { {'queue' => queue_name} }
+          let(:parent_job_id) { SecureRandom.base64 }
+          let(:job) { {'queue' => queue_name, 'pjid' => parent_job_id} }
           let(:yield_result) { Faker::Lorem.word }
 
           it 'should yield' do
@@ -23,9 +24,7 @@ module Sidekiq
             expect(subject.call(nil, job, nil) { yield_result }).to eq(yield_result)
           end
 
-          context 'when the queue is blocked' do
-            before { queue.blocked = true }
-
+          shared_examples_for 'preventing a job from running' do
             it 'should not yield' do
               expect { |block| subject.call(nil, job, nil, &block) }.not_to yield_control
             end
@@ -33,6 +32,21 @@ module Sidekiq
             it 'should return false' do
               expect(subject.call(nil, job, nil, nil) { yield_result }).to eq(false)
             end
+          end
+
+          context 'when the queue is blocked' do
+            before { queue.blocked = true }
+            it_behaves_like 'preventing a job from running'
+          end
+
+          context 'when a parent job has completed' do
+            before { global_redis.set("job_completed:#{parent_job_id}", 'true') }
+            it_behaves_like 'preventing a job from running'
+          end
+
+          context 'when a parent job has failed' do
+            before { global_redis.set("job_failed:#{parent_job_id}", 'true') }
+            it_behaves_like 'preventing a job from running'
           end
         end
 
