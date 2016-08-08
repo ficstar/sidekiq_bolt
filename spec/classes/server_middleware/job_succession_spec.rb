@@ -205,6 +205,9 @@ module Sidekiq
                   expect(global_redis.get("job_completed:#{job_id}")).to eq('true')
                 end
 
+                it 'should set an expiry for the job completion key' do
+                  expect(global_redis.ttl("job_completed:#{job_id}")).to be_within(1).of(one_week)
+                end
                 it 'should add it to the right queue' do
                   expect(result_queue).to eq(queue_name)
                 end
