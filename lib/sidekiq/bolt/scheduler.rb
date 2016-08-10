@@ -29,14 +29,13 @@ module Sidekiq
 
         new_job = {
             'class' => worker_class.to_s,
-            'jid' => SecureRandom.base64(16),
             'args' => args,
             'retry' => true
         }.merge(worker_class.get_sidekiq_options)
 
         new_job['queue'] = options[:queue] if options[:queue]
         new_job['resource'] = options[:resource] if options[:resource]
-        new_job['jid'] = options[:job_id] if options[:job_id]
+        new_job['jid'] = options[:job_id] ? options[:job_id] : SecureRandom.base64(16)
         new_job['pjid'] = options[:parent_job_id] if options[:parent_job_id]
         new_job['persist'] = true if options[:persist_result]
 
