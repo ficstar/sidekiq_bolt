@@ -240,6 +240,18 @@ module Sidekiq
         end
       end
 
+      describe '#success_count' do
+        its(:success_count) { is_expected.to eq(0) }
+
+        context 'with successfully completed items' do
+          let(:success_count) { rand(1..100) }
+
+          before { global_redis.hincrby("queue:stats:#{name}", 'successful', success_count) }
+
+          its(:success_count) { is_expected.to eq(success_count) }
+        end
+      end
+
       describe '#busy' do
         its(:busy) { is_expected.to eq(0) }
 

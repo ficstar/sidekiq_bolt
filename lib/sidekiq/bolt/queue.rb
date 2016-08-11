@@ -78,6 +78,10 @@ module Sidekiq
         Bolt.redis { |redis| redis.hget("queue:stats:#{name}", 'error') }.to_i
       end
 
+      def success_count
+        Bolt.redis { |redis| redis.hget("queue:stats:#{name}", 'successful') }.to_i
+      end
+
       def busy
         Bolt.redis { |redis| redis.get("queue:busy:#{name}").to_i }
       end
