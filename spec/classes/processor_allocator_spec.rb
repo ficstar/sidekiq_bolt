@@ -104,7 +104,8 @@ module Sidekiq
 
             context 'when there are resources left for the default type' do
               let(:concurrency) { 2 }
-              let(:options) { {concurrency: concurrency, concurrency_pool: {some_resource: 1}} }
+              let(:max_concurrency) { nil }
+              let(:options) { {concurrency: concurrency, max_concurrency: max_concurrency, concurrency_pool: {some_resource: 1}} }
 
               it 'should allow allocation' do
                 expect(allocator.allocate(allocation)).to eq(1)
@@ -124,6 +125,15 @@ module Sidekiq
 
                 it 'should allow full allocation' do
                   expect(allocator.allocate(allocation)).to eq(2)
+                end
+              end
+
+              context 'when max_concurrency is specified' do
+                let(:concurrency) { 0 }
+                let(:max_concurrency) { 2 }
+
+                it 'should allow allocation' do
+                  expect(allocator.allocate(allocation)).to eq(1)
                 end
               end
             end
