@@ -228,6 +228,18 @@ module Sidekiq
         end
       end
 
+      describe '#error_count' do
+        its(:error_count) { is_expected.to eq(0) }
+
+        context 'with errors' do
+          let(:error_count) { rand(1..100) }
+
+          before { global_redis.hincrby("queue:stats:#{name}", 'error', error_count) }
+
+          its(:error_count) { is_expected.to eq(error_count) }
+        end
+      end
+
       describe '#busy' do
         its(:busy) { is_expected.to eq(0) }
 

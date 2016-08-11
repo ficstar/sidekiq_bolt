@@ -74,6 +74,10 @@ module Sidekiq
         run_script(:queue_retrying, RETRYING_SCRIPT, NAMESPACE_KEY, [name, ''])
       end
 
+      def error_count
+        Bolt.redis { |redis| redis.hget("queue:stats:#{name}", 'error') }.to_i
+      end
+
       def busy
         Bolt.redis { |redis| redis.get("queue:busy:#{name}").to_i }
       end
