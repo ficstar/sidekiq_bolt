@@ -75,11 +75,11 @@ module Sidekiq
       end
 
       def error_count
-        Bolt.redis { |redis| redis.hget("queue:stats:#{name}", 'error') }.to_i
+        stat_count('error')
       end
 
       def success_count
-        Bolt.redis { |redis| redis.hget("queue:stats:#{name}", 'successful') }.to_i
+        stat_count('successful')
       end
 
       def busy
@@ -89,6 +89,12 @@ module Sidekiq
       def enqueue(resource, workload, retrying = false)
         resource = Resource.new(resource) unless resource.is_a?(Resource)
         resource.add_work(name, workload, retrying)
+      end
+
+      private
+
+      def stat_count(stat)
+        Bolt.redis { |redis| redis.hget("queue:stats:#{name}", stat) }.to_i
       end
 
     end
