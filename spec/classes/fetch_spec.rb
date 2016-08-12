@@ -101,6 +101,17 @@ module Sidekiq
                   expect(Fetch.local_queue.size).to be_zero
                 end
               end
+
+              context 'when the resource has lots of work' do
+                before do
+                  25.times { resource.add_work(queue_name, SecureRandom.uuid) }
+                end
+
+                it 'should locally allocate as much as possible' do
+                  subject.retrieve_work
+                  expect(Fetch.local_queue.size).to eq(26)
+                end
+              end
             end
 
             context 'when we do not have enough workers' do

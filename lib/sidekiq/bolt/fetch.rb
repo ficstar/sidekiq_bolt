@@ -77,7 +77,7 @@ module Sidekiq
       end
 
       def allocate_worker(resource)
-        processor_allocator.allocate(2, resource.type).nonzero?
+        processor_allocator.allocate(1000, resource.type).nonzero?
       end
 
       def supported_resources
