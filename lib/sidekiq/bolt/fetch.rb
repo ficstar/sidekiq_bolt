@@ -51,17 +51,17 @@ module Sidekiq
 
       def find_resource_work
         supported_resources.each do |resource|
-          workers_available = allocate_worker(resource)
+          workers_available = allocate_workers(resource)
           if workers_available
             work, workers_left = allocate_work(resource, workers_available)
-            release_worker(resource, workers_left) if workers_left.nonzero?
+            release_workers(resource, workers_left) if workers_left.nonzero?
             return work
           end
         end
         nil
       end
 
-      def release_worker(resource, wokers_available)
+      def release_workers(resource, wokers_available)
         processor_allocator.free(wokers_available, resource.type)
       end
 
@@ -76,7 +76,7 @@ module Sidekiq
         [result, wokers_available]
       end
 
-      def allocate_worker(resource)
+      def allocate_workers(resource)
         processor_allocator.allocate(1000, resource.type).nonzero?
       end
 
