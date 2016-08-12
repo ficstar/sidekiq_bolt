@@ -55,7 +55,7 @@ module Sidekiq
           if workers_available
             work, workers_left = allocate_work(resource, workers_available)
             release_workers(resource, workers_left) if workers_left.nonzero?
-            return work
+            return work if work
           end
         end
         nil

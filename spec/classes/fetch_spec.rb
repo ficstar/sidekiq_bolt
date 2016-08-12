@@ -80,6 +80,19 @@ module Sidekiq
               end
             end
 
+            context 'with there are two resource and one has all its work consumed' do
+              let(:resource_name_two) { Faker::Lorem.sentence }
+              let(:resource_two) { Resource.new(resource_name_two) }
+              let(:work_two) { SecureRandom.uuid }
+
+              before do
+                resource_two.add_work(queue_name, work_two)
+                resource_two.allocate(1)
+              end
+
+              its(:retrieve_work) { is_expected.to eq(expected_work) }
+            end
+
             context 'with more work available from the resource' do
               let(:work_two) { SecureRandom.uuid }
               let(:expected_work_two) { Fetch::UnitOfWork.new(queue_name, resource_name, work_two) }
