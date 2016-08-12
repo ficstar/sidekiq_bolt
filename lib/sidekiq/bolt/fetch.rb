@@ -51,9 +51,9 @@ module Sidekiq
 
       def find_resource_work
         supported_resources.each do |resource|
-          wokers_available = allocate_worker(resource)
-          if wokers_available
-            work, workers_left = allocate_work(resource, wokers_available)
+          workers_available = allocate_worker(resource)
+          if workers_available
+            work, workers_left = allocate_work(resource, workers_available)
             release_worker(resource, workers_left) if workers_left.nonzero?
             return work
           end
