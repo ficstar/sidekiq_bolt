@@ -66,12 +66,40 @@ module Sidekiq
               subject.retrieve_work
             end
 
+            it 'should only allocate 1 worker' do
+              subject.retrieve_work
+              expect(Fetch.processor_allocator.allocation(resource_type)).to eq(1)
+            end
+
             context 'when that work has already been consumed' do
               before { resource.allocate(1) }
 
               it 'should return the worker allocation' do
                 subject.retrieve_work
                 expect(Fetch.processor_allocator.allocation(resource_type)).to be_zero
+              end
+            end
+
+            context 'with more work available from the resource' do
+              let(:work_two) { SecureRandom.uuid }
+              let(:expected_work_two) { Fetch::UnitOfWork.new(queue_name, resource_name, work_two) }
+
+              before { resource.add_work(queue_name, work_two) }
+
+              its(:retrieve_work) { is_expected.to eq(expected_work_two) }
+
+              it 'should store the work locally for later' do
+                subject.retrieve_work
+                expect(Fetch.local_queue.pop).to eq(expected_work)
+              end
+
+              context 'when we do not have enough workers' do
+                let(:concurrency) { 1 }
+
+                it 'should not allocate any extra' do
+                  subject.retrieve_work
+                  expect(Fetch.local_queue.size).to be_zero
+                end
               end
             end
 
