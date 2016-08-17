@@ -139,6 +139,10 @@ module Sidekiq
             expect(result_item).to include('queue' => queue_name, 'resource' => resource_name, 'class' => 'Sidekiq::Bolt::MockWorker', 'args' => args)
           end
 
+          it 'should serialize a Message' do
+            expect(result_item).to be_a_kind_of(Message)
+          end
+
           it 'should generate a job id for this work' do
             expect(result_jid).to eq(expected_jid)
           end

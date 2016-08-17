@@ -61,6 +61,10 @@ module Sidekiq
           expect(result_work).to include(expected_work)
         end
 
+        it 'should serialize a Message' do
+          expect(result_work).to be_a_kind_of(Message)
+        end
+
         context 'when a block is provided' do
           let(:worker_class_two) { Class.new(worker_class_base) {} }
           let(:block) do

@@ -27,11 +27,11 @@ module Sidekiq
           raise ArgumentError, 'FutureWorkers cannot be scheduled for later!'
         end
 
-        new_job = {
+        new_job = Message[
             'class' => worker_class.to_s,
             'args' => args,
             'retry' => true
-        }.merge(worker_class.get_sidekiq_options)
+        ].merge(worker_class.get_sidekiq_options)
 
         new_job['queue'] = options[:queue] if options[:queue]
         new_job['resource'] = options[:resource] if options[:resource]

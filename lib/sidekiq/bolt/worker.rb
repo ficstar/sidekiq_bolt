@@ -33,7 +33,7 @@ module Sidekiq
 
         def perform_async_with_options(options, *args, &block)
           #noinspection RubyStringKeysInHashInspection
-          item = {
+          item = Message[
               'class' => self,
               'args' => args,
               'queue' => options[:queue],
@@ -41,7 +41,7 @@ module Sidekiq
               'jid' => options[:job_id],
               'pjid' => options[:parent_job_id],
               'job' => options[:job]
-          }
+          ]
           item['persist'] = true if options[:persist_result]
           client_push(item, &block)
         end
