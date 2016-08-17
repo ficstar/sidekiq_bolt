@@ -8,13 +8,19 @@ module Sidekiq
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
       RETRYING_SCRIPT_PATH = "#{SCRIPT_ROOT}/retrying.lua"
       RETRYING_SCRIPT = File.read(RETRYING_SCRIPT_PATH)
+      FILTER_GROUPED_QUEUES_SCRIPT_PATH = "#{SCRIPT_ROOT}/filter.lua"
+      FILTER_GROUPED_QUEUES_SCRIPT = File.read(FILTER_GROUPED_QUEUES_SCRIPT_PATH)
       NAMESPACE_KEY = [''].freeze
 
       define_property 'queue:group', :group
 
-      def self.all
-        Bolt.redis do |conn|
-          conn.smembers('queues')
+      def self.all(group = :*)
+        if group == :*
+          Bolt.redis do |conn|
+            conn.smembers('queues')
+          end
+        else
+          run_script(:grouped_queues, FILTER_GROUPED_QUEUES_SCRIPT, NAMESPACE_KEY, [group])
         end.map { |name| new(name) }
       end
 

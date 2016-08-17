@@ -10,22 +10,43 @@ module Sidekiq
       subject { queue }
 
       describe '.all' do
+        let(:group) { Faker::Lorem.sentence }
         let(:resource) { Resource.new(Faker::Lorem.word) }
 
         subject { Queue.all }
 
-        before { resource.add_work(name, '') }
+        before do
+          queue.group = group
+          resource.add_work(name, '')
+        end
 
         it { is_expected.to eq([queue]) }
 
         context 'with multiple queues' do
           let(:resource_two) { Resource.new(Faker::Lorem.word) }
+          let(:group_two) { Faker::Lorem.sentence }
           let(:name_two) { Faker::Lorem.word }
           let(:queue_two) { Queue.new(name_two) }
 
-          before { resource_two.add_work(name_two, '') }
+          before do
+            queue_two.group = group_two
+            resource_two.add_work(name_two, '')
+          end
 
           it { is_expected.to match_array([queue, queue_two]) }
+
+          context 'with a group provided' do
+            let(:filter_group) { group }
+
+            subject { Queue.all(filter_group) }
+
+            it { is_expected.to match_array([queue]) }
+
+            context 'with a different group' do
+              let(:filter_group) { group_two }
+              it { is_expected.to match_array([queue_two]) }
+            end
+          end
         end
       end
 
