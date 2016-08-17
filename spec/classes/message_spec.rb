@@ -40,6 +40,18 @@ module Sidekiq
 
           it { is_expected.to eq(message_attributes.slice(*expected_attribute_slice)) }
         end
+
+        context 'when a "false" attribute' do
+          let(:false_attribute) { valid_attributes.sample }
+
+          before do
+            message_attributes[false_attribute] = false
+            message[false_attribute] = false
+            subject.marshal_load(message.marshal_dump)
+          end
+
+          it { is_expected.to eq(message_attributes.slice(*valid_attributes)) }
+        end
       end
 
     end

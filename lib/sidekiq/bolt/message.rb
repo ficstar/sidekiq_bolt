@@ -10,7 +10,7 @@ module Sidekiq
       def marshal_load(array)
         VALID_ATTRIBUTES.each.with_index do |key, index|
           value = array[index]
-          self[key] = value if value
+          self[key] = value unless value.nil?
         end
       end
     end
