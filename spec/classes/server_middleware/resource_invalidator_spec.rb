@@ -9,7 +9,7 @@ module Sidekiq
           let(:queue_name) { Faker::Lorem.word }
           let(:queue) { Queue.new(queue_name) }
           let(:args) { Faker::Lorem.paragraphs }
-          let(:job) { {'queue' => queue_name, 'args' => args.dup} }
+          let(:job) { Message['queue' => queue_name, 'args' => args.dup] }
           let(:yield_result) { Faker::Lorem.word }
           let(:worker) { nil }
 

@@ -1,7 +1,20 @@
 module Sidekiq
   module Bolt
     class Message < Hash
-      VALID_ATTRIBUTES = %w(class args queue resource jid pjid persist enqueued_at job retry).freeze
+      VALID_ATTRIBUTES = %w{
+                              class
+                              args
+                              queue
+                              resource
+                              jid
+                              pjid
+                              persist
+                              enqueued_at
+                              job
+                              error
+                              retry
+                              retry_count
+                        }.freeze
 
       def marshal_dump
         values_at(*VALID_ATTRIBUTES)

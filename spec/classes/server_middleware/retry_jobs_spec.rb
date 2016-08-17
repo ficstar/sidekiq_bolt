@@ -20,12 +20,12 @@ module Sidekiq
           let(:job_id) { SecureRandom.uuid }
           let(:total_retries) { nil }
           let(:original_job) do
-            {
+            Message[
                 'queue' => queue_name,
                 'resource' => resource_name,
                 'retry' => retry_job,
                 'jid' => job_id
-            }
+            ]
           end
           let(:job) { original_job.dup }
 

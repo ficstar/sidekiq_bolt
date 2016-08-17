@@ -11,7 +11,7 @@ module Sidekiq
           let(:resource_name) { Faker::Lorem.word }
           let(:persist_result) { true }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name, 'persist' => persist_result} }
+          let(:job) { Message['pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name, 'persist' => persist_result] }
           let(:next_job) { {} }
           let(:expected_result) { Faker::Lorem.word }
           let(:serialized_result) { global_redis.get("worker:results:#{job_id}") }

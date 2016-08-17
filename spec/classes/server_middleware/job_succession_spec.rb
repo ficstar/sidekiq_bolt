@@ -11,7 +11,7 @@ module Sidekiq
           let(:job_id) { SecureRandom.uuid }
           let(:resource_name) { Faker::Lorem.word }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name} }
+          let(:job) { Message['pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name] }
           let(:next_job) { {} }
           let(:block) { -> {} }
           let(:worker) { nil }

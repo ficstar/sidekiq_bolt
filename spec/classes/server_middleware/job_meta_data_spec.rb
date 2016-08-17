@@ -12,7 +12,7 @@ module Sidekiq
           let(:job_id) { SecureRandom.uuid }
           let(:parent_job_id) { SecureRandom.uuid }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id} }
+          let(:job) { Message['queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id] }
           let(:child_scheduler) { double(:scheduler, :schedule! => nil) }
           let(:original_message) { Sidekiq.load_json(subject.original_message) }
 
