@@ -185,7 +185,7 @@ module Sidekiq
 
           it 'should yield a scheduler with the job' do
             klass.perform_async(*args, &block)
-            expect(result_scheduler.job).to eq(result_item)
+            expect(result_scheduler.job).to include(result_item)
           end
 
           it 'should call #schedule! on the Scheduler' do
@@ -288,7 +288,7 @@ module Sidekiq
             let(:block) { ->(scheduler) { result_scheduler.job = scheduler.job } }
 
             it 'should yield a scheduler with the job' do
-              expect(result_scheduler.job).to eq(result_item)
+              expect(result_scheduler.job).to include(result_item)
             end
           end
 
