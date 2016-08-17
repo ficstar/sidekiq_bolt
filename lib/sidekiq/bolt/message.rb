@@ -2,6 +2,8 @@ module Sidekiq
   module Bolt
     class Message < Hash
       VALID_ATTRIBUTES = %w{
+                              sk
+                              at
                               class
                               args
                               queue

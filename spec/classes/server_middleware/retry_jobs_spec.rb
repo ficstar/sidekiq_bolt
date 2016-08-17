@@ -19,13 +19,16 @@ module Sidekiq
           let(:retry_job) { true }
           let(:job_id) { SecureRandom.uuid }
           let(:total_retries) { nil }
-          let(:original_job) do
-            Message[
+          let(:original_job_attributes) do
+            {
                 'queue' => queue_name,
                 'resource' => resource_name,
                 'retry' => retry_job,
                 'jid' => job_id
-            ]
+            }
+          end
+          let(:original_job) do
+            Message[original_job_attributes]
           end
           let(:job) { original_job.dup }
 
@@ -215,6 +218,7 @@ module Sidekiq
             end
 
             context 'when the worker specifies a sidekiq_freeze_resource_after_retry_for_block' do
+              let(:original_job) { original_job_attributes }
               let(:borked) { false }
               let(:retry_count) { nil }
               let(:worker_class) do
@@ -349,6 +353,7 @@ module Sidekiq
             end
 
             context 'when the worker specifies a sidekiq_should_retry_block' do
+              let(:original_job) { original_job_attributes }
               let(:worker_class) do
                 Struct.new(:resource) do
                   include Worker
