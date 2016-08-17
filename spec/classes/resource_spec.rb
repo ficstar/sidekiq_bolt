@@ -334,7 +334,7 @@ module Sidekiq
       end
 
       describe '#queues' do
-        let(:queues) { %w(queue1 queue2) }
+        let(:queues) { Faker::Lorem.words }
 
         before do
           queues.each { |queue| subject.add_work(queue, SecureRandom.uuid) }
@@ -342,15 +342,6 @@ module Sidekiq
 
         it 'should return the list of queue names associated with this resource' do
           expect(subject.queues).to match_array(queues)
-        end
-
-        context 'with a different resource' do
-          let(:name) { 'heavy_worker' }
-          let(:queues) { %w(big_queue1 big_queue2) }
-
-          it 'should return the list of queue names associated with this resource' do
-            expect(subject.queues).to match_array(queues)
-          end
         end
       end
 
