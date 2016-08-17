@@ -73,6 +73,20 @@ module Sidekiq
         its(:name) { is_expected.to eq(name) }
       end
 
+      describe '#group' do
+        let(:group) { Faker::Lorem.word }
+
+        before { subject.group = group }
+
+        it 'should be the specified group' do
+          expect(subject.group).to eq(group)
+        end
+
+        it 'should store the value in redis' do
+          expect(global_redis.get("queue:group:#{name}")).to eq(group)
+        end
+      end
+
       describe '#resources' do
         let(:resource) { Resource.new(Faker::Lorem.word) }
 
