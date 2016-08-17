@@ -24,12 +24,12 @@ module Sidekiq
       end
 
       def []=(key, value)
-        raise UnsupportedKeyError unless VALID_ATTRIBUTE_SET.include?(key)
+        validate_key!(key)
         super(key, value)
       end
 
       def [](key)
-        raise UnsupportedKeyError unless VALID_ATTRIBUTE_SET.include?(key)
+        validate_key!(key)
         super(key)
       end
 
@@ -42,6 +42,12 @@ module Sidekiq
           value = array[index]
           self[key] = value unless value.nil?
         end
+      end
+
+      private
+
+      def validate_key!(key)
+        raise UnsupportedKeyError unless VALID_ATTRIBUTE_SET.include?(key)
       end
     end
   end
