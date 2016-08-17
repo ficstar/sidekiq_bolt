@@ -4,7 +4,7 @@ module Sidekiq
   module Bolt
     describe Message do
 
-      let(:valid_attributes) { %w(class args queue resource jid pjid persist) }
+      let(:valid_attributes) { Message::VALID_ATTRIBUTES }
       let(:invalid_attributes) { Faker::Lorem.words }
       let(:message_attributes) do
         (valid_attributes + invalid_attributes).inject({}) { |memo, key| memo.merge!(key => Faker::Lorem.word) }
@@ -23,9 +23,23 @@ module Sidekiq
       describe '#marshal_load' do
         subject { Message.new }
 
-        before { subject.marshal_load(message.marshal_dump) }
+        context 'with all attributes present' do
+          before { subject.marshal_load(message.marshal_dump) }
 
-        it { is_expected.to eq(message_attributes.slice(*valid_attributes)) }
+          it { is_expected.to eq(message_attributes.slice(*valid_attributes)) }
+        end
+
+        context 'when an attribute is missing' do
+          let(:missing_attribute) { valid_attributes.sample }
+          let(:expected_attribute_slice) { valid_attributes - [missing_attribute] }
+
+          before do
+            message.delete(missing_attribute)
+            subject.marshal_load(message.marshal_dump)
+          end
+
+          it { is_expected.to eq(message_attributes.slice(*expected_attribute_slice)) }
+        end
       end
 
     end
