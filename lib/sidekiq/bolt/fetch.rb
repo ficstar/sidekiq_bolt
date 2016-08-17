@@ -22,6 +22,7 @@ module Sidekiq
         @options = options
         processor_allocator
         @supported_resource_types = options.fetch(:resource_types) { :* }
+        @queue_group = options.fetch(:queue_group) { :* }
       end
 
       def retrieve_work
@@ -66,7 +67,7 @@ module Sidekiq
       end
 
       def allocate_work(resource, wokers_available)
-        items = resource.allocate(wokers_available).each_slice(2).map do |(queue, work)|
+        items = resource.allocate(wokers_available, @queue_group).each_slice(2).map do |(queue, work)|
           UnitOfWork.new(queue, resource.name, work) if work
         end
         wokers_available -= items.count

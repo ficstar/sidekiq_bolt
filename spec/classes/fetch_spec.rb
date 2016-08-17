@@ -61,6 +61,23 @@ module Sidekiq
 
             its(:retrieve_work) { is_expected.to eq(expected_work) }
 
+            context 'when a queue group filter has been provided' do
+              let(:queue_group) { Faker::Lorem.sentence }
+              let(:configured_queue_group) { Faker::Lorem.sentence }
+
+              before do
+                Queue.new(queue_name).group = queue_group
+                sidekiq_options[:queue_group] = configured_queue_group
+              end
+
+              its(:retrieve_work) { is_expected.to be_nil }
+
+              context 'when the groups match' do
+                let(:queue_group) { configured_queue_group }
+                its(:retrieve_work) { is_expected.to eq(expected_work) }
+              end
+            end
+
             it 'should not sleep' do
               expect(subject).not_to receive(:sleep).with(1)
               subject.retrieve_work
