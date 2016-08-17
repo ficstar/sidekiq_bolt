@@ -4,6 +4,7 @@ module Sidekiq
       VALID_ATTRIBUTES = %w{
                               sk
                               at
+                              created_at
                               class
                               args
                               queue
