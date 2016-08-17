@@ -491,9 +491,10 @@ module Sidekiq
           let(:queue) { 'queue' }
           let(:list_of_queues) { [queue] }
           let(:shuffled_queues) { list_of_queues }
+          let(:queue_group) { :* }
 
           before do
-            allow(subject).to receive(:queues).and_return(list_of_queues)
+            allow(subject).to receive(:queues).with(queue_group).and_return(list_of_queues)
             allow(list_of_queues).to receive(:shuffle).and_return(shuffled_queues)
 
             subject.limit = limit
@@ -512,6 +513,14 @@ module Sidekiq
           it 'should remove the work from the queue' do
             subject.allocate(amount)
             expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+          end
+
+          context 'with a different queue group' do
+            let(:queue_group) { Faker::Lorem.sentence }
+
+            it 'should fetch work from the filtered queues' do
+              expect(subject.allocate(amount, queue_group)).to eq(allocated_work)
+            end
           end
 
           it_behaves_like 'incrementing the busy count on a queue', '5'
