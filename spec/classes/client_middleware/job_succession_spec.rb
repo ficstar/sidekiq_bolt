@@ -10,7 +10,7 @@ module Sidekiq
           let(:parent_job_id) { SecureRandom.uuid }
           let(:error) { nil }
           #noinspection RubyStringKeysInHashInspection
-          let(:job) { {'pjid' => parent_job_id, 'jid' => job_id, 'error' => error} }
+          let(:job) { Message['pjid' => parent_job_id, 'jid' => job_id, 'error' => error] }
           let(:yield_result) { Faker::Lorem.word }
 
           it 'should yield' do

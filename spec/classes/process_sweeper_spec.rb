@@ -16,7 +16,7 @@ module Sidekiq
         let(:resource_name) { Faker::Lorem.word }
         let(:resource) { Resource.new(resource_name) }
         let(:work) { SecureRandom.uuid }
-        let(:backup_work) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work, } }
+        let(:backup_work) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
         let(:serialized_backup_work) { JSON.dump(backup_work) }
         let(:result_allocation) { resource.allocate(1) }
         let(:result_queue) { result_allocation[0] }

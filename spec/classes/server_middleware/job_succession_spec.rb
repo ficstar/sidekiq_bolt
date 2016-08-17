@@ -12,7 +12,7 @@ module Sidekiq
           let(:resource_name) { Faker::Lorem.word }
           #noinspection RubyStringKeysInHashInspection
           let(:job) { Message['pjid' => parent_job_id, 'jid' => job_id, 'resource' => resource_name] }
-          let(:next_job) { {} }
+          let(:next_job) { Message.new }
           let(:block) { -> {} }
           let(:worker) { nil }
           let(:dependencies) { [job_id, SecureRandom.uuid] }
@@ -184,7 +184,7 @@ module Sidekiq
                 let(:resource_name) { Faker::Lorem.word }
                 let(:resource) { Resource.new(resource_name) }
                 let(:queue) { Queue.new(queue_name) }
-                let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
+                let(:scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
                 let(:jobs_to_schedule) { [scheduled_job] }
                 let(:result_allocation) { resource.allocate(2) }
                 let(:result_queue) { result_allocation[0] }
@@ -301,7 +301,7 @@ module Sidekiq
                 let(:resource_name) { Faker::Lorem.word }
                 let(:resource) { Resource.new(resource_name) }
                 let(:queue) { Queue.new(queue_name) }
-                let(:scheduled_job) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work} }
+                let(:scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
                 let(:result_allocation) { resource.allocate(1) }
                 let(:result_work) { result_allocation[1] }
                 let(:successive_job_id) { job_id }

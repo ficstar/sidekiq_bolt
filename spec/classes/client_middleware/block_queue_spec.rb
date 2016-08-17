@@ -10,7 +10,7 @@ module Sidekiq
           let(:queue) { Queue.new(queue_name) }
           let(:parent_job_id) { SecureRandom.base64 }
           let(:job_id) { SecureRandom.base64 }
-          let(:job) { {'queue' => queue_name, 'jid' => job_id, 'pjid' => parent_job_id} }
+          let(:job) { Message['queue' => queue_name, 'jid' => job_id, 'pjid' => parent_job_id] }
           let(:yield_result) { Faker::Lorem.word }
 
           it 'should yield' do

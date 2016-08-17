@@ -374,7 +374,7 @@ module Sidekiq
 
       describe '#acknowledge_work' do
         let(:retryable) { true }
-        let(:original_job) { {'queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id, 'retry' => retryable} }
+        let(:original_job) { Message['queue' => queue_name, 'resource' => resource_name, 'jid' => job_id, 'pjid' => parent_job_id, 'retry' => retryable] }
         let(:original_message) { Sidekiq.dump_json(original_job) }
         let(:job_id) { SecureRandom.uuid }
         let(:parent_job_id) { SecureRandom.uuid }

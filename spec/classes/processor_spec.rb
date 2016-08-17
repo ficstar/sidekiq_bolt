@@ -13,7 +13,7 @@ module Sidekiq
     let(:async) { double(:actor_async, real_thread: nil, processor_done: nil) }
     let(:boss) { double(:actor, async: async) }
     let(:args) { Faker::Lorem.words }
-    let(:job) { {'class' => 'Sidekiq::MockProcessorWorker', 'args' => args} }
+    let(:job) { Bolt::Message['class' => 'Sidekiq::MockProcessorWorker', 'args' => args] }
     let(:queue) { Faker::Lorem.word }
     let(:serialized_job) { Sidekiq.dump_json(job) }
     let(:work) { double(:work, queue_name: queue, message: serialized_job, acknowledge: nil) }
