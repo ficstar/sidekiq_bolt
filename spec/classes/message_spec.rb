@@ -20,6 +20,32 @@ module Sidekiq
         it { is_expected.to eq(message_attributes.values_at(*valid_attributes)) }
       end
 
+      describe '#[]=' do
+        let(:invalid_attribute) { invalid_attributes.sample }
+        let(:value) { Faker::Lorem.sentence }
+
+        it 'should complain if the key is invalid' do
+          expect { message[invalid_attribute] = value }.to raise_error('Unsupported message key!')
+        end
+
+        context 'with a valid key' do
+          let(:valid_attribute) { valid_attributes.sample }
+
+          it 'should set the value' do
+            message[valid_attribute] = value
+            expect(message[valid_attribute]).to eq(value)
+          end
+        end
+      end
+
+      describe '#[]' do
+        let(:invalid_attribute) { invalid_attributes.sample }
+
+        it 'should complain if the key is invalid' do
+          expect { message[invalid_attribute] }.to raise_error('Unsupported message key!')
+        end
+      end
+
       describe '#marshal_load' do
         subject { Message.new }
 

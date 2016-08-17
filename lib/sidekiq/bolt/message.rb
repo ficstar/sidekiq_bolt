@@ -15,6 +15,23 @@ module Sidekiq
                               retry
                               retry_count
                         }.freeze
+      VALID_ATTRIBUTE_SET = Set.new(VALID_ATTRIBUTES)
+
+      class UnsupportedKeyError < StandardError
+        def initialize
+          super('Unsupported message key!')
+        end
+      end
+
+      def []=(key, value)
+        raise UnsupportedKeyError unless VALID_ATTRIBUTE_SET.include?(key)
+        super(key, value)
+      end
+
+      def [](key)
+        raise UnsupportedKeyError unless VALID_ATTRIBUTE_SET.include?(key)
+        super(key)
+      end
 
       def marshal_dump
         values_at(*VALID_ATTRIBUTES)
