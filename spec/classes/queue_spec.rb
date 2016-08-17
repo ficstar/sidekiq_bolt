@@ -46,6 +46,11 @@ module Sidekiq
               let(:filter_group) { group_two }
               it { is_expected.to match_array([queue_two]) }
             end
+
+            context 'when the other queue has the "any" group' do
+              let(:group_two) { '__ANY__' }
+              it { is_expected.to match_array([queue, queue_two]) }
+            end
           end
         end
       end

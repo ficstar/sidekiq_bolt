@@ -355,6 +355,16 @@ module Sidekiq
           it 'should filter the list of queues by the specified group' do
             expect(subject.queues(queue_group)).to match_array(grouped_queues)
           end
+
+          context 'when the queues belong to the "any" group' do
+            before do
+              queues.each { |queue| Queue.new(queue).group = '__ANY__' }
+            end
+
+            it 'should retrieve all queues' do
+              expect(subject.queues(queue_group)).to match_array(queues)
+            end
+          end
         end
       end
 

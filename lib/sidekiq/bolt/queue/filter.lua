@@ -8,7 +8,7 @@ for _, queue in ipairs(queue_names) do
     local queue_group_key = namespace .. 'queue:group:' .. queue
     local queue_group = redis.call('get', queue_group_key)
 
-    if queue_group == group then
+    if queue_group == group or queue_group == '__ANY__' then
         table.insert(results, queue)
     end
 end
