@@ -18,8 +18,8 @@ module Sidekiq
       VALID_ATTRIBUTE_SET = Set.new(VALID_ATTRIBUTES)
 
       class UnsupportedKeyError < StandardError
-        def initialize
-          super('Unsupported message key!')
+        def initialize(key)
+          super("Unsupported message key '#{key}'!")
         end
       end
 
@@ -47,7 +47,7 @@ module Sidekiq
       private
 
       def validate_key!(key)
-        raise UnsupportedKeyError unless VALID_ATTRIBUTE_SET.include?(key)
+        raise UnsupportedKeyError, key unless VALID_ATTRIBUTE_SET.include?(key)
       end
     end
   end

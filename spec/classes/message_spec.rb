@@ -25,7 +25,7 @@ module Sidekiq
         let(:value) { Faker::Lorem.sentence }
 
         it 'should complain if the key is invalid' do
-          expect { message[invalid_attribute] = value }.to raise_error('Unsupported message key!')
+          expect { message[invalid_attribute] = value }.to raise_error("Unsupported message key '#{invalid_attribute}'!")
         end
 
         context 'with a valid key' do
@@ -42,7 +42,7 @@ module Sidekiq
         let(:invalid_attribute) { invalid_attributes.sample }
 
         it 'should complain if the key is invalid' do
-          expect { message[invalid_attribute] }.to raise_error('Unsupported message key!')
+          expect { message[invalid_attribute] }.to raise_error("Unsupported message key '#{invalid_attribute}'!")
         end
       end
 
