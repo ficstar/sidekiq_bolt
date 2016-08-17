@@ -140,7 +140,7 @@ module Sidekiq
           end
         end
 
-        context 'when provided with a filter' do
+        context 'when configured with a resource filter' do
           let(:queue_name) { Faker::Lorem.word }
           let(:resource_type) { Faker::Lorem.word }
           let(:resource) { Resource.new(Faker::Lorem.word).tap { |resource| resource.type = resource_type } }
