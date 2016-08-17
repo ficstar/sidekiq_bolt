@@ -96,7 +96,9 @@ module Sidekiq
 
       def add_work(queue, work, retrying = false)
         queue = queue.name if queue.is_a?(Queue)
-        run_script(:resource_add_work, ADD_WORK_SCRIPT, NAMESPACE_KEY, [queue, name, work, retrying])
+        argv = [queue, name, work]
+        argv << 'true' if retrying
+        run_script(:resource_add_work, ADD_WORK_SCRIPT, NAMESPACE_KEY, argv)
       end
 
       def allocate(amount, queue_group = :*)

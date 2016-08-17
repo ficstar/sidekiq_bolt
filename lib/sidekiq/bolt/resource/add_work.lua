@@ -9,7 +9,7 @@ local retrying = table.remove(ARGV, 1)
 local resources_key = namespace .. 'resources'
 local queues_key = namespace .. 'queues'
 
-if retrying == 'true' then
+if retrying then
     queue_key = namespace .. 'resource:queue:retrying:' .. queue_name .. ':' .. resource_name
 end
 
