@@ -21,6 +21,8 @@ module Sidekiq
       FREE_SCRIPT = File.read(FREE_SCRIPT_PATH)
       RETRYING_SCRIPT_PATH = "#{SCRIPT_ROOT}/retrying.lua"
       RETRYING_SCRIPT = File.read(RETRYING_SCRIPT_PATH)
+      FILTER_GROUPED_QUEUES_SCRIPT_PATH = "#{SCRIPT_ROOT}/queue_filter.lua"
+      FILTER_GROUPED_QUEUES_SCRIPT = File.read(FILTER_GROUPED_QUEUES_SCRIPT_PATH)
       NAMESPACE_KEY = [''].freeze
 
       define_property 'resource:type', :type
@@ -71,8 +73,12 @@ module Sidekiq
         Bolt.redis { |redis| redis.get(over_allocated_key).to_i }
       end
 
-      def queues
-        Bolt.redis { |redis| redis.smembers("resource:queues:#{name}") }
+      def queues(group = :*)
+        if group == :*
+          Bolt.redis { |redis| redis.smembers("resource:queues:#{name}") }
+        else
+          run_script(:resource_grouped_queues, FILTER_GROUPED_QUEUES_SCRIPT, NAMESPACE_KEY, [name, group])
+        end
       end
 
       def size_for_queue(queue)

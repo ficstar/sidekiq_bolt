@@ -343,6 +343,19 @@ module Sidekiq
         it 'should return the list of queue names associated with this resource' do
           expect(subject.queues).to match_array(queues)
         end
+
+        context 'when filtering by group' do
+          let(:queue_group) { Faker::Lorem.sentence }
+          let(:grouped_queues) { queues.sample(3) }
+
+          before do
+            grouped_queues.each { |queue| Queue.new(queue).group = queue_group }
+          end
+
+          it 'should filter the list of queues by the specified group' do
+            expect(subject.queues(queue_group)).to match_array(grouped_queues)
+          end
+        end
       end
 
       describe '#size_for_queue' do
