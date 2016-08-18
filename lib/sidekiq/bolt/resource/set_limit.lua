@@ -19,11 +19,9 @@ if limit then
         end
     end
 
-    if previous_limit then
-        for allocation = tonumber(previous_limit), tonumber(limit) + 1, -1 do
-            redis.call('srem', reference_pool_key, allocation)
-            redis.call('zrem', pool_key, allocation)
-        end
+    for allocation = tonumber(previous_limit), tonumber(limit) + 1, -1 do
+        redis.call('srem', reference_pool_key, allocation)
+        redis.call('zrem', pool_key, allocation)
     end
 else
     redis.call('del', limit_key)
