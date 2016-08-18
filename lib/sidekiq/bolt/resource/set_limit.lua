@@ -13,10 +13,8 @@ if limit then
     redis.call('set', limit_key, limit)
 
     for allocation = tonumber(previous_limit) + 1, tonumber(limit) do
-        if redis.call('sismember', reference_pool_key, allocation) == 0 then
-            redis.call('sadd', reference_pool_key, allocation)
-            redis.call('zadd', pool_key, 0, allocation)
-        end
+        redis.call('sadd', reference_pool_key, allocation)
+        redis.call('zadd', pool_key, 0, allocation)
     end
 
     for allocation = tonumber(previous_limit), tonumber(limit) + 1, -1 do
