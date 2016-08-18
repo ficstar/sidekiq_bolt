@@ -32,7 +32,7 @@ module Sidekiq
         let(:resource_types) { %w(light medium heavy) }
         let!(:resources) do
           resource_types.map do |type|
-            Resource.new(Faker::Lorem.word).tap { |resource| resource.type = type if type }
+            Resource.new(Faker::Lorem.sentence).tap { |resource| resource.type = type if type }
           end
         end
 
@@ -121,20 +121,81 @@ module Sidekiq
       end
 
       describe '#limit' do
-        let(:limit) { 5 }
+        let(:limit) { rand(1..10) }
+        let(:expected_pool) { (1..limit).to_a }
+        let(:name) { Faker::Lorem.sentence }
 
         before { subject.limit = limit }
 
         it 'should be the specified limit' do
-          expect(subject.limit).to eq(5)
+          expect(subject.limit).to eq(limit)
         end
 
         it 'should store the value in redis' do
-          expect(global_redis.get('resource:limit:resourceful')).to eq('5')
+          expect(global_redis.get("resource:limit:#{name}").to_i).to eq(limit)
+        end
+
+        it 'should create a reference pool of allocations' do
+          expect(global_redis.smembers("resource:pool:reference:#{name}").map(&:to_i)).to match_array(expected_pool)
+        end
+
+        it 'should create a pool of allocations' do
+          expect(global_redis.zrange("resource:pool:#{name}", 0, -1).map(&:to_i)).to match_array(expected_pool)
+        end
+
+        context 'when we have a limit and then remove it' do
+          let(:limit) { 5 }
+          let(:limit_two) { nil }
+
+          before { subject.limit = limit_two }
+
+          it 'should remove the limit' do
+            expect(global_redis.get("resource:limit:#{name}")).to be_nil
+          end
+
+          it 'should empty the reference pool' do
+            expect(global_redis.smembers("resource:pool:reference:#{name}")).to be_empty
+          end
+
+          it 'should empty the allocation pool' do
+            expect(global_redis.zrange("resource:pool:#{name}", 0, -1)).to be_empty
+          end
+        end
+
+        context 'when a lower previous limit has been set and items have been already allocated' do
+          let(:limit) { 5 }
+          let(:limit_two) { 6 }
+          let!(:allocated) do
+            global_redis.zrangebyscore("resource:pool:#{name}", '-inf', 'inf', limit: [0, 1]).first.tap do |item|
+              global_redis.zrem("resource:pool:#{name}", item)
+            end.to_i
+          end
+
+          before { subject.limit = limit_two }
+
+          it 'should not include the allocated item in the pool' do
+            expect(global_redis.zrange("resource:pool:#{name}", 0, -1).map(&:to_i)).not_to include(allocated)
+          end
+        end
+
+        context 'when a higher previous limit has been set' do
+          let(:limit) { 10 }
+          let(:limit_two) { 5 }
+          let(:expected_pool) { (1..limit_two).to_a }
+
+          before { subject.limit = limit_two }
+
+          it 'should remove the items from the reference pool' do
+            expect(global_redis.smembers("resource:pool:reference:#{name}").map(&:to_i)).to match_array(expected_pool)
+          end
+
+          it 'should remove the items from the pool' do
+            expect(global_redis.zrange("resource:pool:#{name}", 0, -1).map(&:to_i)).to match_array(expected_pool)
+          end
         end
 
         it 'should be an integer property' do
-          expect(Resource.new(name).limit).to eq(5)
+          expect(Resource.new(name).limit).to eq(limit)
         end
       end
 

@@ -23,10 +23,11 @@ module Sidekiq
       RETRYING_SCRIPT = File.read(RETRYING_SCRIPT_PATH)
       FILTER_GROUPED_QUEUES_SCRIPT_PATH = "#{SCRIPT_ROOT}/queue_filter.lua"
       FILTER_GROUPED_QUEUES_SCRIPT = File.read(FILTER_GROUPED_QUEUES_SCRIPT_PATH)
+      SET_LIMIT_SCRIPT_PATH = "#{SCRIPT_ROOT}/set_limit.lua"
+      SET_LIMIT_SCRIPT = File.read(SET_LIMIT_SCRIPT_PATH)
       NAMESPACE_KEY = [''].freeze
 
       define_property 'resource:type', :type
-      define_property 'resource:limit', :limit, :int
 
       def self.all
         Bolt.redis { |redis| redis.smembers('resources') }.map { |name| new(name) }
@@ -49,6 +50,16 @@ module Sidekiq
             end
           end
         end
+      end
+
+      def limit=(value)
+        argv = [name]
+        argv << value if value
+        run_script(:resource_set_limit, SET_LIMIT_SCRIPT, NAMESPACE_KEY, argv)
+      end
+
+      def limit
+        @limit ||= Bolt.redis { |redis| redis.get("resource:limit:#{name}") }.to_i
       end
 
       def frozen=(value)
