@@ -334,7 +334,7 @@ module Sidekiq
       end
 
       describe '#queues' do
-        let(:queues) { Faker::Lorem.words }
+        let(:queues) { Faker::Lorem.sentences }
 
         before do
           queues.each { |queue| subject.add_work(queue, SecureRandom.uuid) }
