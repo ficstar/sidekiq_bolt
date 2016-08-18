@@ -5,7 +5,7 @@ module Sidekiq
       def define_property(namespace, property, type = nil)
         instance_variable = :"@#{property}"
 
-        defined_setter(instance_variable, namespace, property)
+        define_setter(instance_variable, namespace, property)
         define_getter(instance_variable, namespace, property, type)
         define_counter_methods(namespace, property) if type == :counter
       end
@@ -44,7 +44,7 @@ module Sidekiq
         end
       end
 
-      def defined_setter(instance_variable, namespace, property)
+      def define_setter(instance_variable, namespace, property)
         define_method("#{property}=") do |value|
           Bolt.redis do |conn|
             instance_variable_set(instance_variable, value)
