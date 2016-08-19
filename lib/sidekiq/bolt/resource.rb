@@ -122,8 +122,8 @@ module Sidekiq
         run_script(:resource_allocate, ALLOCATE_SCRIPT, NAMESPACE_KEY, [name, amount, identity, *queues(queue_group).shuffle])
       end
 
-      def free(queue, work)
-        run_script(:resource_free, FREE_SCRIPT, NAMESPACE_KEY, [queue, name, work, identity])
+      def free(queue, allocation, work)
+        run_script(:resource_free, FREE_SCRIPT, NAMESPACE_KEY, [queue, allocation, name, work, identity])
       end
 
       private

@@ -1,5 +1,6 @@
 local namespace = table.remove(KEYS, 1)
 local queue_name = table.remove(ARGV, 1)
+local allocation = table.remove(ARGV, 1)
 local resource_name = table.remove(ARGV, 1)
 local work = table.remove(ARGV, 1)
 local worker_id = table.remove(ARGV, 1)
