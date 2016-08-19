@@ -16,13 +16,15 @@ module Sidekiq
         let(:resource_name) { Faker::Lorem.word }
         let(:resource) { Resource.new(resource_name) }
         let(:work) { SecureRandom.uuid }
-        let(:backup_work) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
+        let(:backup_work) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work, 'allocation' => '1'} }
         let(:serialized_backup_work) { JSON.dump(backup_work) }
         let(:result_allocation) { resource.allocate(1) }
         let(:result_queue) { result_allocation[0] }
-        let(:result_work) { result_allocation[1] }
+        let(:result_work) { result_allocation[2] }
+        let(:limit) { nil }
 
         before do
+          resource.limit = limit
           global_redis.lpush("resource:backup:worker:#{process}", serialized_backup_work)
           resource.add_work(queue_name, work)
           resource.allocate(1)
@@ -41,6 +43,15 @@ module Sidekiq
         it 'should re-insert into the right queue' do
           subject.sweep
           expect(result_queue).to eq(queue_name)
+        end
+
+        context 'when the resource has a limit' do
+          let(:limit) { 3 }
+
+          it 'should return the resource' do
+            subject.sweep
+            expect(resource.allocations_left).to eq(3)
+          end
         end
 
         context 'with more backed up work' do
