@@ -827,6 +827,14 @@ module Sidekiq
             it 'should backup the work to a queue identified by the worker' do
               expect(result).to eq(backup_data)
             end
+
+            context 'when the resource has a limit' do
+              let(:limit) { 3 }
+
+              it 'should include the allocation in the backup' do
+                expect(result).to include('allocation' => '1')
+              end
+            end
           end
         end
 

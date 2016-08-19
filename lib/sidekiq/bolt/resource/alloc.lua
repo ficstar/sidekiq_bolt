@@ -75,7 +75,7 @@ for _, queue in ipairs(queue_names) do
 
                     table.insert(workload, work)
 
-                    local backup_work = { queue = queue, resource = resource_name, work = work }
+                    local backup_work = { queue = queue, allocation = allocation, resource = resource_name, work = work }
                     redis.call('lpush', worker_backup_key, cjson.encode(backup_work))
                 end
 
