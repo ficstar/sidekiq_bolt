@@ -11,6 +11,7 @@ local frozen = redis.call('get', frozen_key)
 if frozen then return {} end
 
 local limit = tonumber(redis.call('get', limit_key))
+local resource_pool_key = namespace .. 'resource:pool:' .. resource_name
 local queue_names = ARGV
 
 local workload = {}
@@ -49,6 +50,11 @@ for _, queue in ipairs(queue_names) do
                         redis.call('incrby', allocated_key, to_return)
                     end
                 end
+            end
+
+            local allocations = redis.call('zrangebyscore', resource_pool_key, '-INF', 'INF', 'LIMIT', 0, amount)
+            for _, allocation in ipairs(allocations) do
+                redis.call('zrem', resource_pool_key, allocation)
             end
 
             if amount > 0 then

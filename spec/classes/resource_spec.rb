@@ -693,6 +693,25 @@ module Sidekiq
                 expect(subject.allocated).to eq(5)
               end
 
+              it 'should remove allocations from the pool' do
+                subject.allocate(amount)
+                expect(subject.allocations_left).to eq(0)
+              end
+
+              context 'when there are allocations left in the pool' do
+                let(:amount) { 3 }
+
+                it 'should allocate no more than the available amount of resources' do
+                  subject.allocate(amount)
+                  expect(subject.allocated).to eq(3)
+                end
+
+                it 'should remove allocations from the pool' do
+                  subject.allocate(amount)
+                  expect(subject.allocations_left).to eq(2)
+                end
+              end
+
               it 'should return the allocated work' do
                 expect(subject.allocate(amount)).to match_array(allocated_work)
               end
