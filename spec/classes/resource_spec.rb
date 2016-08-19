@@ -864,8 +864,10 @@ module Sidekiq
           end
         end
         let(:work_count) { 5 }
+        let(:limit) { nil }
 
         before do
+          subject.limit = limit
           allow_any_instance_of(Resource).to receive(:identity).and_return(host)
           work_count.times { subject.add_work(queue, SecureRandom.uuid) }
           allocated_work.concat subject.allocate(work_count).each_slice(3).map { |_, _, work| work }
@@ -879,6 +881,16 @@ module Sidekiq
         it 'should decrement the queue busy count' do
           subject.free(queue, -1, allocated_work.first)
           expect(global_redis.get('queue:busy:queue')).to eq('4')
+        end
+
+        context 'when the resource has a limit' do
+          let(:name) { Faker::Lorem.sentence }
+          let(:limit) { work_count }
+
+          it 'should return the allocation to the pool' do
+            subject.free(queue, 1, allocated_work.first)
+            expect(subject.allocations_left).to eq(1)
+          end
         end
 
         context 'when the work has already been removed' do
@@ -897,6 +909,16 @@ module Sidekiq
 
           it 'should only decrement the queue busy once' do
             expect(global_redis.get('queue:busy:queue')).to eq('0')
+          end
+
+          context 'when the resource has a limit' do
+            let(:name) { Faker::Lorem.sentence }
+            let(:limit) { work_count }
+
+            it 'should leave the pool alone' do
+              subject.free(queue, 1, allocated_work.first)
+              expect(subject.allocations_left).to eq(0)
+            end
           end
         end
 

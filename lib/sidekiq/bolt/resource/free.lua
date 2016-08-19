@@ -6,6 +6,7 @@ local work = table.remove(ARGV, 1)
 local worker_id = table.remove(ARGV, 1)
 local worker_backup_key = namespace .. 'resource:backup:worker:' .. worker_id
 local allocated_key = namespace .. 'resource:allocated:' .. resource_name
+local resource_pool_key = namespace .. 'resource:pool:' .. resource_name
 local queue_busy_key = namespace .. 'queue:busy:' .. queue_name
 local backup_work = { queue = queue_name, resource = resource_name, work = work }
 
@@ -22,5 +23,6 @@ if work_removed_count > 0 then
         redis.call('decrby', over_allocated_key, allocated_diff)
     end
 
+    if tonumber(allocation) >= 0 then redis.call('zadd', resource_pool_key, 0, allocation) end
     redis.call('decrby', queue_busy_key, 1 + allocated_diff)
 end
