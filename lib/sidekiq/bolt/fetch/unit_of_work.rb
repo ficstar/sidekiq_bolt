@@ -1,7 +1,7 @@
 module Sidekiq
   module Bolt
     class Fetch
-      UnitOfWork = Struct.new(:queue, :resource_name, :job) do
+      UnitOfWork = Struct.new(:queue, :allocation, :resource_name, :job) do
         alias :queue_name :queue
         alias :message :job
 
@@ -10,7 +10,7 @@ module Sidekiq
         end
 
         def force_acknowledge
-          resource.free(queue, job)
+          resource.free(queue, allocation, job)
           Fetch.processor_allocator.free(1, resource.type) if Fetch.processor_allocator
         end
 

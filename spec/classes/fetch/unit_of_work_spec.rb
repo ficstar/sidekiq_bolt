@@ -5,6 +5,7 @@ module Sidekiq
     describe Fetch::UnitOfWork do
 
       let(:queue) { Faker::Lorem.word }
+      let(:allocation) { rand(1..100) }
       let(:resource_type) { Faker::Lorem.word }
       let(:resource_name) { Faker::Lorem.word }
       let(:work) { SecureRandom.uuid }
@@ -15,9 +16,10 @@ module Sidekiq
         Fetch.processor_allocator.allocate(1, resource_type)
       end
 
-      subject { Fetch::UnitOfWork.new(queue, resource_name, work) }
+      subject { Fetch::UnitOfWork.new(queue, allocation, resource_name, work) }
 
       its(:queue) { is_expected.to eq(queue) }
+      its(:allocation) { is_expected.to eq(allocation) }
       its(:queue_name) { is_expected.to eq(queue) }
       its(:resource_name) { is_expected.to eq(resource_name) }
       its(:job) { is_expected.to eq(work) }
@@ -25,9 +27,10 @@ module Sidekiq
 
       shared_examples_for 'freeing up a resource' do |method|
         it 'should free the work from the resource' do
-          expect_any_instance_of(Resource).to receive(:free) do |resource, queue_name, job|
+          expect_any_instance_of(Resource).to receive(:free) do |resource, queue_name, allocation, job|
             expect(resource.name).to eq(resource_name)
             expect(queue_name).to eq(queue)
+            expect(allocation).to eq(allocation)
             expect(job).to eq(work)
           end
           subject.public_send(method)
