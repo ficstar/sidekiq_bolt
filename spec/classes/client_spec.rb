@@ -29,7 +29,7 @@ module Sidekiq
       let(:resource) { Resource.new(resource_name) }
       let(:result_work) { resource.allocate(1) }
       let(:result_queue) { result_work[0] }
-      let(:result_item) { Sidekiq.load_json(result_work[1]) if result_work[1] }
+      let(:result_item) { Sidekiq.load_json(result_work[2]) if result_work[2] }
       let(:worker_id) { SecureRandom.uuid }
       let(:sidekiq_options) { {concurrency: 0} }
 
@@ -120,47 +120,71 @@ module Sidekiq
           it 'should add a UnitOfWork to the local_queue of the Fetch' do
             subject.skeleton_push(item)
             work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
-            expect(work).to eq(Fetch::UnitOfWork.new(queue_name, resource_name, Sidekiq.dump_json(item)))
+            expect(work).to eq(Fetch::UnitOfWork.new(queue_name, '-1', resource_name, Sidekiq.dump_json(item)))
           end
 
-          context 'when the resource is already allocated to the limit' do
+          context 'when the resource has a limit' do
             let(:resource_limit) { 3 }
             let(:queue) { Queue.new(queue_name) }
+            let(:busy_queue_name) { Faker::Lorem.sentence }
             let(:backup_work_key) { "resource:backup:worker:#{worker_id}" }
             let(:serialized_backup_work) { global_redis.lrange(backup_work_key, 0, -1).first }
+            let(:resource) { Resource.new(resource_name) }
 
-            before { global_redis.set("resource:allocated:#{resource_name}", resource_limit) }
-
-            it 'should push the item on to the queue' do
-              subject.skeleton_push(item)
-              global_redis.set("resource:allocated:#{resource_name}", 0)
-              expect(result_item).not_to be_nil
+            before do
+              resource_limit.times { resource.add_work(busy_queue_name, SecureRandom.base64, false) }
+              resource.allocate(resource_allocation)
             end
 
-            it 'should not back up the work' do
-              subject.skeleton_push(item)
-              expect(serialized_backup_work).to be_nil
+            context 'when some room is left' do
+              let(:resource_allocation) { 2 }
+
+              it 'should add a UnitOfWork to the local_queue of the Fetch' do
+                subject.skeleton_push(item)
+                work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
+                expect(work).to eq(Fetch::UnitOfWork.new(queue_name, '3', resource_name, Sidekiq.dump_json(item)))
+              end
+
+              it 'should remove the allocation' do
+                subject.skeleton_push(item)
+                expect(resource.allocations_left).to eq(0)
+              end
             end
 
-            it 'should not increment the resource allocation' do
-              subject.skeleton_push(item)
-              expect(resource.allocated).to eq(resource_limit)
-            end
+            context 'when the resource limit has been reached' do
+              let(:resource_allocation) { 3 }
 
-            it 'should not increment the queue busy count' do
-              subject.skeleton_push(item)
-              expect(queue.busy).to eq(0)
-            end
+              it 'should push the item on to the queue' do
+                subject.skeleton_push(item)
+                global_redis.set("resource:allocated:#{resource_name}", 0)
+                expect(result_item).not_to be_nil
+              end
 
-            it 'should not allocate a worker' do
-              subject.skeleton_push(item)
-              expect(Fetch.processor_allocator.allocation(resource_name)).to eq(0)
-            end
+              it 'should not back up the work' do
+                subject.skeleton_push(item)
+                expect(serialized_backup_work).to be_nil
+              end
 
-            it 'should not locally schedule any work' do
-              subject.skeleton_push(item)
-              work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
-              expect(work).to be_nil
+              it 'should not increment the resource allocation' do
+                subject.skeleton_push(item)
+                expect(resource.allocated).to eq(resource_limit)
+              end
+
+              it 'should not increment the queue busy count' do
+                subject.skeleton_push(item)
+                expect(queue.busy).to eq(0)
+              end
+
+              it 'should not allocate a worker' do
+                subject.skeleton_push(item)
+                expect(Fetch.processor_allocator.allocation(resource_name)).to eq(0)
+              end
+
+              it 'should not locally schedule any work' do
+                subject.skeleton_push(item)
+                work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
+                expect(work).to be_nil
+              end
             end
           end
         end
@@ -226,7 +250,7 @@ module Sidekiq
           let!(:original_item_two) { item.dup }
           let(:result_work) { resource.allocate(2) }
           let(:result_queue_two) { result_work[2] }
-          let(:result_item_two) { Sidekiq::load_json(result_work[3]) }
+          let(:result_item_two) { Sidekiq::load_json(result_work[5]) }
           let(:items) { {'queue' => queue_name, 'resource' => resource_name, 'class' => klass, 'args' => [args, args_two]} }
           let(:result_args) { [result_item['args'], result_item_two['args']] }
 

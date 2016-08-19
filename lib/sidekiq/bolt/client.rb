@@ -26,8 +26,8 @@ module Sidekiq
       end
 
       def schedule_local_work(item)
-        backup_work(item) do |success, work|
-          Fetch.local_queue << Fetch::UnitOfWork.new(item['queue'], item['resource'], work) if success
+        backup_work(item) do |allocation, work|
+          Fetch.local_queue << Fetch::UnitOfWork.new(item['queue'], allocation.to_s, item['resource'], work) if allocation
         end
       end
 
@@ -56,8 +56,8 @@ module Sidekiq
 
       def backup_work(item)
         work = work(item)
-        do_backup_work(item, work).tap do |success|
-          yield success, work if block_given?
+        do_backup_work(item, work).tap do |allocation|
+          yield allocation, work if block_given?
         end
       end
 
