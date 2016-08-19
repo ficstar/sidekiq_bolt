@@ -25,6 +25,8 @@ module Sidekiq
       FILTER_GROUPED_QUEUES_SCRIPT = File.read(FILTER_GROUPED_QUEUES_SCRIPT_PATH)
       SET_LIMIT_SCRIPT_PATH = "#{SCRIPT_ROOT}/set_limit.lua"
       SET_LIMIT_SCRIPT = File.read(SET_LIMIT_SCRIPT_PATH)
+      ALLOCATIONS_LEFT_SCRIPT_PATH = "#{SCRIPT_ROOT}/allocations_left.lua"
+      ALLOCATIONS_LEFT_SCRIPT = File.read(ALLOCATIONS_LEFT_SCRIPT_PATH)
       NAMESPACE_KEY = [''].freeze
 
       define_property 'resource:type', :type
@@ -78,6 +80,10 @@ module Sidekiq
 
       def allocated
         Bolt.redis { |redis| redis.get(allocated_key).to_i }
+      end
+
+      def allocations_left
+        run_script(:resource_allocations_left, ALLOCATIONS_LEFT_SCRIPT, NAMESPACE_KEY, [name])
       end
 
       def over_allocated

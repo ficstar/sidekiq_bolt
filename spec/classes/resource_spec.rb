@@ -283,6 +283,25 @@ module Sidekiq
         end
       end
 
+      describe 'allocations_left' do
+        let(:name) { Faker::Lorem.sentence }
+
+        its(:allocations_left) { is_expected.to eq(-1) }
+
+        context 'with a limit' do
+          let(:limit) { rand(5..10) }
+          let(:fetched_count) { rand(1...limit) }
+
+          before do
+            subject.limit = limit
+            items = global_redis.zrangebyscore("resource:pool:#{name}", '-inf', 'inf', limit: [0, fetched_count])
+            global_redis.pipelined { items.each { |allocation| global_redis.zrem("resource:pool:#{name}", allocation) } }
+          end
+
+          its(:allocations_left) { is_expected.to eq(limit - fetched_count) }
+        end
+      end
+
       describe '#over_allocated' do
         let(:name) { 'disaster' }
 
