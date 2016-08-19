@@ -23,6 +23,11 @@ if work_removed_count > 0 then
         redis.call('decrby', over_allocated_key, allocated_diff)
     end
 
-    if tonumber(allocation) >= 0 then redis.call('zadd', resource_pool_key, 0, allocation) end
+    if tonumber(allocation) >= 0 then
+        local resource_limit_key = namespace .. 'resource:limit:' .. resource_name
+        local resource_limit = redis.call('get', resource_limit_key)
+
+        if resource_limit then redis.call('zadd', resource_pool_key, 0, allocation) end
+    end
     redis.call('decrby', queue_busy_key, 1 + allocated_diff)
 end

@@ -899,6 +899,15 @@ module Sidekiq
             subject.free(queue, 1, allocated_work.first)
             expect(subject.allocations_left).to eq(1)
           end
+
+          context 'when the limit has been removed' do
+            before { subject.limit = nil }
+
+            it 'should leave the allocation pool alone' do
+              subject.free(queue, 1, allocated_work.first)
+              expect(global_redis.zrangebyscore("resource:pool:#{name}", '-inf', 'inf')).to be_empty
+            end
+          end
         end
 
         context 'when the work has already been removed' do
