@@ -8,7 +8,7 @@ local worker_backup_key = namespace .. 'resource:backup:worker:' .. worker_id
 local allocated_key = namespace .. 'resource:allocated:' .. resource_name
 local resource_pool_key = namespace .. 'resource:pool:' .. resource_name
 local queue_busy_key = namespace .. 'queue:busy:' .. queue_name
-local backup_work = { queue = queue_name, resource = resource_name, work = work }
+local backup_work = { queue = queue_name, allocation = allocation, resource = resource_name, work = work }
 
 local work_removed_count = redis.call('lrem', worker_backup_key, 0, cjson.encode(backup_work))
 
