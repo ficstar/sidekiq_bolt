@@ -18,9 +18,9 @@ module Sidekiq
         #noinspection RubyStringKeysInHashInspection
         let(:work) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work_data} }
         let(:serialized_work) { JSON.dump(work) }
-        let(:result_allocation) { resource.allocate(1) }
-        let(:result_queue) { result_allocation[0] }
-        let(:result_work) { result_allocation[1] }
+        let(:result_allocation) { work_klass.from_allocations(resource_name, resource.allocate(1)) }
+        let(:result_queue) { result_allocation[0].queue if result_allocation[0] }
+        let(:result_work) { result_allocation[0].work if result_allocation[0] }
 
         it 'should run the default Enq for Sidekiq' do
           expect_any_instance_of(Scheduled::Enq).to receive(:enqueue_jobs)
@@ -120,8 +120,8 @@ module Sidekiq
 
           context 'with multiple expired items' do
             let(:work_time_two) { now - 100 }
-            let(:result_allocation) { resource.allocate(2) }
-            let(:result_work_two) { result_allocation[3] }
+            let(:result_allocation) { work_klass.from_allocations(resource_name, resource.allocate(2)) }
+            let(:result_work_two) { result_allocation[1].work }
             let(:work_data_two) { SecureRandom.uuid }
             #noinspection RubyStringKeysInHashInspection
             let(:work_two) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work_data_two} }
