@@ -61,9 +61,9 @@ module Sidekiq
         let(:work) { SecureRandom.uuid }
         let(:item) { {queue: queue, resource: resource, work: work} }
         let(:items) { [item] }
-        let(:result_allocation) { Resource.new(resource).allocate(1) }
-        let(:result_queue) { result_allocation[0] }
-        let(:result_work) { result_allocation[1] }
+        let(:result_allocation) { work_klass.from_allocation(resource, Resource.new(resource).allocate(1)) }
+        let(:result_queue) { result_allocation.queue }
+        let(:result_work) { result_allocation.work }
 
         before { Queue.enqueue(items) }
 
@@ -81,9 +81,9 @@ module Sidekiq
           let(:work_two) { SecureRandom.uuid }
           let(:item_two) { {queue: queue_two, resource: resource_two, work: work_two} }
           let(:items) { [item, item_two] }
-          let(:result_allocation_two) { Resource.new(resource_two).allocate(1) }
-          let(:result_queue_two) { result_allocation_two[0] }
-          let(:result_work_two) { result_allocation_two[1] }
+          let(:result_allocation_two) { work_klass.from_allocation(resource, Resource.new(resource_two).allocate(1)) }
+          let(:result_queue_two) { result_allocation_two.queue }
+          let(:result_work_two) { result_allocation_two.work }
 
           it 'should enqueue the work' do
             expect(result_work_two).to eq(work_two)
@@ -343,13 +343,16 @@ module Sidekiq
         let(:resource_param) { resource_name }
         let(:workload) { SecureRandom.uuid }
         let(:resource) { Resource.new(resource_name) }
-        let(:allocated_work) { resource.allocate(1) }
+        let(:allocated_work) { work_klass.from_allocation(resource_name, resource.allocate(1)) }
 
         context 'when the work is not retrying' do
-          before { subject.enqueue(resource_param, workload) }
+          before { queue.enqueue(resource_param, workload) }
 
-          it 'should add work to the specified resource' do
-            expect(allocated_work).to eq([name, workload])
+          describe 'the result work' do
+            subject { allocated_work }
+
+            its(:queue) { is_expected.to eq(name) }
+            its(:work) { is_expected.to eq(workload) }
           end
 
           it 'should not add this work to the retrying queue' do
@@ -360,8 +363,11 @@ module Sidekiq
             let(:resource_param) { resource }
             let(:resource) { Resource.new(resource_name) }
 
-            it 'should add work to the specified resource' do
-              expect(allocated_work).to eq([name, workload])
+            describe 'the result work' do
+              subject { allocated_work }
+
+              its(:queue) { is_expected.to eq(name) }
+              its(:work) { is_expected.to eq(workload) }
             end
           end
         end
