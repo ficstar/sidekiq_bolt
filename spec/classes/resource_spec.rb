@@ -575,7 +575,7 @@ module Sidekiq
           let(:workload) { amount.times.map { SecureRandom.uuid } }
           let(:allocated_work) do
             workload.reverse.map do |work|
-              [queue, -1, work]
+              [queue, '-1', work]
             end.flatten
           end
           let(:queue) { 'queue' }
@@ -760,12 +760,12 @@ module Sidekiq
             let(:queue_two) { 'queue_two' }
             let(:allocated_work) do
               workload.reverse.map do |work|
-                [queue, -1, work]
+                [queue, '-1', work]
               end.flatten
             end
             let(:allocated_work_two) do
               workload_two.reverse.map do |work|
-                [queue_two, -1, work]
+                [queue_two, '-1', work]
               end.flatten
             end
             let(:list_of_queues) { [queue, queue_two] }
@@ -813,7 +813,7 @@ module Sidekiq
             let(:amount) { 1 }
             let(:host) { Faker::Internet.ip_v4_address }
             let(:backup_data) do
-              {'queue' => queue, 'resource' => name, 'work' => workload.first}
+              {'queue' => queue, 'allocation' => '-1', 'resource' => name, 'work' => workload.first}
             end
             let(:result) do
               JSON.load(global_redis.lindex("resource:backup:worker:#{host}", 0))
@@ -863,6 +863,7 @@ module Sidekiq
       end
 
       describe '#free' do
+        let(:work_klass) { Struct.new(:queue, :allocation, :work) }
         let(:queue) { 'queue' }
         let(:allocated_work) { [] }
         let(:host) { Faker::Internet.ip_v4_address }
@@ -871,6 +872,8 @@ module Sidekiq
             JSON.load(serialized_work)['work']
           end
         end
+        let(:first_work) { allocated_work.first }
+        let(:last_work) { allocated_work.last }
         let(:work_count) { 5 }
         let(:limit) { nil }
 
@@ -878,16 +881,19 @@ module Sidekiq
           subject.limit = limit
           allow_any_instance_of(Resource).to receive(:identity).and_return(host)
           work_count.times { subject.add_work(queue, SecureRandom.uuid) }
-          allocated_work.concat subject.allocate(work_count).each_slice(3).map { |_, _, work| work }
+          work_items = subject.allocate(work_count).each_slice(3).map do |queue, allocation, work|
+            work_klass.new(queue, allocation, work)
+          end
+          allocated_work.concat(work_items)
         end
 
         it 'should decrement the allocation count' do
-          subject.free(queue, -1, allocated_work.first)
+          subject.free(first_work.queue, first_work.allocation, first_work.work)
           expect(subject.allocated).to eq(4)
         end
 
         it 'should decrement the queue busy count' do
-          subject.free(queue, -1, allocated_work.first)
+          subject.free(first_work.queue, first_work.allocation, first_work.work)
           expect(global_redis.get('queue:busy:queue')).to eq('4')
         end
 
@@ -896,7 +902,7 @@ module Sidekiq
           let(:limit) { work_count }
 
           it 'should return the allocation to the pool' do
-            subject.free(queue, 1, allocated_work.first)
+            subject.free(first_work.queue, first_work.allocation, first_work.work)
             expect(subject.allocations_left).to eq(1)
           end
 
@@ -904,8 +910,17 @@ module Sidekiq
             before { subject.limit = nil }
 
             it 'should leave the allocation pool alone' do
-              subject.free(queue, 1, allocated_work.first)
+              subject.free(first_work.queue, first_work.allocation, first_work.work)
               expect(global_redis.zrangebyscore("resource:pool:#{name}", '-inf', 'inf')).to be_empty
+            end
+          end
+
+          context 'when the limit has been lowered' do
+            before { subject.limit = limit - 1 }
+
+            it 'should not return allocations beyond the boundry' do
+              subject.free(last_work.queue, last_work.allocation, last_work.work)
+              expect(subject.allocations_left).to eq(0)
             end
           end
         end
@@ -913,7 +928,7 @@ module Sidekiq
         context 'when the work has already been removed' do
           let(:work_count) { 1 }
           before do
-            2.times { subject.free(queue, -1, allocated_work.first) }
+            2.times { subject.free(first_work.queue, first_work.allocation, first_work.work) }
           end
 
           it 'should not decrement the allocation count' do
@@ -932,8 +947,10 @@ module Sidekiq
             let(:name) { Faker::Lorem.sentence }
             let(:limit) { work_count }
 
+            before { global_redis.del("resource:pool:#{name}") }
+
             it 'should leave the pool alone' do
-              subject.free(queue, 1, allocated_work.first)
+              subject.free(first_work.queue, first_work.allocation, first_work.work)
               expect(subject.allocations_left).to eq(0)
             end
           end
@@ -943,23 +960,23 @@ module Sidekiq
           before { global_redis.set("resource:allocated:#{name}", '0') }
 
           it 'should keep the allocation count at 0' do
-            subject.free(queue, -1, allocated_work.first)
+            subject.free(first_work.queue, first_work.allocation, first_work.work)
             expect(subject.allocated).to eq(0)
           end
 
           it 'should store a value indicating that the resource had been over-allocated' do
-            subject.free(queue, -1, allocated_work.first)
+            subject.free(first_work.queue, first_work.allocation, first_work.work)
             expect(global_redis.get("resource:over-allocated:#{name}")).to eq('1')
           end
 
           it 'should increment the queue busy by the negative difference' do
-            subject.free(queue, -1, allocated_work.first)
+            subject.free(first_work.queue, first_work.allocation, first_work.work)
             expect(global_redis.get('queue:busy:queue')).to eq('5')
           end
         end
 
         it 'should remove the work from the backup queue' do
-          subject.free(queue, -1, allocated_work.first)
+          subject.free(first_work.queue, first_work.allocation, first_work.work)
           expect(backup_work).not_to include(allocated_work.first)
         end
 
@@ -968,12 +985,12 @@ module Sidekiq
           let(:queue) { 'busy_queue' }
 
           it 'should decrement the allocation count' do
-            subject.free(queue, -1, allocated_work.first)
+            subject.free(first_work.queue, first_work.allocation, first_work.work)
             expect(subject.allocated).to eq(4)
           end
 
           it 'should decrement the queue busy count' do
-            subject.free(queue, -1, allocated_work.first)
+            subject.free(first_work.queue, first_work.allocation, first_work.work)
             expect(global_redis.get('queue:busy:busy_queue')).to eq('4')
           end
         end

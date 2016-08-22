@@ -64,15 +64,11 @@ for _, queue in ipairs(queue_names) do
                 redis.call('incrby', queue_busy_key, amount)
 
                 for index, work in ipairs(queue_items) do
-                    table.insert(workload, queue)
-
                     local allocation = allocations[index]
-                    if allocation then
-                        table.insert(workload, allocation)
-                    else
-                        table.insert(workload, -1)
-                    end
+                    if not allocation then allocation = '-1' end
 
+                    table.insert(workload, queue)
+                    table.insert(workload, allocation)
                     table.insert(workload, work)
 
                     local backup_work = { queue = queue, allocation = allocation, resource = resource_name, work = work }
