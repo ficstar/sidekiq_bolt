@@ -45,6 +45,11 @@ module Sidekiq
           expect(result_queue).to eq(queue_name)
         end
 
+        it 'should leave the resource pool alone' do
+          subject.sweep
+          expect(global_redis.zcard("resource:pool:#{resource_name}")).to eq(0)
+        end
+
         context 'when the resource has a limit' do
           let(:limit) { 3 }
 

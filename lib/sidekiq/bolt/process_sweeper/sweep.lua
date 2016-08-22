@@ -13,9 +13,15 @@ for _, serialized_work in ipairs(processing_work) do
     local queue_busy_key = namespace .. 'queue:busy:' .. work.queue
 
     redis.call('lpush', queue_key, work.work)
-    redis.call('zadd', resource_pool_key, 0, work.allocation)
     redis.call('decr', resource_allocated_key)
     redis.call('decr', queue_busy_key)
+
+    local resource_limit_key = namespace .. 'resource:limit:' .. work.resource
+    local resource_limit = redis.call('get', resource_limit_key)
+
+    if resource_limit then
+        redis.call('zadd', resource_pool_key, 0, work.allocation)
+    end
 end
 redis.call('del', worker_backup_key)
 
