@@ -10,6 +10,7 @@ module Sidekiq
       future = ThomasUtils::Future.none.then do
         Sidekiq.server_middleware.invoke(worker, msg, work.queue_name) do
           ack = true
+          worker.resource_allocation = work.allocation
           execute_job(worker, cloned(msg['args']))
         end
       end.fallback do |error|

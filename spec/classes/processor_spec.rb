@@ -16,7 +16,8 @@ module Sidekiq
     let(:job) { Bolt::Message['class' => 'Sidekiq::MockProcessorWorker', 'args' => args] }
     let(:queue) { Faker::Lorem.word }
     let(:serialized_job) { Sidekiq.dump_json(job) }
-    let(:work) { double(:work, queue_name: queue, message: serialized_job, acknowledge: nil) }
+    let(:allocation) { rand(1..100) }
+    let(:work) { work_klass.new(queue, nil, allocation, serialized_job) }
     let(:processor) { Processor.new(boss) }
 
     before do
@@ -27,6 +28,11 @@ module Sidekiq
     describe '#process' do
       it 'should call real_thread on the boss actor' do
         expect(async).to receive(:real_thread).with(processor.proxy_id, a_kind_of(Celluloid::Thread))
+        processor.process(work)
+      end
+
+      it 'should set the resource allocation on this worker' do
+        expect_any_instance_of(MockProcessorWorker).to receive(:resource_allocation=).with(allocation)
         processor.process(work)
       end
 

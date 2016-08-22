@@ -11,6 +11,13 @@ module TestWork
         queue, allocation, work = allocation
         new(queue, resource, allocation, work)
       end
+
+      alias :message :work
+      alias :queue_name :queue
+
+      def acknowledge
+
+      end
     end
   end
 end
