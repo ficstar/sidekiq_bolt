@@ -19,7 +19,7 @@ for _, serialized_work in ipairs(processing_work) do
     local resource_limit_key = namespace .. 'resource:limit:' .. work.resource
     local resource_limit = redis.call('get', resource_limit_key)
 
-    if resource_limit then
+    if resource_limit and tonumber(work.allocation) <= tonumber(resource_limit) then
         redis.call('zadd', resource_pool_key, 0, work.allocation)
     end
 end

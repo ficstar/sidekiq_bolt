@@ -16,7 +16,8 @@ module Sidekiq
         let(:resource_name) { Faker::Lorem.word }
         let(:resource) { Resource.new(resource_name) }
         let(:work) { SecureRandom.uuid }
-        let(:backup_work) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work, 'allocation' => '1'} }
+        let(:resource_allocation) { '1' }
+        let(:backup_work) { {'queue' => queue_name, 'resource' => resource_name, 'work' => work, 'allocation' => resource_allocation} }
         let(:serialized_backup_work) { JSON.dump(backup_work) }
         let(:result_allocation) { resource.allocate(1) }
         let(:result_queue) { result_allocation[0] }
@@ -56,6 +57,17 @@ module Sidekiq
           it 'should return the resource' do
             subject.sweep
             expect(resource.allocations_left).to eq(3)
+          end
+
+          context 'when the limit has changed to a lower amount' do
+            let(:resource_allocation) { '3' }
+
+            before { resource.limit = 1 }
+
+            it 'should leave the pool alone' do
+              subject.sweep
+              expect(resource.allocations_left).to eq(0)
+            end
           end
         end
 
