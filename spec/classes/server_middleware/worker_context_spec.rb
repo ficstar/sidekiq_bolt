@@ -33,7 +33,7 @@ module Sidekiq
               end
             end
             let(:worker) { worker_class.new(resource, block) }
-            let(:result_allocation) { resource.allocate(1) }
+            let(:result_allocation) { work_klass.from_allocation(resource_name, resource.allocate(1)) }
 
             it 'should call #setup before yielding' do
               subject.call(worker, job, nil) do
@@ -43,7 +43,7 @@ module Sidekiq
 
             it 'should not re-submit the work' do
               subject.call(worker, job, nil) {}
-              expect(result_allocation).to be_empty
+              expect(result_allocation).to be_nil
             end
 
             it 'should leave the job id alone' do
@@ -53,8 +53,8 @@ module Sidekiq
 
             context 'when #setup returns false' do
               let(:block_result) { false }
-              let(:result_queue) { result_allocation[0] }
-              let(:result_work) { result_allocation[1] }
+              let(:result_queue) { result_allocation.queue }
+              let(:result_work) { result_allocation.work }
 
               it 'should not yield' do
                 expect { |block| subject.call(worker, job, nil, &block) }.not_to yield_control

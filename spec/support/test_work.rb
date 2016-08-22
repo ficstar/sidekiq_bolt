@@ -9,7 +9,7 @@ module TestWork
 
       def self.from_allocation(resource, allocation)
         queue, allocation, work = allocation
-        new(queue, resource, allocation, work)
+        new(queue, resource, allocation, work) if work
       end
 
       alias :message :work
