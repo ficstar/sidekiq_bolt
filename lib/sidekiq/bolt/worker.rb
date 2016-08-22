@@ -1,7 +1,7 @@
 module Sidekiq
   module Bolt
     module Worker
-      attr_accessor :queue, :resource, :original_message, :parent_job_id, :child_scheduler
+      attr_accessor :queue, :resource, :original_message, :parent_job_id, :child_scheduler, :resource_allocation
 
       ROOT = File.dirname(__FILE__)
       SCRIPT_ROOT = ROOT + '/' + File.basename(__FILE__, '.rb')
@@ -95,7 +95,7 @@ module Sidekiq
       private
 
       def fetched_work
-        @fetched_work ||= Fetch::UnitOfWork.new(queue.name, resource.name, original_message)
+        @fetched_work ||= Fetch::UnitOfWork.new(queue.name, resource_allocation, resource.name, original_message)
       end
 
     end

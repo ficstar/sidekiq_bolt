@@ -30,8 +30,8 @@ module Sidekiq
       let(:queue_name) { 'default' }
       let(:resource_name) { 'default' }
       let(:resource) { Resource.new(resource_name) }
-      let(:result_work) { resource.allocate(1) }
-      let(:result_item) { Sidekiq.load_json(result_work[1]) }
+      let(:result_work) { work_klass.from_allocation(resource_name, resource.allocate(1)) }
+      let(:result_item) { Sidekiq.load_json(result_work.work) }
       let(:klass) { MockWorker }
       let(:scheduler_class) do
         Struct.new(:job) do
@@ -75,6 +75,12 @@ module Sidekiq
         let(:jid) { SecureRandom.uuid }
         before { subject.parent_job_id = jid }
         its(:parent_job_id) { is_expected.to eq(jid) }
+      end
+
+      describe '#resource_allocation' do
+        let(:resource_allocation) { rand(1..100) }
+        before { subject.resource_allocation = resource_allocation }
+        its(:resource_allocation) { is_expected.to eq(resource_allocation) }
       end
 
       describe '#child_scheduler' do
@@ -378,6 +384,7 @@ module Sidekiq
         let(:original_message) { Sidekiq.dump_json(original_job) }
         let(:job_id) { SecureRandom.uuid }
         let(:parent_job_id) { SecureRandom.uuid }
+
         before do
           resource.add_work(queue_name, original_message)
           subject.queue = Queue.new(queue_name)
@@ -385,7 +392,8 @@ module Sidekiq
           subject.original_message = original_message
           subject.jid = job_id
           subject.parent_job_id = parent_job_id
-          resource.allocate(1)
+          allocation = work_klass.from_allocation(resource_name, resource.allocate(1))
+          subject.resource_allocation = allocation.allocation
         end
 
         it 'should acknowledge that the work is done' do
