@@ -863,7 +863,6 @@ module Sidekiq
       end
 
       describe '#free' do
-        let(:work_klass) { Struct.new(:queue, :allocation, :work) }
         let(:queue) { 'queue' }
         let(:allocated_work) { [] }
         let(:host) { Faker::Internet.ip_v4_address }
@@ -881,9 +880,7 @@ module Sidekiq
           subject.limit = limit
           allow_any_instance_of(Resource).to receive(:identity).and_return(host)
           work_count.times { subject.add_work(queue, SecureRandom.uuid) }
-          work_items = subject.allocate(work_count).each_slice(3).map do |queue, allocation, work|
-            work_klass.new(queue, allocation, work)
-          end
+          work_items = work_klass.from_allocations(name, subject.allocate(work_count))
           allocated_work.concat(work_items)
         end
 
