@@ -44,9 +44,9 @@ module Sidekiq
           context 'when the block raises an error' do
             let(:error) { StandardError.new(Faker::Lorem.sentence).tap { |err| err.set_backtrace(Faker::Lorem.paragraph) } }
             let(:resource) { Resource.new(resource_name) }
-            let(:error_work) { resource.allocate(1) }
-            let(:error_queue) { error_work[0] }
-            let(:error_job) { Sidekiq.load_json(error_work[1]) }
+            let(:error_work) { work_klass.from_allocation(resource_name, resource.allocate(1)) }
+            let(:error_queue) { error_work.queue }
+            let(:error_job) { Sidekiq.load_json(error_work.work) }
 
             it 'should count this work as retrying' do
               subject.call(worker, job, nil) { raise error }
