@@ -43,7 +43,7 @@ module Sidekiq
           let(:resource_name) { Faker::Lorem.word }
           let(:resource) { Resource.new(resource_name) }
           let(:work) { SecureRandom.uuid }
-          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, resource_name, work) }
+          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, '-1', resource_name, work) }
 
           context 'when work has been scheduled locally' do
             before { Fetch.local_queue << expected_work }
@@ -112,7 +112,7 @@ module Sidekiq
 
             context 'with more work available from the resource' do
               let(:work_two) { SecureRandom.uuid }
-              let(:expected_work_two) { Fetch::UnitOfWork.new(queue_name, resource_name, work_two) }
+              let(:expected_work_two) { Fetch::UnitOfWork.new(queue_name, '-1', resource_name, work_two) }
 
               before { resource.add_work(queue_name, work_two) }
 
@@ -168,7 +168,7 @@ module Sidekiq
 
           let(:work) { SecureRandom.uuid }
           let(:work_two) { SecureRandom.uuid }
-          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, resource.name, work) }
+          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, '-1', resource.name, work) }
 
           before do
             resource.add_work(queue_name, work)

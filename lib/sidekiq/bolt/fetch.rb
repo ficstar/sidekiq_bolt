@@ -67,8 +67,8 @@ module Sidekiq
       end
 
       def allocate_work(resource, wokers_available)
-        items = resource.allocate(wokers_available, @queue_group).each_slice(2).map do |(queue, work)|
-          UnitOfWork.new(queue, resource.name, work) if work
+        items = resource.allocate(wokers_available, @queue_group).each_slice(3).map do |(queue, allocation, work)|
+          UnitOfWork.new(queue, allocation, resource.name, work) if work
         end
         wokers_available -= items.count
 
