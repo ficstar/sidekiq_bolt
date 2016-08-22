@@ -18,8 +18,8 @@ module Sidekiq
       let(:scheduler) { ChildScheduler.new('jid' => job_id) }
       let(:resource_name) { 'default' }
       let(:resource) { Resource.new(resource_name) }
-      let(:result_allocation) { resource.allocate(1) }
-      let(:serialized_work) { result_allocation[1] }
+      let(:result_allocation) { work_klass.from_allocation(resource_name, resource.allocate(1)) }
+      let(:serialized_work) { result_allocation.work }
       let(:serialized_work_two) { global_redis.lrange("successive_work:#{new_jid}", 0, -1).first }
       let(:result_item) { Sidekiq.load_json(serialized_work) if serialized_work }
       let(:result_queue) { result_item['queue'] }
