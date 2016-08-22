@@ -186,9 +186,9 @@ module Sidekiq
                 let(:queue) { Queue.new(queue_name) }
                 let(:scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
                 let(:jobs_to_schedule) { [scheduled_job] }
-                let(:result_allocation) { resource.allocate(2) }
-                let(:result_queue) { result_allocation[0] }
-                let(:result_work) { result_allocation[1] }
+                let(:result_allocation) { work_klass.from_allocations(resource_name, resource.allocate(2)) }
+                let(:result_queue) { result_allocation[0].queue if result_allocation[0] }
+                let(:result_work) { result_allocation[0].work if result_allocation[0] }
                 let(:queue_blocked) { false }
 
                 before do
@@ -240,8 +240,8 @@ module Sidekiq
                   let(:queue_two) { Queue.new(queue_name_two) }
                   let(:scheduled_job_two) { {'queue' => queue_name_two, 'resource' => resource_name_two, 'work' => work_two} }
                   let(:jobs_to_schedule) { [scheduled_job, scheduled_job_two] }
-                  let(:result_allocation_two) { resource_two.allocate(2) }
-                  let(:result_work_two) { result_allocation_two[1] }
+                  let(:result_allocation_two) { work_klass.from_allocations(resource_name_two, resource_two.allocate(2)) }
+                  let(:result_work_two) { result_allocation_two[0].work }
 
                   it 'should enqueue the first scheduled work' do
                     expect(result_work).to eq(work)
@@ -302,8 +302,8 @@ module Sidekiq
                 let(:resource) { Resource.new(resource_name) }
                 let(:queue) { Queue.new(queue_name) }
                 let(:scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
-                let(:result_allocation) { resource.allocate(1) }
-                let(:result_work) { result_allocation[1] }
+                let(:result_allocation) { work_klass.from_allocations(resource_name, resource.allocate(1)) }
+                let(:result_work) { result_allocation[0].work if result_allocation[0] }
                 let(:successive_job_id) { job_id }
                 let(:failure_limit) { nil }
                 let(:failure_count) { 0 }
