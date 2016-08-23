@@ -156,7 +156,7 @@ module Sidekiq
 
               it 'should push the item on to the queue' do
                 subject.skeleton_push(item)
-                global_redis.set("resource:allocated:#{resource_name}", 0)
+                resource.limit += 1
                 expect(result_item).not_to be_nil
               end
 
