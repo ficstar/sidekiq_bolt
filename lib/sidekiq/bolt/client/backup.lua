@@ -8,22 +8,13 @@ local pool_key = namespace .. 'resource:pool:' .. resource_name
 local limit_key = namespace .. 'resource:limit:' .. resource_name
 
 local limit = tonumber(redis.call('get', limit_key))
-local allocation = redis.call('incr', allocated_key)
-local perform_allocation = true
 
-local pool_allocation
+local pool_allocation = -1
 
-if limit and allocation > limit then
-    redis.call('decr', allocated_key)
-    perform_allocation = false
-end
+if limit then pool_allocation = redis.call('zrangebyscore', pool_key, '-INF', 'INF', 'LIMIT', 0, 1)[1] end
 
-if perform_allocation then
-    if limit then
-        pool_allocation = redis.call('zrangebyscore', pool_key, '-INF', 'INF', 'LIMIT', 0, 1)[1]
-    else
-        pool_allocation = -1
-    end
+if pool_allocation then
+    redis.call('incr', allocated_key)
 
     local worker_backup_key = namespace .. 'resource:backup:worker:' .. worker_id
     local queue_busy_key = namespace .. 'queue:busy:' .. queue_name
