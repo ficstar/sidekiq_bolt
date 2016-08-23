@@ -582,8 +582,10 @@ module Sidekiq
           let(:list_of_queues) { [queue] }
           let(:shuffled_queues) { list_of_queues }
           let(:queue_group) { :* }
+          let(:host) { Faker::Internet.ip_v4_address }
 
           before do
+            allow(subject).to receive(:identity).and_return(host)
             allow(subject).to receive(:queues).with(queue_group).and_return(list_of_queues)
             allow(list_of_queues).to receive(:shuffle).and_return(shuffled_queues)
 
@@ -603,6 +605,17 @@ module Sidekiq
           it 'should remove the work from the queue' do
             subject.allocate(amount)
             expect(global_redis.lrange('resource:queue:queue:resourceful', 0, -1))
+          end
+
+          it 'should indicate that the process exists' do
+            subject.allocate(amount)
+            expect(global_redis.smembers('bolt:processes')).to include(host)
+          end
+
+          it 'should indicate that we are still alive' do
+            global_redis.set("bolt:processes:#{host}", SecureRandom.base64)
+            subject.allocate(amount)
+            expect(global_redis.ttl("bolt:processes:#{host}")).to be_within(1).of(60)
           end
 
           context 'with a different queue group' do

@@ -16,6 +16,11 @@ local queue_names = ARGV
 
 local workload = {}
 
+local processes_key = namespace .. 'bolt:processes'
+local worker_processes_key = namespace .. 'bolt:processes:' .. worker_id
+redis.call('sadd', processes_key, worker_id)
+redis.call('expire', worker_processes_key, 60)
+
 for _, queue in ipairs(queue_names) do
     if total_amount <= 0 then break end
 
