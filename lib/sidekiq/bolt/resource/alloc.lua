@@ -41,23 +41,10 @@ for _, queue in ipairs(queue_names) do
                 amount = queue_limit
             end
 
-            local allocated = redis.call('incrby', allocated_key, amount)
             local allocations = redis.call('zrangebyscore', resource_pool_key, '-INF', 'INF', 'LIMIT', 0, amount)
 
-            if limit then
-                amount = table.getn(allocations)
-                local to_return = limit - allocated
-
-                if to_return < 0 then
-                    if -to_return > amount then
-                        to_return = -amount
-                    end
-
-                    if to_return < 0 then
-                        redis.call('incrby', allocated_key, to_return)
-                    end
-                end
-            end
+            if limit then amount = table.getn(allocations) end
+            redis.call('incrby', allocated_key, amount)
 
             for _, allocation in ipairs(allocations) do
                 redis.call('zrem', resource_pool_key, allocation)
