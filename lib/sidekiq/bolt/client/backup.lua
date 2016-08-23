@@ -11,7 +11,7 @@ local limit = tonumber(redis.call('get', limit_key))
 local allocation = redis.call('incr', allocated_key)
 local perform_allocation = true
 
-local pool_allocation = nil
+local pool_allocation
 
 if limit and allocation > limit then
     redis.call('decr', allocated_key)
