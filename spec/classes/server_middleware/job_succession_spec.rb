@@ -320,8 +320,10 @@ module Sidekiq
                 describe 'cleaning up scheduled work' do
                   let(:scheduled_parent_job_id) { SecureRandom.base64 }
                   let(:scheduled_job_dependencies) { Faker::Lorem.sentences }
+                  let(:scheduled_job_scheduled_job) { nil }
 
                   before do
+                    global_redis.lpush("successive_work:#{scheduled_job_id}", JSON.dump(scheduled_job_scheduled_job)) if scheduled_job_scheduled_job
                     global_redis.set("parent:#{scheduled_job_id}", scheduled_parent_job_id)
                     global_redis.set("job_running:#{scheduled_job_id}", 'true')
                     global_redis.sadd("dependencies:#{scheduled_parent_job_id}", scheduled_job_id)
@@ -349,6 +351,15 @@ module Sidekiq
 
                   it 'should remove scheduled job running key' do
                     expect(global_redis.get("job_running:#{scheduled_job_id}")).to be_nil
+                  end
+
+                  context 'when the scheduled job itself schedules jobs' do
+                    let(:scheduled_job_two_id) { SecureRandom.base64 }
+                    let(:scheduled_job_scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'jid' => scheduled_job_two_id, 'work' => work] }
+
+                    it 'should clear the schedule succession queue' do
+                      expect(global_redis.lrange("successive_work:#{scheduled_job_id}", 0, -1)).to be_empty
+                    end
                   end
                 end
 

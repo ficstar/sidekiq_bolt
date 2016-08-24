@@ -48,7 +48,8 @@ while job_id do
             redis.call('expire', parent_failure_count_key, one_week)
         end
 
-        local clear_schedules = function(scheduled_work_key)
+        local clear_schedules
+        clear_schedules = function(scheduled_work_key)
             local scheduled_items = redis.call('lrange', scheduled_work_key, 0, -1)
             for _, serialized_work in ipairs(scheduled_items) do
                 local work = cjson.decode(serialized_work)
@@ -67,6 +68,7 @@ while job_id do
                     redis.call('del', schedule_parent_job_key)
                     redis.call('srem', schedule_parent_dependency_key, work.jid)
                 end
+                clear_schedules(namespace .. 'successive_work:' .. work.jid)
             end
             redis.call('del', scheduled_work_key)
         end
