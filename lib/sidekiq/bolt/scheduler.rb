@@ -49,7 +49,7 @@ module Sidekiq
 
         if new_job
           serialized_job = Sidekiq.dump_json(new_job)
-          items.concat [new_job['queue'], new_job['resource'], serialized_job]
+          items.concat [new_job['queue'], new_job['resource'], new_job['jid'], serialized_job]
           new_job['jid']
         end
       end

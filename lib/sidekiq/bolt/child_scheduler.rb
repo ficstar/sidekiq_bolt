@@ -9,7 +9,7 @@ module Sidekiq
       end
 
       def schedule!
-        items_to_schedule = items.each_slice(3).map do |(queue, resource, work)|
+        items_to_schedule = items.each_slice(4).map do |(queue, resource, _, work)|
           {queue: queue, resource: resource, work: work}
         end
         Queue.enqueue(items_to_schedule)

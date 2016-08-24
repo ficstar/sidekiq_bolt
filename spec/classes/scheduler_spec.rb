@@ -25,8 +25,7 @@ module Sidekiq
         let(:job_id) { SecureRandom.uuid }
         let(:scheduler) { Scheduler.new('jid' => job_id) }
         let(:result_item) { JSON.load(serialized_work) }
-        let(:result_queue) { result_item['queue'] }
-        let(:result_resource) { result_item['resource'] }
+        let(:result_job_id) { result_item['jid'] }
         let(:result_work) { Sidekiq.load_json(result_item['work']) if result_item }
 
         describe 'custom parent job id' do
@@ -40,6 +39,10 @@ module Sidekiq
 
           it 'should use that job id' do
             expect(result_work['pjid']).to eq(custom_jid)
+          end
+
+          it 'should keep the schedule id in the succession queue' do
+            expect(result_job_id).to eq(result_work['jid'])
           end
 
           describe 'persisting results to redis' do
