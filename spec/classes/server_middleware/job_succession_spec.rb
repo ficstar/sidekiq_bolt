@@ -314,63 +314,69 @@ module Sidekiq
                   global_redis.set("job_failure_limit:#{successive_job_id}", failure_limit) if failure_limit
                   global_redis.set("job_failured_count:#{successive_job_id}", failure_count)
                   immediate_dependencies.each { |dependency| global_redis.sadd("dependencies:#{job_id}", dependency) }
-                  subject.call(nil, job, nil, &block) rescue nil
                 end
 
-                it 'should not enqueue the scheduled work' do
-                  expect(result_work).to be_nil
-                end
-
-                it 'should mark the parent job as failed' do
-                  subject.call(nil, job, nil, &block) rescue nil
-                  expect(global_redis.get("job_failed:#{parent_job_id}")).to eq('true')
-                end
-
-                it 'should set an expiry for the job failure key' do
-                  subject.call(nil, job, nil, &block) rescue nil
-                  expect(global_redis.ttl("job_failed:#{parent_job_id}")).to be_within(1).of(one_week)
-                end
-
-                it 'should still clear the schedule succession queue' do
-                  expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
-                end
-
-                context 'when this job has other dependencies' do
-                  let(:immediate_dependencies) { [job_id, SecureRandom.uuid] }
-
+                describe 'cleaning up scheduled work' do
                   it 'should still clear the schedule succession queue' do
+                    subject.call(nil, job, nil, &block) rescue nil
                     expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
                   end
                 end
 
-                context 'when the parent schedules jobs' do
-                  let(:dependencies) { [job_id] }
-                  let(:successive_job_id) { parent_job_id }
+                describe 'the failure' do
+                  before { subject.call(nil, job, nil, &block) rescue nil }
 
                   it 'should not enqueue the scheduled work' do
                     expect(result_work).to be_nil
                   end
 
-                  context 'when we have a retry limit' do
-                    let(:failure_limit) { 2 }
+                  it 'should mark the parent job as failed' do
+                    subject.call(nil, job, nil, &block) rescue nil
+                    expect(global_redis.get("job_failed:#{parent_job_id}")).to eq('true')
+                  end
 
-                    it 'should enqueue the scheduled work' do
-                      expect(result_work).to eq(work)
+                  it 'should set an expiry for the job failure key' do
+                    subject.call(nil, job, nil, &block) rescue nil
+                    expect(global_redis.ttl("job_failed:#{parent_job_id}")).to be_within(1).of(one_week)
+                  end
+
+                  context 'when this job has other dependencies' do
+                    let(:immediate_dependencies) { [job_id, SecureRandom.uuid] }
+
+                    it 'should still clear the schedule succession queue' do
+                      expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                    end
+                  end
+
+                  context 'when the parent schedules jobs' do
+                    let(:dependencies) { [job_id] }
+                    let(:successive_job_id) { parent_job_id }
+
+                    it 'should not enqueue the scheduled work' do
+                      expect(result_work).to be_nil
                     end
 
-                    it 'sets an expiry for the failure count key' do
-                      expect(global_redis.ttl("job_failured_count:#{parent_job_id}")).to be_within(1).of(one_week)
-                    end
+                    context 'when we have a retry limit' do
+                      let(:failure_limit) { 2 }
 
-                    context 'when the parent has too many child failures' do
-                      let(:failure_count) { 1 }
-
-                      it 'should not enqueue the scheduled work' do
-                        expect(result_work).to be_nil
+                      it 'should enqueue the scheduled work' do
+                        expect(result_work).to eq(work)
                       end
 
-                      it 'remove the failure count key entirely' do
-                        expect(global_redis.get("job_failured_count:#{parent_job_id}")).to be_nil
+                      it 'sets an expiry for the failure count key' do
+                        expect(global_redis.ttl("job_failured_count:#{parent_job_id}")).to be_within(1).of(one_week)
+                      end
+
+                      context 'when the parent has too many child failures' do
+                        let(:failure_count) { 1 }
+
+                        it 'should not enqueue the scheduled work' do
+                          expect(result_work).to be_nil
+                        end
+
+                        it 'remove the failure count key entirely' do
+                          expect(global_redis.get("job_failured_count:#{parent_job_id}")).to be_nil
+                        end
                       end
                     end
                   end
