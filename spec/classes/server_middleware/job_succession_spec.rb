@@ -301,7 +301,8 @@ module Sidekiq
                 let(:resource_name) { Faker::Lorem.word }
                 let(:resource) { Resource.new(resource_name) }
                 let(:queue) { Queue.new(queue_name) }
-                let(:scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'work' => work] }
+                let(:scheduled_job_id) { SecureRandom.base64 }
+                let(:scheduled_job) { Message['queue' => queue_name, 'resource' => resource_name, 'jid' => scheduled_job_id, 'work' => work] }
                 let(:result_allocation) { work_klass.from_allocations(resource_name, resource.allocate(1)) }
                 let(:result_work) { result_allocation[0].work if result_allocation[0] }
                 let(:successive_job_id) { job_id }
@@ -317,9 +318,37 @@ module Sidekiq
                 end
 
                 describe 'cleaning up scheduled work' do
-                  it 'should still clear the schedule succession queue' do
+                  let(:scheduled_parent_job_id) { SecureRandom.base64 }
+                  let(:scheduled_job_dependencies) { Faker::Lorem.sentences }
+
+                  before do
+                    global_redis.set("parent:#{scheduled_job_id}", scheduled_parent_job_id)
+                    global_redis.set("job_running:#{scheduled_job_id}", 'true')
+                    global_redis.sadd("dependencies:#{scheduled_parent_job_id}", scheduled_job_id)
+                    scheduled_job_dependencies.each do |job_id|
+                      global_redis.sadd("dependencies:#{scheduled_job_id}", job_id)
+                    end
                     subject.call(nil, job, nil, &block) rescue nil
+                  end
+
+                  it 'should clear the schedule succession queue' do
                     expect(global_redis.lrange("successive_work:#{job_id}", 0, -1)).to be_empty
+                  end
+
+                  it 'should remove scheduled job parent' do
+                    expect(global_redis.get("parent:#{scheduled_job_id}")).to be_nil
+                  end
+
+                  it 'should remove itself from the scheduled job parent dependencies' do
+                    expect(global_redis.smembers("dependencies:#{scheduled_parent_job_id}")).not_to include(scheduled_job_id)
+                  end
+
+                  it 'should remove its dependencies altogether' do
+                    expect(global_redis.smembers("dependencies:#{scheduled_job_id}")).to be_empty
+                  end
+
+                  it 'should remove scheduled job running key' do
+                    expect(global_redis.get("job_running:#{scheduled_job_id}")).to be_nil
                   end
                 end
 

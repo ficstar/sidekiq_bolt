@@ -47,7 +47,30 @@ while job_id do
             parent_failure_count = redis.call('incr', parent_failure_count_key)
             redis.call('expire', parent_failure_count_key, one_week)
         end
-        redis.call('del', scheduled_work_key)
+
+        local clear_schedules = function(scheduled_work_key)
+            local scheduled_items = redis.call('lrange', scheduled_work_key, 0, -1)
+            for _, serialized_work in ipairs(scheduled_items) do
+                local work = cjson.decode(serialized_work)
+                local schedule_running_key = namespace .. 'job_running:' .. work.jid
+                local schedule_dependency_key = namespace .. 'dependencies:' .. work.jid
+                local schedule_parent_job_key = namespace .. 'parent:' .. work.jid
+                local schedule_parent_job_id = redis.call('get', schedule_parent_job_key)
+
+                redis.call('del', schedule_running_key)
+                redis.call('del', schedule_dependency_key)
+                redis.call('del', schedule_parent_job_key)
+
+                if schedule_parent_job_id then
+                    local schedule_parent_dependency_key = namespace .. 'dependencies:' .. schedule_parent_job_id
+
+                    redis.call('del', schedule_parent_job_key)
+                    redis.call('srem', schedule_parent_dependency_key, work.jid)
+                end
+            end
+            redis.call('del', scheduled_work_key)
+        end
+        clear_schedules(scheduled_work_key)
     end
 
     if job_running or dependency_count > 0 then
