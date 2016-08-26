@@ -63,6 +63,13 @@ module Sidekiq
 
         it_behaves_like 'subscribing to a channel', 'channel1'
 
+        context 'with no channels specified' do
+          #let(:channel) { 'bolt:global' }
+          let(:channels) { nil }
+
+          it_behaves_like 'subscribing to a channel', 'bolt:global'
+        end
+
         context 'when a process identity is specified' do
           let(:message_identity) { SecureRandom.base64 }
 
