@@ -18,6 +18,7 @@ require 'sidekiq/bolt/message'
 require 'sidekiq/bolt/client'
 require 'sidekiq/bolt/scheduler'
 require 'sidekiq/bolt/child_scheduler'
+require 'sidekiq/bolt/feed_worker'
 require 'sidekiq/bolt/worker'
 require 'sidekiq/bolt/future_worker'
 
