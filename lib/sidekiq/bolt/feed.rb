@@ -4,7 +4,7 @@ module Sidekiq
       include Util
 
       def initialize(options)
-        @channels = options[:subscribed_channels] || ['bolt:global']
+        @channels = options[:subscribed_channels] || ['global']
         ThomasUtils::Future.new do
           Bolt.redis do |redis|
             redis.subscribe(*@channels) do |on|
