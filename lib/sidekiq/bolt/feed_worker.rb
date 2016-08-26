@@ -1,6 +1,7 @@
 module Sidekiq
   module Bolt
     module FeedWorker
+      attr_accessor :channel
 
       def self.included(base)
         base.instance_eval { @sidekiq_options = {channel: 'global'} }

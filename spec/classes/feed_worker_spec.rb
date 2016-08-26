@@ -49,5 +49,12 @@ module Sidekiq
       end
 
     end
+
+    describe '#channel' do
+      let(:channel) { Faker::Lorem.word }
+      subject { MockFeedWorker.new }
+      before { subject.channel = channel }
+      its(:channel) { is_expected.to eq(channel) }
+    end
   end
 end
