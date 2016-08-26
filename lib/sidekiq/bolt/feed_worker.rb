@@ -14,13 +14,23 @@ module Sidekiq
         end
 
         def perform_async(*args)
-          Bolt.redis { |redis| redis.publish(channel, message(args)) }
+          perform_async_with_options({}, *args)
+        end
+
+        def perform_async_with_options(options, *args)
+          publish_channel = options[:channel] || channel
+          Bolt.redis { |redis| redis.publish(publish_channel, message(options, args)) }
         end
 
         private
 
-        def message(args)
-          Sidekiq.dump_json('class' => to_s, 'args' => args)
+        def message(options, args)
+          item = {
+              'class' => to_s,
+              'args' => args
+          }
+          item['pid'] = options[:process_identity] if options[:process_identity]
+          Sidekiq.dump_json(item)
         end
 
         def channel
