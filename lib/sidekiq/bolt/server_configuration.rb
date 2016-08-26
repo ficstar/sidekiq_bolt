@@ -19,6 +19,7 @@ module Sidekiq
         chain.add ServerMiddleware::WorkerContext
       end
       configure_client(config)
+      Feed.new(config.options)
     end
 
     def self.configure_client(config)
