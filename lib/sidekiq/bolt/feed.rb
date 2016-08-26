@@ -9,9 +9,7 @@ module Sidekiq
           Bolt.redis do |redis|
             @redis = redis
             redis.subscribe(*@channels) do |on|
-              on.message do |channel, message|
-                handle_message(channel, message)
-              end
+              on.message(&method(:handle_message))
             end
           end
         end
