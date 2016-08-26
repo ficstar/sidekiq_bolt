@@ -86,9 +86,13 @@ module Sidekiq
           end
         end
 
+        context 'without a namespaced redis' do
+          let(:sidekiq_redis_options) { {url: 'redis://redis.dev/13'} }
+          it_behaves_like 'subscribing to a channel', 'channel1'
+        end
+
         context 'with no channels specified' do
           let(:channels) { nil }
-
           it_behaves_like 'subscribing to a channel', 'global'
         end
 

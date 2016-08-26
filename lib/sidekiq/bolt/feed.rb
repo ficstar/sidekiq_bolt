@@ -9,7 +9,11 @@ module Sidekiq
           Bolt.redis do |redis|
             redis.subscribe(*@channels) do |on|
               on.message do |channel, message|
-                clean_channel = channel.gsub(/^#{Regexp.escape(redis.namespace)}:/, '')
+                clean_channel = if redis.is_a?(Redis::Namespace)
+                                  channel.gsub(/^#{Regexp.escape(redis.namespace)}:/, '')
+                                else
+                                  channel
+                                end
                 begin
                   item = Sidekiq.load_json(message)
                   if !item['pid'] || item['pid'] == identity
