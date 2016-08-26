@@ -6,5 +6,6 @@ module Setup
   before do
     Sidekiq.logger.level = Logger::WARN
     Sidekiq.options = sidekiq_options
+    allow(ThomasUtils::Future).to receive(:new).and_yield
   end
 end

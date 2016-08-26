@@ -27,6 +27,7 @@ if Sidekiq.server?
   require 'sidekiq/bolt/processor_allocator'
   require 'sidekiq/bolt/fetch/unit_of_work'
   require 'sidekiq/bolt/fetch'
+  require 'sidekiq/bolt/feed'
 
   require 'sidekiq/bolt/exceptions/invalid_resource'
 

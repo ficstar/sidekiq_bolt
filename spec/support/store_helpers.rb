@@ -17,5 +17,6 @@ module RedisHelpers
     global_redis_conn.pipelined do
       keys.each { |key| global_redis_conn.del(key) }
     end
+    allow_any_instance_of(Redis).to receive(:subscribe)
   end
 end
