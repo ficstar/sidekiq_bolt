@@ -20,9 +20,11 @@ module Sidekiq
         end
       end
 
-      class MockSubscription < Struct.new(:channel, :serialized_message)
-        def message
-          yield channel, serialized_message
+      let(:subscription_klass) do
+        Struct.new(:channel, :serialized_message) do
+          def message
+            yield channel, serialized_message
+          end
         end
       end
 
@@ -43,14 +45,21 @@ module Sidekiq
         let(:work) { {'class' => TestFeedWorker.to_s, 'args' => args, 'pid' => message_identity} }
         let(:serialized_work) { Sidekiq.dump_json(work) }
         let(:subscription) { double(:subscription) }
+        let(:expected_error) { nil }
+        let(:errors) { [] }
 
         before do
           allow(subscription).to receive(:message)
           allow_any_instance_of(Redis).to receive(:subscribe) do |_, *channels, &block|
-            channels.each { |channel| block[MockSubscription.new(channel, serialized_work)] }
+            channels.each { |channel| block[subscription_klass.new(channel, serialized_work)] }
           end
           allow_any_instance_of(Feed).to receive(:identity).and_return(process_identity)
-          subject
+          allow_any_instance_of(TestFeedWorker).to receive(:perform).and_raise(expected_error) if expected_error
+          begin
+            subject
+          rescue Exception => error
+            errors << error
+          end
         end
 
         shared_examples_for 'subscribing to a channel' do |channel|
@@ -62,6 +71,20 @@ module Sidekiq
         end
 
         it_behaves_like 'subscribing to a channel', 'channel1'
+
+        context 'when working with the message causes a problem' do
+          let(:error_message) { Faker::Lorem.sentence }
+          let(:error_backtrace) { Faker::Lorem.sentences }
+          let(:expected_error) { StandardError.new(error_message).tap { |error| error.set_backtrace(error_backtrace) } }
+
+          it 'should not raise any errors' do
+            expect(errors).to be_empty
+          end
+
+          it 'should log the error' do
+            expect(global_error_log).to include("Error processing feed from channel '#{channel}': #{error_message}\n#{error_backtrace*"\n"}")
+          end
+        end
 
         context 'with no channels specified' do
           let(:channels) { nil }
