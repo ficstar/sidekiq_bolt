@@ -139,22 +139,6 @@ module Sidekiq
       describe '#perform_after_with_options' do
         let(:options) { {} }
 
-        describe 'handling FutureWorkers' do
-          let(:worker_class_base) do
-            Class.new do
-              include FutureWorker
-
-              def self.to_s
-                @name ||= Faker::Lorem.word
-              end
-            end
-          end
-
-          it 'should not support FutureWorkers' do
-            expect { scheduler.perform_after_with_options(options, worker_class) }.to raise_error(ArgumentError, 'FutureWorkers cannot be scheduled for later!')
-          end
-        end
-
         describe 'work scheduling' do
           let!(:result_jid) { scheduler.perform_after_with_options(options, worker_class, *args, &block) }
           it_behaves_like 'a method scheduling a worker'
