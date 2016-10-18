@@ -11,23 +11,24 @@ module Sidekiq
       BACKUP_WORK_DEPENDENCY_SCRIPT = File.read(BACKUP_WORK_SCRIPT_PATH)
 
       def skeleton_push(item)
-        if item['resource'] == Resource::ASYNC_LOCAL_RESOURCE
+        if Sidekiq.server? && item['resource'] == Resource::ASYNC_LOCAL_RESOURCE
           backup_work(item)
           run_work_now(item)
-        end
-
-        unless Sidekiq.server? && allocate_worker(item) { schedule_local_work(item) }
-          enqueue_item(item)
+        else
+          resource = Resource.new(item['resource'])
+          unless Sidekiq.server? && allocate_worker(resource) { schedule_local_work(resource, item) }
+            enqueue_item(item)
+          end
         end
       end
 
-      def allocate_worker(item, &block)
-        Fetch.processor_allocator.allocate(1, item['resource'], &block).nonzero?
+      def allocate_worker(resource, &block)
+        Fetch.processor_allocator.allocate(1, resource.type, &block).nonzero?
       end
 
-      def schedule_local_work(item)
+      def schedule_local_work(resource, item)
         backup_work(item) do |allocation, work|
-          Fetch.local_queue << Fetch::UnitOfWork.new(item['queue'], allocation.to_s, item['resource'], work) if allocation
+          Fetch.local_queue << Fetch::UnitOfWork.new(item['queue'], allocation.to_s, item['resource'], work, resource.type) if allocation
         end
       end
 

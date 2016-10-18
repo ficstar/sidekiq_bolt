@@ -10,6 +10,7 @@ module Sidekiq
 
       let(:queue_name) { Faker::Lorem.word }
       let(:resource_name) { Faker::Lorem.word }
+      let(:resource_type) { nil }
       let(:klass) { Faker::Lorem.word }
       let(:args) { Faker::Lorem.paragraphs }
       let(:at) { nil }
@@ -34,6 +35,7 @@ module Sidekiq
       let(:sidekiq_options) { {concurrency: 0} }
 
       before do
+        resource.type = resource_type
         allow_any_instance_of(Client).to receive(:identity).and_return(worker_id)
       end
 
@@ -104,9 +106,13 @@ module Sidekiq
         end
 
         context 'when we have local workers available to perform this work' do
-          let(:sidekiq_options) { {concurrency: 1, concurrency_pool: {resource_name => 1}} }
+          let(:resource_type) { Faker::Lorem.sentence }
+          let(:sidekiq_options) { {concurrency: 1, concurrency_pool: {resource_type => 1}} }
           let(:resource_limit) { nil }
           let(:klass) { MockWorker.to_s }
+          let(:expected_work) do
+            Fetch::UnitOfWork.new(queue_name, '-1', resource_name, Sidekiq.dump_json(item), resource_type)
+          end
 
           before { resource.limit = resource_limit }
 
@@ -114,13 +120,13 @@ module Sidekiq
 
           it 'should allocate a worker' do
             subject.skeleton_push(item)
-            expect(Fetch.processor_allocator.allocation(resource_name)).to eq(1)
+            expect(Fetch.processor_allocator.allocation(resource_type)).to eq(1)
           end
 
           it 'should add a UnitOfWork to the local_queue of the Fetch' do
             subject.skeleton_push(item)
             work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
-            expect(work).to eq(Fetch::UnitOfWork.new(queue_name, '-1', resource_name, Sidekiq.dump_json(item)))
+            expect(work).to eq(expected_work)
           end
 
           context 'when the resource has a limit' do
@@ -138,11 +144,14 @@ module Sidekiq
 
             context 'when some room is left' do
               let(:resource_allocation) { 2 }
+              let(:expected_work) do
+                Fetch::UnitOfWork.new(queue_name, '3', resource_name, Sidekiq.dump_json(item), resource_type)
+              end
 
               it 'should add a UnitOfWork to the local_queue of the Fetch' do
                 subject.skeleton_push(item)
                 work = (Fetch.local_queue.pop unless Fetch.local_queue.empty?)
-                expect(work).to eq(Fetch::UnitOfWork.new(queue_name, '3', resource_name, Sidekiq.dump_json(item)))
+                expect(work).to eq(expected_work)
               end
 
               it 'should remove the allocation' do
