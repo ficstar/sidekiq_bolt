@@ -1,7 +1,7 @@
 module Sidekiq
   module Bolt
     class Fetch
-      UnitOfWork = Struct.new(:queue, :allocation, :resource_name, :job) do
+      UnitOfWork = Struct.new(:queue, :allocation, :resource_name, :job, :processor_type) do
         alias :queue_name :queue
         alias :message :job
 

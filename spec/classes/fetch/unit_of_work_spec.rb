@@ -25,6 +25,12 @@ module Sidekiq
       its(:job) { is_expected.to eq(work) }
       its(:message) { is_expected.to eq(work) }
 
+      describe '#processor_type' do
+        let(:processor_type) { Faker::Lorem.word }
+        before { subject.processor_type = processor_type }
+        its(:processor_type) { is_expected.to eq(processor_type) }
+      end
+
       shared_examples_for 'freeing up a resource' do |method|
         it 'should free the work from the resource' do
           expect_any_instance_of(Resource).to receive(:free) do |resource, queue_name, allocation, job|
