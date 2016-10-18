@@ -9,6 +9,10 @@ module Sidekiq
         @resources = if @options[:concurrency_pool]
                        default_resources_consumed = @options[:concurrency_pool].values.reduce(&:+).to_i
                        default_resources_left = max_concurrency - default_resources_consumed
+                       @options[:concurrency_pool].each do |name, size|
+                         executor_key_two = :"sidekiq_bolt_#{name}"
+                         ThomasUtils::ExecutorCollection.build(executor_key_two, size, 0)
+                       end
                        @options[:concurrency_pool].merge(nil => default_resources_left)
                      else
                        {nil => max_concurrency}

@@ -7,6 +7,43 @@ module Sidekiq
       let(:options) { {} }
       let(:allocator) { ProcessorAllocator.new(options) }
 
+      describe 'configuring ExecutorServices' do
+        let(:concurrency) { 100 }
+        let(:resource_concurrency) { rand(1..concurrency) }
+        let(:resource_type) { Faker::Lorem.word }
+        let(:pool) { {resource_type => resource_concurrency} }
+        let(:options) { {concurrency: concurrency, concurrency_pool: pool} }
+        let(:executor_key) { :"sidekiq_bolt_#{resource_type}" }
+
+        before { ProcessorAllocator.new(options) }
+
+        subject { ThomasUtils::ExecutorCollection[executor_key] }
+
+        its(:max_length) { is_expected.to eq(resource_concurrency) }
+        its(:max_queue) { is_expected.to be_zero }
+
+        context 'with multiple executors' do
+          let(:half_concurrency) { concurrency / 2 }
+          let(:resource_concurrency) { rand(1..half_concurrency) }
+          let(:resource_concurrency_two) { rand(1..half_concurrency) }
+          let(:resource_type_two) { Faker::Lorem.word }
+          let(:pool) { {resource_type => resource_concurrency, resource_type_two => resource_concurrency_two} }
+          let(:executor_key_two) { :"sidekiq_bolt_#{resource_type_two}" }
+
+          describe 'the first executor' do
+            its(:max_length) { is_expected.to eq(resource_concurrency) }
+            its(:max_queue) { is_expected.to be_zero }
+          end
+
+          describe 'the second executor' do
+            subject { ThomasUtils::ExecutorCollection[executor_key_two] }
+
+            its(:max_length) { is_expected.to eq(resource_concurrency_two) }
+            its(:max_queue) { is_expected.to be_zero }
+          end
+        end
+      end
+
       describe '#allocate' do
         shared_examples_for 'allocating for a resource type' do |type|
           let(:allocation) { 1 }
