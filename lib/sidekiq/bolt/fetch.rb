@@ -56,7 +56,10 @@ module Sidekiq
           if workers_available
             work, workers_left = allocate_work(resource, workers_available)
             release_workers(resource, workers_left) if workers_left.nonzero?
-            return work if work
+            if work
+              work.processor_type = resource.type
+              return work
+            end
           end
         end
         nil

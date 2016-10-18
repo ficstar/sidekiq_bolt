@@ -168,7 +168,8 @@ module Sidekiq
 
           let(:work) { SecureRandom.uuid }
           let(:work_two) { SecureRandom.uuid }
-          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, '-1', resource.name, work) }
+          let(:expected_processor_type) { resource_type }
+          let(:expected_work) { Fetch::UnitOfWork.new(queue_name, '-1', resource.name, work, expected_processor_type) }
 
           before do
             resource.add_work(queue_name, work)
