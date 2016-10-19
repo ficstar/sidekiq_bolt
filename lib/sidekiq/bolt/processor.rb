@@ -11,8 +11,9 @@ module Sidekiq
         Sidekiq.server_middleware.invoke(worker, msg, work.queue_name) do
           ack = true
           worker.resource_allocation = work.allocation
-          executor = work.processor_type ? :"sidekiq_bolt_#{work.processor_type}" : :immediate
-          ThomasUtils::Future.successive(executor: executor) { execute_job(worker, cloned(msg['args'])) }
+          ThomasUtils::Future.successive(executor: worker_executor(work)) do
+            execute_job(worker, cloned(msg['args']))
+          end
         end
       end.fallback do |error|
         handle_exception(error, msg)
@@ -22,6 +23,12 @@ module Sidekiq
       end
       @boss.async.processor_done(current_actor)
       future
+    end
+
+    private
+
+    def worker_executor(work)
+      work.processor_type ? :"sidekiq_bolt_#{work.processor_type}" : :immediate
     end
 
   end
