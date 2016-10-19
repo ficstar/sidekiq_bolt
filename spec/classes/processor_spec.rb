@@ -41,6 +41,29 @@ module Sidekiq
         processor.process(work)
       end
 
+      it 'should execute the worker successively using a Future with an immediate executor' do
+        expect(ThomasUtils::Future).to receive(:successive).with(executor: :immediate) do |&block|
+          expect_any_instance_of(MockProcessorWorker).to receive(:perform)
+          block.call
+        end
+        processor.process(work)
+      end
+
+      context 'with a custom processor type set' do
+        let(:processor_type) { Faker::Lorem.word }
+        let(:expected_executor) { :"sidekiq_bolt_#{work.processor_type}" }
+
+        before { work.processor_type = processor_type }
+
+        it 'should execute the worker successively using a Future with the specified executor' do
+          expect(ThomasUtils::Future).to receive(:successive).with(executor: expected_executor) do |&block|
+            expect_any_instance_of(MockProcessorWorker).to receive(:perform)
+            block.call
+          end
+          processor.process(work)
+        end
+      end
+
       it 'should acknowledge the work' do
         expect(work).to receive(:acknowledge)
         processor.process(work)

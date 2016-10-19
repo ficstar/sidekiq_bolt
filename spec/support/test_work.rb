@@ -2,7 +2,7 @@ module TestWork
   extend RSpec::Core::SharedContext
 
   let(:work_klass) do
-    Struct.new(:queue, :resource, :allocation, :work) do
+    Struct.new(:queue, :resource, :allocation, :work, :processor_type) do
       def self.from_allocations(resource, allocations)
         allocations.each_slice(3).map { |allocation| from_allocation(resource, allocation) }
       end
