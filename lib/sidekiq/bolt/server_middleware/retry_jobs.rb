@@ -25,7 +25,20 @@ module Sidekiq
         NAMESPACE_KEY = [''].freeze
 
         def call(worker, job, _)
+          error_handlers = Sidekiq.options[:error_handlers]
           ThomasUtils::Future.none.then { yield }.fallback do |error|
+            error_handler = if error_handlers
+                              error_type = error.class
+                              handler = error_handlers.find { |type, _| error_type <= type }
+                              handler[1] if handler
+                            end
+
+            if error_handler
+              error_handler.call
+            else
+              ThomasUtils::Future.error(error)
+            end
+          end.fallback do |error|
             ThomasUtils::Future.none.then do
               handle_retry(error, job, worker)
             end.then do

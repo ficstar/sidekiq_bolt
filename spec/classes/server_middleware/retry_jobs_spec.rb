@@ -53,6 +53,55 @@ module Sidekiq
               expect(resource.retrying).to eq(1)
             end
 
+            context 'when a retry handler is provided for this error type' do
+              let(:error_handler_class) { error.class }
+              let(:error_handler_result) { Faker::Lorem.sentence }
+              let(:error_handler_block) { ->() { error_handler_result } }
+              let(:sidekiq_options) do
+                {
+                    concurrency: 0,
+                    error_handlers: {error_handler_class => error_handler_block}
+                }
+              end
+
+              it 'should NOT count this work as retrying' do
+                subject.call(worker, job, nil) { raise error }
+                expect(resource.retrying).to eq(0)
+              end
+
+              it 'should return the value of the handler block' do
+                result = subject.call(worker, job, nil) { raise error }.get
+                expect(result).to eq(error_handler_result)
+              end
+
+              context 'when the error handler itself raises an error' do
+                let(:error_handler_block) { ->() { raise 'It blew up!' } }
+
+                it 'should count this work as retrying' do
+                  subject.call(worker, job, nil) { raise error }
+                  expect(resource.retrying).to eq(1)
+                end
+              end
+
+              context 'when the error handler handles a different type of error' do
+                let(:error_handler_class) { Interrupt }
+
+                it 'should count this work as retrying' do
+                  subject.call(worker, job, nil) { raise error }
+                  expect(resource.retrying).to eq(1)
+                end
+
+                context 'when our error is a subclass of that error' do
+                  let(:error_handler_class) { Exception }
+
+                  it 'should NOT count this work as retrying' do
+                    subject.call(worker, job, nil) { raise error }
+                    expect(resource.retrying).to eq(0)
+                  end
+                end
+              end
+            end
+
             it 'should add this work back to the resource' do
               subject.call(worker, job, nil) { raise error }
               expect(error_job).to include(original_job)
