@@ -16,17 +16,32 @@ module Sidekiq
         end
       end
 
-      def self.invoke_handler(worker, job, error)
-        error_klass = error.class
-        error_handler = Sidekiq.options[:error_handlers] && Sidekiq.options[:error_handlers].find do |handler_klass, _|
-          error_klass <= handler_klass
+      class << self
+        def invoke_handler(worker, job, error)
+          error_handler = error_handler(error.class)
+          if error_handler
+            call_handler(error, error_handler, job, worker)
+            true
+          else
+            false
+          end
         end
-        if error_handler
+
+        private
+
+        def call_handler(error, error_handler, job, worker)
           _, handler = error_handler
           handler.call(worker, job, error)
-          true
-        else
-          false
+        end
+
+        def error_handler(error_klass)
+          error_handlers && error_handlers.find do |handler_klass, _|
+            error_klass <= handler_klass
+          end
+        end
+
+        def error_handlers
+          Sidekiq.options[:error_handlers]
         end
       end
     end
