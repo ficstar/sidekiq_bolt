@@ -31,6 +31,8 @@ if Sidekiq.server?
 
   require 'sidekiq/bolt/exceptions/invalid_resource'
 
+  require 'sidekiq/bolt/error_handler'
+
   require 'sidekiq/bolt/server_middleware/job_meta_data'
   require 'sidekiq/bolt/server_middleware/type_safety'
   require 'sidekiq/bolt/server_middleware/job_succession'
