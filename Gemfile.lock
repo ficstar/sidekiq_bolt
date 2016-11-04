@@ -9,7 +9,7 @@ GIT
 PATH
   remote: .
   specs:
-    sidekiq_bolt (0.2.1)
+    sidekiq_bolt (0.2.2)
 
 GEM
   remote: https://rubygems.org/
