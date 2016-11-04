@@ -17,7 +17,7 @@ module Sidekiq
         before { error_handler_klass.register(error_klass) }
 
         describe 'the error handler' do
-          subject { sidekiq_options[:error_handlers][error_klass] }
+          subject { sidekiq_options[:bolt_error_handlers][error_klass] }
 
           it { is_expected.to be_a_kind_of(error_handler_klass) }
         end
@@ -26,15 +26,15 @@ module Sidekiq
           let(:error_klass_two) { Faker::Lorem.sentence }
           let(:error_klass_two_handler) { ->() {} }
           let(:sidekiq_options) do
-            {concurrency: 0, error_handlers: {error_klass_two => error_klass_two_handler}}
+            {concurrency: 0, bolt_error_handlers: {error_klass_two => error_klass_two_handler}}
           end
 
           it 'should leave the existing handlers alone' do
-            expect(sidekiq_options[:error_handlers]).to include(error_klass_two => error_klass_two_handler)
+            expect(sidekiq_options[:bolt_error_handlers]).to include(error_klass_two => error_klass_two_handler)
           end
 
           describe 'the error handler' do
-            subject { sidekiq_options[:error_handlers][error_klass] }
+            subject { sidekiq_options[:bolt_error_handlers][error_klass] }
 
             it { is_expected.to be_a_kind_of(error_handler_klass) }
           end

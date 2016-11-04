@@ -15,8 +15,8 @@ module Sidekiq
         private
 
         def register_internal(error_klass)
-          Sidekiq.options[:error_handlers] ||= {}
-          Sidekiq.options[:error_handlers][error_klass] = new
+          Sidekiq.options[:bolt_error_handlers] ||= {}
+          Sidekiq.options[:bolt_error_handlers][error_klass] = new
         end
       end
 
@@ -45,7 +45,7 @@ module Sidekiq
         end
 
         def error_handlers
-          Sidekiq.options[:error_handlers]
+          Sidekiq.options[:bolt_error_handlers]
         end
       end
     end

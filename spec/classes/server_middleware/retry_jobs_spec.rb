@@ -59,7 +59,7 @@ module Sidekiq
               let(:sidekiq_options) do
                 {
                     concurrency: 0,
-                    error_handlers: {error_handler_class => error_handler_block}
+                    bolt_error_handlers: {error_handler_class => error_handler_block}
                 }
               end
 
