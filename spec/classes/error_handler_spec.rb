@@ -52,11 +52,11 @@ module Sidekiq
 
         it 'should call #call on the handler with the specified arguments' do
           expect_any_instance_of(error_handler_klass).to receive(:call).with(worker, job, error)
-          ErrorHandler.invoke(worker, job, error)
+          ErrorHandler.invoke_handler(worker, job, error)
         end
 
         it 'should return true' do
-          expect(ErrorHandler.invoke(worker, job, error)).to eq(true)
+          expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(true)
         end
 
         context 'with multiple handlers' do
@@ -72,7 +72,7 @@ module Sidekiq
 
           it 'should call #call on the correct handler' do
             expect_any_instance_of(error_handler_klass_two).to receive(:call).with(worker, job, error)
-            ErrorHandler.invoke(worker, job, error)
+            ErrorHandler.invoke_handler(worker, job, error)
           end
         end
 
@@ -80,14 +80,14 @@ module Sidekiq
           let(:error) { error_klass_two.new(Faker::Lorem.sentence) }
 
           it 'should return false' do
-            expect(ErrorHandler.invoke(worker, job, error)).to eq(false)
+            expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(false)
           end
 
           context 'when the error can be handled by an ErrorHandler registered to a parent class' do
             let(:error_klass) { Exception }
 
             it 'should return true' do
-              expect(ErrorHandler.invoke(worker, job, error)).to eq(true)
+              expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(true)
             end
           end
         end
