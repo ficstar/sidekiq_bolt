@@ -9,10 +9,14 @@ module Sidekiq
 
       module ClassMethods
         def register(error_klass)
-          MUTEX.synchronize do
-            Sidekiq.options[:error_handlers] ||= {}
-            Sidekiq.options[:error_handlers][error_klass] = new
-          end
+          MUTEX.synchronize { register_internal(error_klass) }
+        end
+
+        private
+
+        def register_internal(error_klass)
+          Sidekiq.options[:error_handlers] ||= {}
+          Sidekiq.options[:error_handlers][error_klass] = new
         end
       end
 
