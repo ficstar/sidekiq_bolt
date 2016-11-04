@@ -48,46 +48,52 @@ module Sidekiq
         let(:error_klass_two) { Interrupt }
         let(:error) { error_klass.new(Faker::Lorem.sentence) }
 
-        before { error_handler_klass.register(error_klass) }
-
-        it 'should call #call on the handler with the specified arguments' do
-          expect_any_instance_of(error_handler_klass).to receive(:call).with(worker, job, error)
-          ErrorHandler.invoke_handler(worker, job, error)
+        it 'should return false' do
+          expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(false)
         end
 
-        it 'should return true' do
-          expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(true)
-        end
+        context 'with an error handler' do
+          before { error_handler_klass.register(error_klass) }
 
-        context 'with multiple handlers' do
-          let(:error_handler_klass_two) do
-            Class.new do
-              include ErrorHandler
-              define_method(:call) { |worker, job, error|}
-            end
-          end
-          let(:error) { error_klass_two.new(Faker::Lorem.sentence) }
-
-          before { error_handler_klass_two.register(error_klass_two) }
-
-          it 'should call #call on the correct handler' do
-            expect_any_instance_of(error_handler_klass_two).to receive(:call).with(worker, job, error)
+          it 'should call #call on the handler with the specified arguments' do
+            expect_any_instance_of(error_handler_klass).to receive(:call).with(worker, job, error)
             ErrorHandler.invoke_handler(worker, job, error)
           end
-        end
 
-        context 'with a different error type' do
-          let(:error) { error_klass_two.new(Faker::Lorem.sentence) }
-
-          it 'should return false' do
-            expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(false)
+          it 'should return true' do
+            expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(true)
           end
 
-          context 'when the error can be handled by an ErrorHandler registered to a parent class' do
-            let(:error_klass) { Exception }
+          context 'with multiple handlers' do
+            let(:error_handler_klass_two) do
+              Class.new do
+                include ErrorHandler
+                define_method(:call) { |worker, job, error|}
+              end
+            end
+            let(:error) { error_klass_two.new(Faker::Lorem.sentence) }
 
-            it 'should return true' do
-              expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(true)
+            before { error_handler_klass_two.register(error_klass_two) }
+
+            it 'should call #call on the correct handler' do
+              expect_any_instance_of(error_handler_klass_two).to receive(:call).with(worker, job, error)
+              ErrorHandler.invoke_handler(worker, job, error)
+            end
+          end
+
+          context 'with a different error type' do
+            let(:error) { error_klass_two.new(Faker::Lorem.sentence) }
+
+            it 'should return false' do
+              expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(false)
+            end
+
+            context 'when the error can be handled by an ErrorHandler registered to a parent class' do
+              let(:error_klass) { Exception }
+
+              it 'should return true' do
+                expect(ErrorHandler.invoke_handler(worker, job, error)).to eq(true)
+              end
             end
           end
         end
