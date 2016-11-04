@@ -27,7 +27,7 @@ module Sidekiq
         def call(worker, job, _)
           error_handlers = Sidekiq.options[:error_handlers]
           ThomasUtils::Future.none.then { yield }.fallback do |error|
-            attempt_error_handler(error, error_handlers)
+            attempt_error_handler(worker, job, error, error_handlers)
           end.fallback do |error|
             ThomasUtils::Future.none.then do
               handle_retry(error, job, worker)
@@ -39,7 +39,7 @@ module Sidekiq
 
         private
 
-        def attempt_error_handler(error, error_handlers)
+        def attempt_error_handler(worker, job, error, error_handlers)
           error_handler = if error_handlers
                             error_type = error.class
                             handler = error_handlers.find { |type, _| error_type <= type }
@@ -47,7 +47,7 @@ module Sidekiq
                           end
 
           if error_handler
-            error_handler.call
+            error_handler.call(worker, job, error)
           else
             ThomasUtils::Future.error(error)
           end

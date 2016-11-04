@@ -56,7 +56,7 @@ module Sidekiq
             context 'when a retry handler is provided for this error type' do
               let(:error_handler_class) { error.class }
               let(:error_handler_result) { Faker::Lorem.sentence }
-              let(:error_handler_block) { ->() { error_handler_result } }
+              let(:error_handler_block) { ->(_, _, _) { error_handler_result } }
               let(:sidekiq_options) do
                 {
                     concurrency: 0,
@@ -74,8 +74,17 @@ module Sidekiq
                 expect(result).to eq(error_handler_result)
               end
 
+              describe 'calling the error handler' do
+                let(:error_handler_block) { double(:callback) }
+
+                it 'should call the error handler with the worker, job and error' do
+                  expect(error_handler_block).to receive(:call).with(worker, job, error)
+                  subject.call(worker, job, nil) { raise error }.get
+                end
+              end
+
               context 'when the error handler itself raises an error' do
-                let(:error_handler_block) { ->() { raise 'It blew up!' } }
+                let(:error_handler_block) { ->(_, _, _) { raise 'It blew up!' } }
 
                 it 'should count this work as retrying' do
                   subject.call(worker, job, nil) { raise error }
